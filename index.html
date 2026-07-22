@@ -257,17 +257,19 @@
   .toggle.on{background:var(--accent);border-color:var(--accent)}
   .toggle.on > i{left:20px;border-color:var(--accent)}
 
-  /* voice preview */
-  .play{width:44px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;
-    color:var(--accent);flex:0 0 auto}
-  .play.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .eq{display:inline-flex;gap:2px;align-items:center;height:14px}
-  .eq i{width:3px;height:6px;background:currentColor;border-radius:1px;
-    animation:eq .7s infinite ease-in-out}
-  .eq i:nth-child(2){animation-delay:.15s}
-  .eq i:nth-child(3){animation-delay:.3s}
-  @keyframes eq{0%,100%{height:5px}50%{height:14px}}
+  /* personality fine-tune sliders — wireframe-flat, 3 fixed positions.
+     A grey track with three dots; the selected dot fills with the accent. */
+  .slider{display:flex;flex-direction:column;gap:5px}
+  .slabel{font-size:13px;font-weight:600}
+  .strack{position:relative;display:flex;justify-content:space-between;align-items:center;
+    height:22px;padding:0 3px}
+  .sline{position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--line);
+    transform:translateY(-50%)}
+  .sdot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);background:#fff;
+    cursor:pointer;padding:0;position:relative;z-index:1}
+  .sdot.on{background:var(--accent);border-color:var(--accent)}
+  .sends{display:flex;justify-content:space-between}
+  .sends small{font-size:11px}
 
   /* banner / push */
   .push{position:absolute;top:56px;left:12px;right:12px;background:#fff;
@@ -441,23 +443,49 @@ const CHAT_INIT = [
   { who:"margo", text:"you're my savior. writing you into my will 🌿" },
 ];
 
-/* personalities offered when creating a character */
-const PERSONAS = [
-  { k:"Friendly",    d:"Easygoing and always happy to see you" },
-  { k:"Drama queen", d:"Every little thing is a season finale" },
-  { k:"Grump",       d:"Grumbles a lot, secretly cares deeply" },
-  { k:"Calm",        d:"Zen and gentle, unbothered by anything" },
-  { k:"Cheerful",    d:"Sunny, peppy, glass firmly half full" },
-  { k:"Shy",         d:"Quiet at first, warms up to you slowly" },
-  { k:"Sassy",       d:"Quick with a playful little comeback" },
-  { k:"Wise",        d:"An old soul who speaks in tiny proverbs" },
-];
-const VOICES = [
-  { k:"Warm",    d:"Gentle and reassuring" },
-  { k:"Bright",  d:"Upbeat and lively" },
-  { k:"Soft",    d:"Quiet and soothing" },
-  { k:"Playful", d:"Cheeky and full of fun" },
-];
+/* ───────────────── PERSONALITY MODEL (single source of truth) ─────────────────
+   Mirrors the landing-page configurator's canonical model EXACTLY. Both the
+   onboarding "create character" step and the plant-settings screen read from
+   here — presets + fine-tune sliders + labels + a sample voice phrase. Keep this
+   shape trivially diff-able with the configurator's PERSONALITIES constant.
+   `common` sliders apply to every preset; `sliders` are the preset's own.
+   Slider positions are 0/1/2 (three positions, wireframe-flat). */
+const PERSONALITIES = {
+  common: [
+    { key:"chattiness", label:"Chattiness", lo:"quiet", hi:"talkative" },
+  ],
+  presets: [
+    { k:"Friendly",    d:"Easygoing and always happy to see you",
+      sample:"Morning! So good to see you today — how are we doing?",
+      sliders:[ { key:"energy", label:"Energy", lo:"mellow", hi:"bouncy" } ] },
+    { k:"Drama queen", d:"Every little thing is a season finale",
+      sample:"This is, without question, the WORST day of my entire life. Probably.",
+      sliders:[ { key:"drama",    label:"Drama level", lo:"theatrical", hi:"full opera" },
+                { key:"selfpity", label:"Self-pity",   lo:"stoic",      hi:"tragic" } ] },
+    { k:"Grump",       d:"Grumbles a lot, secretly cares deeply",
+      sample:"Oh. It's you again. …fine, I suppose it's good to see you.",
+      sliders:[ { key:"crust",  label:"Crust",         lo:"soft grump",  hi:"old man yelling at clouds" },
+                { key:"warmth", label:"Hidden warmth", lo:"well-hidden", hi:"leaks out" } ] },
+    { k:"Calm",        d:"Zen and gentle, unbothered by anything",
+      sample:"All is well. Breathe. We're okay, you and me.",
+      sliders:[ { key:"zen", label:"Zen depth", lo:"gentle", hi:"nearly monastic" } ] },
+    { k:"Cheerful",    d:"Sunny, peppy, glass firmly half full",
+      sample:"Hey hey! What a great day to be a plant. Loving this light!",
+      sliders:[ { key:"pep", label:"Pep", lo:"sunny", hi:"confetti cannon" } ] },
+    { k:"Shy",         d:"Quiet at first, warms up to you slowly",
+      sample:"oh… hi. i, um… i'm really glad you came by.",
+      sliders:[ { key:"openness", label:"Openness", lo:"barely whispers", hi:"almost comfortable" } ] },
+    { k:"Sassy",       d:"Quick with a playful little comeback",
+      sample:"Took you long enough. I'm thriving, thanks for finally asking.",
+      sliders:[ { key:"bite", label:"Bite", lo:"playful", hi:"roast mode" } ] },
+    { k:"Wise",        d:"An old soul who speaks in tiny proverbs",
+      sample:"A leaf that bends in the wind is the one that never breaks.",
+      sliders:[ { key:"proverb", label:"Proverb density", lo:"occasional", hi:"every sentence" } ] },
+  ],
+};
+const personaByName = (k)=> PERSONALITIES.presets.find(p=>p.k===k) || PERSONALITIES.presets[0];
+// full slider set for a preset = the shared Chattiness slider + the preset's own
+const slidersFor = (k)=> [...PERSONALITIES.common, ...personaByName(k).sliders];
 const SPECIES = [
   "Ficus","Monstera","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
   "Fern","Succulent","Orchid","Spider plant","Rubber plant","Philodendron","Calathea",
@@ -538,6 +566,63 @@ function Top({title, onBack, kicker, right}){
 }
 function Toggle({on, onClick}){
   return <div className={"toggle"+(on?" on":"")} onClick={onClick}><i/></div>;
+}
+
+/* One wireframe-flat fine-tune slider: 3 fixed positions (0/1/2). */
+function Slider({label, lo, hi, val, onChange}){
+  return <div className="slider">
+    <div className="slabel">{label}</div>
+    <div className="strack">
+      <span className="sline"/>
+      {[0,1,2].map(i=>(
+        <button key={i} className={"sdot"+(val===i?" on":"")}
+          aria-label={label+": "+[lo,"balanced",hi][i]} onClick={()=>onChange(i)}/>
+      ))}
+    </div>
+    <div className="sends"><small className="muted">{lo}</small><small className="muted">{hi}</small></div>
+  </div>;
+}
+
+/* Shared personality picker — the SINGLE UI for personality, used identically by
+   both onboarding (create character) and plant settings. Preset list, then the
+   fine-tune sliders for the selected preset, then a live voice-preview line. */
+function PersonalityPicker({initial="Friendly"}){
+  const [preset,setPreset] = useState(personaByName(initial).k);
+  const [tune,setTune]     = useState({}); // slider key -> 0/1/2 (default middle)
+  const cur   = personaByName(preset);
+  const list  = slidersFor(preset);
+  const pos   = (key)=> (key in tune ? tune[key] : 1);
+  // changing preset resets the fine-tune to neutral for the new preset's sliders
+  const pick  = (k)=>{ setPreset(k); setTune({}); };
+  const setSlider = (key,i)=> setTune(t=>({...t,[key]:i}));
+  return <div className="col" style={{gap:12}}>
+    <div className="field"><label>Personality</label>
+      <div className="col">
+        {PERSONALITIES.presets.map(x=>(
+          <div key={x.k} className={"opt"+(preset===x.k?" on":"")} onClick={()=>pick(x.k)}>
+            <b>{x.k}</b><small>{x.d}</small>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* fine-tune sliders — shown for the selected preset (always one selected) */}
+    <div className="field"><label>Fine-tune {cur.k}</label>
+      <div className="card col" style={{gap:18}}>
+        {list.map(s=>(
+          <Slider key={s.key} label={s.label} lo={s.lo} hi={s.hi}
+            val={pos(s.key)} onChange={i=>setSlider(s.key,i)}/>
+        ))}
+      </div>
+    </div>
+
+    {/* live voice preview — updates on preset change AND on any slider change */}
+    <div className="card col" style={{gap:4}}>
+      <small className="muted">{cur.k} voice · preview</small>
+      <p>“{cur.sample}”</p>
+      <small className="muted">{list.map(s=>[s.lo,"balanced",s.hi][pos(s.key)]).join(" · ")}</small>
+    </div>
+  </div>;
 }
 
 /* ───────────────── DASHBOARD ───────────────── */
@@ -845,7 +930,6 @@ function Growth({params}){
 function PlantSettings({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
-  const [persona,setPersona] = useState(p.persona);
   const [quiet,setQuiet] = useState(true);
   return <div className="screen">
     <Top title={p.name} onBack={nav.back} kicker="Plant personality"/>
@@ -856,11 +940,8 @@ function PlantSettings({params}){
       <button className="btn sm">Change photo</button>
     </div>
     <div className="field"><label>Name</label><input defaultValue={p.name}/></div>
-    <div className="field"><label>Personality</label>
-      <div className="row" style={{flexWrap:"wrap"}}>
-        {PERSONAS.map(x=><div key={x.k} className={"chip"+(persona===x.k?" on":"")}
-          style={{flex:"1 1 40%"}} onClick={()=>setPersona(x.k)}>{x.k}</div>)}
-      </div></div>
+    {/* personality — the single shared picker, seeded with this plant's preset */}
+    <PersonalityPicker initial={p.persona}/>
     <div className="card spread"><div><b>Quiet hours</b><br/><small className="muted">Don't disturb 10pm–8am</small></div>
       <Toggle on={quiet} onClick={()=>setQuiet(!quiet)}/></div>
     <div className="card spread"><div><b>Messages from {p.name.split(" ")[0]}</b><br/><small className="muted">Check-ins and reactions</small></div>
@@ -1162,16 +1243,12 @@ function SpeciesDetail({params}){
   </div>;
 }
 
-/* Step 3 — create the character (name, personality, voice preview) */
+/* Step 3 — create the character (name + personality; voice is the preset's sample) */
 function CreateCharacter({params}){
   const nav = useNav();
   const species = (params&&params.species)||"your plant";
   const [name,setName] = useState("");
-  const [persona,setPersona] = useState("Friendly");
-  const [voice,setVoice] = useState("Warm");
-  const [playing,setPlaying] = useState(null);
   const finalName = name.trim() || "your plant";
-  const play = (k)=> setPlaying(p=> p===k ? null : k);
   return <div className="screen">
     <Top title="Create their character" onBack={nav.back} kicker={`New plant · step 3 of 3 · ${species}`}/>
     <div className="center"><Photo round w={120} h={120} label="PLANT PHOTO" style={{margin:"0 auto"}}/></div>
@@ -1179,30 +1256,8 @@ function CreateCharacter({params}){
     <div className="field"><label>Name</label>
       <input value={name} onChange={e=>setName(e.target.value)} placeholder="What should we call them?"/></div>
 
-    <div className="field"><label>Personality</label>
-      <div className="col">
-        {PERSONAS.map(x=>(
-          <div key={x.k} className={"opt"+(persona===x.k?" on":"")} onClick={()=>setPersona(x.k)}>
-            <b>{x.k}</b><small>{x.d}</small>
-          </div>
-        ))}
-      </div></div>
-
-    <div className="field"><label>Voice</label>
-      <div className="col">
-        {VOICES.map(v=>(
-          <div key={v.k} className={"opt spread"+(voice===v.k?" on":"")} onClick={()=>setVoice(v.k)}>
-            <div><b>{v.k}</b><small>{v.d}</small></div>
-            {/* playback state shown inside the button only — no layout shift */}
-            <button className={"play"+(playing===v.k?" on":"")}
-              onClick={e=>{e.stopPropagation(); play(v.k);}}
-              title={playing===v.k?"Playing — tap to stop":"Play a sample"}>
-              {playing===v.k ? <span className="eq"><i/><i/><i/></span> : "▶"}
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
+    {/* personality — the single shared picker (presets + fine-tune + voice preview) */}
+    <PersonalityPicker initial="Friendly"/>
 
     <div style={{flex:1}}/>
     <button className="btn primary" onClick={()=>nav.go("meeting",{name:finalName})}>Say hello 👋</button>

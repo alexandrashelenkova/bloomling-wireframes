@@ -315,3 +315,30 @@ Shell-only changes; the phone mockup and everything inside the app screen are un
 - **Phone vertically + horizontally centered** via `#root{display:flex;justify-content:center;align-items:safe center;min-height:100vh}`. Chose the `align-items:safe center` keyword over plain `center` so that when the viewport is shorter than the 844px phone it falls back to top-alignment and the page scrolls — the phone is never clipped out of reach. Rationale: brief (1).
 - **Flow index panel de-chromed & centered:** removed the background card, border, radius and padding container — text now sits directly on the dark canvas; vertically centered against the phone with `top:50%;transform:translateY(-50%)`. Text bumped to **17px** Urbanist, line-height 1.55. Rationale: brief (3).
 - **Inverted flow-index colours for dark bg:** inactive `#B0B0B0` (contrast 6.53:1), hover `#dcdcdc` (10.33:1), active `#7FB08C` (5.73:1). Chose the light accent tint `#7FB08C` over the brand `#4A7C59` because the latter only reaches 2.91:1 on `#2b2b2b` (fails WCAG AA); the tint keeps the accent identity while staying legible. Verified all ratios ≥ AA. Rationale: brief (3).
+
+---
+
+# Revision 6 — personality model sync with the landing-page configurator
+
+## Single source of truth
+- **One `PERSONALITIES` constant** = `{ common:[…], presets:[{k,d,sample,sliders}] }`. `common` holds the shared **Chattiness** slider (every preset gets it); each preset carries its own `sliders`, its one-liner `d`, and one hardcoded `sample` voice phrase. Helpers `personaByName()` and `slidersFor()` derive everything. Rationale: brief (4) — presets + sliders + labels + samples live in exactly one place, kept structurally diff-able with the configurator.
+- **Presets: the exact 8 with the exact one-liners** from the brief (names/order unchanged from before, so no plant data drifted). Rationale: brief (1).
+- **Fine-tune sliders per preset** exactly as specified (Chattiness + Energy / Drama level + Self-pity / Crust + Hidden warmth / Zen depth / Pep / Openness / Bite / Proverb density). Rationale: brief (2).
+
+## Shared UI (both places mirror exactly)
+- **New `PersonalityPicker` component is the ONLY personality UI**, rendered identically by onboarding `CreateCharacter` and `PlantSettings`: preset list → fine-tune sliders for the selected preset → live voice-preview line. Rationale: brief ((a)+(b)) — one component guarantees the two screens can't diverge.
+- **`PlantSettings` upgraded from compact chips → the same opt-list + sliders + preview.** Rationale: "mirror EXACTLY" means the settings screen shows the same one-liners and fine-tune as onboarding, not a reduced chip row.
+- **Sliders are wireframe-flat 3-dot controls** (`.slider`/`.sdot`): grey track, three fixed positions, selected dot fills `#4A7C59`. Default = middle; **selecting a preset resets fine-tune to neutral** (fine-tune is relative to the chosen preset). Rationale: brief (2) "3 positions each, wireframe-flat".
+
+## Voice folded into personality (removed the old separate Voice picker)
+- **Deleted the old `VOICES` picker (Warm/Bright/Soft/Playful + play/eq animation) and its orphaned `.play`/`.eq` CSS.** "Voice" is now the preset's `sample` phrase, per brief (5) — keeping a second, independent voice axis would have created a competing source of truth, contradicting brief (4). Rationale: one model, one place.
+- **Voice preview line updates on BOTH preset and slider changes:** it shows the preset's sample phrase plus a second muted line echoing each slider's current end-label (e.g. "talkative · balanced · tragic"), so moving any slider visibly changes the preview. Rationale: brief (5).
+
+## Mock plants
+- **Felix→Friendly, Margot→Drama queen, Gosha→Grump were already exact — no change needed** (Vera→Calm, Basil→Cheerful also valid presets). Check-in/chat copy left as-is. Rationale: brief (3).
+
+## Out of scope (noted)
+- The **configurator project still carries the older 2-slider Warmth/Chattiness model**; syncing it is a separate task (different project). This wireframe now holds the canonical 8-preset model, and `PERSONALITIES` is shaped so the configurator can adopt the same structure with a trivial diff. Rationale: task scope is the wireframe (`./wireframes/index.html`).
+
+## Verification
+- Transformed `#app-src` through the page's Babel config (no `import`) and rendered in jsdom with **0 console errors**. Confirmed on **both** screens: 8 presets in order; Friendly→2 sliders (Chattiness+Energy), Drama queen→3 (Chattiness+Drama level+Self-pity), Grump→3 (Chattiness+Crust+Hidden warmth); preview phrase changes per preset and the slider-word line updates when a slider moves; no `PERSONAS`/`VOICES`/`.play`/`.eq` leftovers.
