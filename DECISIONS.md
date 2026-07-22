@@ -305,3 +305,13 @@ check + a playful subnote. No real checkout; idempotent (guards on `.done`).
   - Vercel scope: `wannabe-course` · project `bloomling-wireframes` (GitHub repo connected for auto-deploys).
   - Alt production aliases: `bloomling-wireframes-wannabe-course.vercel.app`, `bloomling-wireframes-alexandrashelenkova-wannabe-course.vercel.app`.
 - No interactive login was required — both `gh` and `vercel` were already authenticated (`gh`: alexandrashelenkova; `vercel whoami`: alexandrashelenkova). `vercel link` auto-added `.env*` to `.gitignore` (kept).
+
+---
+
+# Revision 5 — prototype shell polish (dark canvas, centering, flow-index restyle)
+Shell-only changes; the phone mockup and everything inside the app screen are untouched.
+
+- **Canvas → dark grey `#2b2b2b`** (`html,body`). Rationale: brief (2); mid-point of the requested #2A2A2A–#303030 range.
+- **Phone vertically + horizontally centered** via `#root{display:flex;justify-content:center;align-items:safe center;min-height:100vh}`. Chose the `align-items:safe center` keyword over plain `center` so that when the viewport is shorter than the 844px phone it falls back to top-alignment and the page scrolls — the phone is never clipped out of reach. Rationale: brief (1).
+- **Flow index panel de-chromed & centered:** removed the background card, border, radius and padding container — text now sits directly on the dark canvas; vertically centered against the phone with `top:50%;transform:translateY(-50%)`. Text bumped to **17px** Urbanist, line-height 1.55. Rationale: brief (3).
+- **Inverted flow-index colours for dark bg:** inactive `#B0B0B0` (contrast 6.53:1), hover `#dcdcdc` (10.33:1), active `#7FB08C` (5.73:1). Chose the light accent tint `#7FB08C` over the brand `#4A7C59` because the latter only reaches 2.91:1 on `#2b2b2b` (fails WCAG AA); the tint keeps the accent identity while staying legible. Verified all ratios ≥ AA. Rationale: brief (3).
