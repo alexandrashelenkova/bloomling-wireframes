@@ -298,3 +298,10 @@ check + a playful subnote. No real checkout; idempotent (guards on `.done`).
 
 ## 3. Deploy (GitHub + Vercel)
 - **Git repo initialised in `./wireframes/` only** (the deployed folder), with `.gitignore` (`node_modules/`, `.DS_Store`, `.vercel`) and a minimal static `vercel.json` (`framework:null`, `buildCommand:null`, `outputDirectory:"."`). Rationale: brief (3) — static single-file site, no build step; the configurator stays out of this repo.
+
+### Deploy results (live)
+- **GitHub repo (public):** https://github.com/alexandrashelenkova/bloomling-wireframes
+- **Vercel production URL:** https://bloomling-wireframes.vercel.app  (HTTP 200, serves the wireframe `index.html`; verified live)
+  - Vercel scope: `wannabe-course` · project `bloomling-wireframes` (GitHub repo connected for auto-deploys).
+  - Alt production aliases: `bloomling-wireframes-wannabe-course.vercel.app`, `bloomling-wireframes-alexandrashelenkova-wannabe-course.vercel.app`.
+- No interactive login was required — both `gh` and `vercel` were already authenticated (`gh`: alexandrashelenkova; `vercel whoami`: alexandrashelenkova). `vercel link` auto-added `.env*` to `.gitignore` (kept).
