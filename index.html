@@ -293,17 +293,22 @@
   .ptile small{font-size:10px;color:var(--mut)}
   .ptile.on small{color:var(--accent)}
 
-  /* low-fi 3-position range slider — grey track, accent fill + handle, no shadow */
+  /* low-fi CONTINUOUS range slider (native input) — grey track, accent fill via an
+     inline gradient, accent round handle, no shadow. touch-action:none so dragging
+     the handle never scrolls the screen. */
   .range{display:flex;flex-direction:column;gap:3px}
   .range-lab{display:flex;justify-content:space-between;font-size:12px}
   .range-lab b{font-weight:600}
   .range-lab small{color:var(--mut)}
-  .rtrack{position:relative;height:6px;background:var(--line);border-radius:999px;margin:12px 9px}
-  .rfill{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:999px}
-  .rhandle{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;
-    background:var(--accent);border:2px solid #fff;transform:translate(-50%,-50%)}
-  .rhits{position:absolute;inset:-11px 0;display:flex}
-  .rhits button{flex:1;background:transparent;border:0;cursor:pointer;padding:0}
+  input[type=range].rng{-webkit-appearance:none;appearance:none;width:100%;height:6px;
+    border:0;padding:0;margin:12px 0;border-radius:999px;background:var(--line);
+    outline:none;cursor:pointer;touch-action:none}
+  input[type=range].rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid #fff;cursor:pointer}
+  input[type=range].rng::-moz-range-thumb{width:20px;height:20px;border:2px solid #fff;
+    border-radius:50%;background:var(--accent);cursor:pointer}
+  input[type=range].rng::-moz-range-track{height:6px;border-radius:999px;background:var(--line)}
+  input[type=range].rng::-moz-range-progress{height:6px;border-radius:999px;background:var(--accent)}
 
   /* banner / push */
   .push{position:absolute;top:56px;left:12px;right:12px;background:#fff;
@@ -481,46 +486,51 @@ const CHAT_INIT = [
    Six presets, each with default positions for THREE fixed sliders
    (warmth / drama / chattiness) and a small set of in-character line variants.
    Both the onboarding "create character" tuner and the plant-settings screen
-   read from here. Slider positions are 0 / 1 / 2. */
+   read from here. Slider values are CONTINUOUS 0–100. `words` is the spread of
+   labels the handle passes through (index = which fifth of the range it's in). */
 const SLIDERS = [
-  { key:"warmth",     label:"Warmth",     lo:"Dry",         hi:"Affectionate" },
-  { key:"drama",      label:"Drama",      lo:"Understated", hi:"Theatrical"   },
-  { key:"chattiness", label:"Chattiness", lo:"Rarely",      hi:"Often"        },
+  { key:"warmth",     label:"Warmth",     words:["Dry","Reserved","Balanced","Warm","Affectionate"] },
+  { key:"drama",      label:"Drama",      words:["Understated","Subtle","Balanced","Dramatic","Theatrical"] },
+  { key:"chattiness", label:"Chattiness", words:["Rarely","Occasional","Balanced","Chatty","Often"] },
 ];
+// map a 0–100 value to its word in a spread (equal buckets)
+const wordFor = (words, val)=> words[Math.min(words.length-1, Math.floor(val/(100/words.length)))];
+// thresholds that flip the sample-line variants (top / bottom fifth-ish)
+const HI = 66, LO = 34;
 const PERSONALITIES = {
   sliders: SLIDERS,
   presets: [
-    { k:"Friendly", d:"Warm & easy", defaults:{warmth:2, drama:1, chattiness:2},
+    { k:"Friendly", d:"Warm & easy", defaults:{warmth:84, drama:50, chattiness:84},
       lines:{
         terse:"Hey! Good to see you.",
         base:"Morning! So good to see you today — how are we doing?",
         big:"There you are! Honestly, you just made my whole day.",
         warm:"Missed you, you know.", dry:"Oh. Hello." } },
-    { k:"Drama queen", d:"Season finale", defaults:{warmth:1, drama:2, chattiness:2},
+    { k:"Drama queen", d:"Season finale", defaults:{warmth:50, drama:84, chattiness:84},
       lines:{
         terse:"Ugh. Fine. Alive. Barely.",
         base:"This is, without question, the WORST day of my entire life. Probably.",
         big:"Call the papers — this is my FINAL act! One leaf left! Farewell, cruel windowsill!",
         warm:"…but I'm glad it's you who found me.", dry:"Whatever. You're here, I suppose." } },
-    { k:"Grump", d:"Secretly caring", defaults:{warmth:0, drama:1, chattiness:0},
+    { k:"Grump", d:"Secretly caring", defaults:{warmth:16, drama:50, chattiness:16},
       lines:{
         terse:"Hmph. You again.",
         base:"Oh. It's you. …fine, I suppose it's good you came by.",
         big:"In MY day we didn't 'check in' — we just stood there and coped! Now shut the blinds.",
         warm:"…don't let it go to your head, but I did miss you.", dry:"Don't touch anything." } },
-    { k:"Calm", d:"Zen & gentle", defaults:{warmth:1, drama:0, chattiness:1},
+    { k:"Calm", d:"Zen & gentle", defaults:{warmth:50, drama:16, chattiness:50},
       lines:{
         terse:"All is well.",
         base:"All is well. Breathe. We're okay, you and me.",
         big:"Feel how the light moves through the room — nothing to fix, nothing to chase, just this.",
         warm:"I'm glad we share this quiet.", dry:"It is fine." } },
-    { k:"Cheerful", d:"Sunny & peppy", defaults:{warmth:2, drama:1, chattiness:2},
+    { k:"Cheerful", d:"Sunny & peppy", defaults:{warmth:84, drama:50, chattiness:84},
       lines:{
         terse:"Hi! Lovely day!",
         base:"Hey hey! What a great day to be a plant. Loving this light!",
         big:"WOOHOO best day EVER — sunshine, water, AND you showed up?! I could burst!",
         warm:"So happy you're here!", dry:"…nice day, I guess." } },
-    { k:"Sassy", d:"Playful bite", defaults:{warmth:1, drama:2, chattiness:1},
+    { k:"Sassy", d:"Playful bite", defaults:{warmth:50, drama:84, chattiness:50},
       lines:{
         terse:"Oh, look who it is.",
         base:"Took you long enough. I'm thriving, thanks for finally asking.",
@@ -530,14 +540,14 @@ const PERSONALITIES = {
 };
 const personaByName = (k)=> PERSONALITIES.presets.find(p=>p.k===k) || PERSONALITIES.presets[0];
 
-/* Live in-character sample line. Drama picks the base variant (theatrical → "big",
-   otherwise "base"); a quiet chattiness collapses to the "terse" variant; warmth
-   appends an affectionate or a dry tag. So nudging ANY slider changes the line. */
+/* Live in-character sample line from continuous slider values. High drama → the
+   "big" variant; low chattiness → the "terse" variant; high/low warmth appends an
+   affectionate / dry tag. So dragging ANY slider across a threshold changes it. */
 function sampleLine(k, t){
   const L = personaByName(k).lines;
-  let line = t.drama===2 ? L.big : (t.chattiness===0 ? L.terse : L.base);
-  if(t.warmth===2 && L.warm)      line += " " + L.warm;
-  else if(t.warmth===0 && L.dry)  line += " " + L.dry;
+  let line = t.drama>=HI ? L.big : (t.chattiness<=LO ? L.terse : L.base);
+  if(t.warmth>=HI && L.warm)      line += " " + L.warm;
+  else if(t.warmth<=LO && L.dry)  line += " " + L.dry;
   return line;
 }
 
@@ -630,21 +640,18 @@ function Toggle({on, onClick}){
   return <div className={"toggle"+(on?" on":"")} onClick={onClick}><i/></div>;
 }
 
-/* Low-fi 3-position range slider — grey track, accent fill + handle, no shadow.
-   Three equal click zones snap the value to 0 / 1 / 2. */
-function RangeSlider({label, lo, hi, val, onChange}){
-  const pct = val*50; // 0 / 50 / 100 %
+/* Low-fi CONTINUOUS range slider (native input, 0–100). Grey track, accent fill via
+   an inline gradient, accent handle, no shadow. Drag (mouse/touch) or tap the track;
+   the right-hand label maps to a spread of words as the handle moves. */
+function RangeSlider({label, words, val, onChange}){
+  const word = wordFor(words, val);
+  const lo = words[0], hi = words[words.length-1];
+  const fill = `linear-gradient(to right, var(--accent) ${val}%, var(--line) ${val}%)`;
   return <div className="range">
-    <div className="range-lab"><b>{label}</b><small>{[lo,"balanced",hi][val]}</small></div>
-    <div className="rtrack">
-      <div className="rfill" style={{width:pct+"%"}}/>
-      <div className="rhandle" style={{left:pct+"%"}}/>
-      <div className="rhits">
-        {[0,1,2].map(i=>(
-          <button key={i} aria-label={label+": "+[lo,"balanced",hi][i]} onClick={()=>onChange(i)}/>
-        ))}
-      </div>
-    </div>
+    <div className="range-lab"><b>{label}</b><small>{word}</small></div>
+    <input type="range" className="rng" min="0" max="100" step="1" value={val}
+      style={{background:fill}} aria-label={label+": "+word}
+      onChange={e=>onChange(Number(e.target.value))}/>
     <div className="range-lab"><small>{lo}</small><small>{hi}</small></div>
   </div>;
 }
@@ -664,7 +671,7 @@ function PresetGrid({value, onChange}){
 function FineTuning({tune, onChange}){
   return <div className="card col" style={{gap:16}}>
     {PERSONALITIES.sliders.map(s=>(
-      <RangeSlider key={s.key} label={s.label} lo={s.lo} hi={s.hi}
+      <RangeSlider key={s.key} label={s.label} words={s.words}
         val={tune[s.key]} onChange={i=>onChange(s.key,i)}/>
     ))}
   </div>;
@@ -686,19 +693,14 @@ function SpeechPreview({preset, tune, playing, onPlay, sticky, photo=100, badge}
   </div>;
 }
 
-/* Restored voice picker — timbre of the spoken line; playback shown IN the button
-   (eq animation) so the row never shifts. */
-function VoicePicker({value, onChange, playing, onPlay}){
+/* Voice picker — timbre of the spoken line. Simple selectable rows (tap to select);
+   playback lives only in the sticky preview, which speaks the line in this voice. */
+function VoicePicker({value, onChange}){
   return <div className="field"><label>Voice</label>
     <div className="col">
       {VOICES.map(v=>(
-        <div key={v.k} className={"opt spread"+(value===v.k?" on":"")} onClick={()=>onChange(v.k)}>
-          <div><b>{v.k}</b><small>{v.d}</small></div>
-          <button className={"play"+(playing===v.k?" on":"")}
-            onClick={e=>{e.stopPropagation(); onPlay(v.k);}}
-            title={playing===v.k?"Playing — tap to stop":"Play a sample"}>
-            {playing===v.k ? <span className="eq"><i/><i/><i/></span> : "▶"}
-          </button>
+        <div key={v.k} className={"opt"+(value===v.k?" on":"")} onClick={()=>onChange(v.k)}>
+          <b>{v.k}</b><small>{v.d}</small>
         </div>
       ))}
     </div>
@@ -1353,7 +1355,6 @@ function CreateCharacter({params}){
   const [tune,setTune]     = useState(personaByName("Friendly").defaults);
   const [voice,setVoice]   = useState("Warm");
   const [previewPlaying,setPreviewPlaying] = useState(false);
-  const [voicePlaying,setVoicePlaying]     = useState(null);
   const finalName = name.trim() || "your plant";
   // any change to the character stops the mock preview playback
   const pickPreset = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); setPreviewPlaying(false); };
@@ -1378,9 +1379,8 @@ function CreateCharacter({params}){
     <div className="field"><label>Fine-tune {preset}</label>
       <FineTuning tune={tune} onChange={setSlider}/></div>
 
-    {/* 5 — VOICE (timbre; in-button playback, no layout shift) */}
-    <VoicePicker value={voice} onChange={setVoice}
-      playing={voicePlaying} onPlay={(k)=>setVoicePlaying(v=>v===k?null:k)}/>
+    {/* 5 — VOICE (timbre; simple selectable rows — playback lives in the preview) */}
+    <VoicePicker value={voice} onChange={setVoice}/>
 
     {/* 6 — CTA */}
     <div style={{flex:1}}/>

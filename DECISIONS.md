@@ -370,3 +370,20 @@ Shell-only changes; the phone mockup and everything inside the app screen are un
 
 ## Verification
 - Babel transform (no imports) + jsdom render, **0 console errors**, on both screens. Confirmed: sticky preview (computed `position:sticky`); 6 tiles [Friendly|Drama queen|Grump|Calm|Cheerful|Sassy] in a 3-col grid; 3 sliders [Warmth|Drama|Chattiness]; 4 voices [Warm|Bright|Soft|Playful]; distinct per-preset bubble copy; bubble updates when a slider moves (Drama queen "big" → base when Drama→Understated, + warm tag when Warmth→Affectionate); preview & voice play both swap to the eq indicator with no layout shift; plant settings renders the same tuner with Felix→Friendly.
+
+---
+
+# Revision 8 — voice rows simplified + continuous sliders
+
+## 1. Voice options (brief 1)
+- **Removed the per-row play button and the `voicePlaying`/`onPlay` state.** Voice rows are now plain selectable `.opt` cards (tap the row to select, `#4A7C59` selected state). Playback lives only in the sticky preview, which already speaks the sample line in the selected voice. Rationale: brief (1); one playback affordance, no duplicate.
+
+## 2. Sliders: discrete → continuous (brief 2)
+- **Replaced the 3-position custom slider with a native `<input type="range" min=0 max=100 step=1>`.** Chose the native range over a hand-rolled pointer handler because it gives smooth mouse + touch dragging, tap-to-position on the track, and keyboard control for free; `touch-action:none` on the input stops the screen scrolling while dragging the handle. Rationale: brief (2) — robust cross-input dragging with the least custom code.
+- **Low-fi styling kept:** `appearance:none`, grey track, accent round handle (`::-webkit-slider-thumb` / `::-moz-range-thumb`), accent fill via an inline `linear-gradient` (webkit) and `::-moz-range-progress` (Firefox), no shadows.
+- **Value model migrated 0/1/2 → continuous 0–100.** Per-preset `defaults` remapped to {16 / 50 / 84} (preserves each preset's original opening line and lands in the right word bucket). `sampleLine` now flips variants on thresholds `HI=66` / `LO=34` instead of exact steps, so dragging any slider across a threshold changes the bubble.
+- **Right-hand label spreads across words** via `wordFor(words,val)` (equal fifths): Warmth = Dry → Reserved → Balanced → Warm → Affectionate; Drama = Understated → Subtle → Balanced → Dramatic → Theatrical; Chattiness = Rarely → Occasional → Balanced → Chatty → Often. The label updates continuously as the handle moves. Rationale: brief (2).
+- **Shared components → plant settings sliders become continuous too** (single source of truth; consistent behaviour on both screens).
+
+## Verification
+- Babel transform (no imports) + jsdom render, **0 console errors**. Confirmed: voice rows contain 0 play buttons (1 play button total = the preview), tap selects exactly one row; three `input[type=range].rng` with max=100/step=1 and `touch-action:none`; Warmth cycles through all five words 0→100 with the fill gradient tracking the value and settling at arbitrary points (e.g. 37 → "Reserved"); the preview bubble reacts to continuous drags (drama 90→Theatrical "big" line, 40→base; chattiness 5→"terse"; warmth 5→appends the dry tag).
