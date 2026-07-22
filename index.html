@@ -1,0 +1,1497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>[APP NAME] — wireframe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  :root{
+    --accent:#4A7C59;
+    --ink:#2b2b2b;
+    --mut:#7a7a7a;
+    --line:#bdbdbd;
+    --line2:#d8d8d8;
+    --bg:#efefef;
+    --card:#fafafa;
+    --box:#e4e4e4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:#c9c9c9;
+    font-family:'Urbanist',-apple-system,sans-serif;
+    color:var(--ink)}
+  /* form controls don't inherit type by default — route them to Urbanist too */
+  input,button,textarea,select{font-family:inherit}
+  #root{display:flex;justify-content:center;padding:24px 12px 40px}
+
+  /* phone frame — simplified iPhone mockup: dark body + bezel, dynamic island,
+     status bar. This is prototype-shell chrome, NOT wireframe app UI. */
+  .phone{width:412px;max-width:100%;height:844px;background:#0c0c0c;
+    border-radius:56px;padding:13px;position:relative;display:flex;flex:0 0 auto}
+  .device{flex:1;background:var(--bg);border-radius:44px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column}
+  /* dynamic island */
+  .island{position:absolute;top:9px;left:50%;transform:translateX(-50%);
+    width:112px;height:31px;background:#000;border-radius:16px;z-index:60}
+  /* status bar — constant device chrome, solid ink (never dashed/wireframe) */
+  .statusbar{flex:0 0 auto;height:48px;display:flex;align-items:center;
+    justify-content:space-between;padding:0 26px;color:var(--ink)}
+  .sb-time{font-size:14px;font-weight:600;letter-spacing:.02em}
+  .sb-right{display:flex;align-items:center;gap:6px}
+  .sb-right svg{display:block}
+  .screen{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:8px 16px 24px;
+    display:flex;flex-direction:column;gap:14px}
+  .screen::-webkit-scrollbar{width:0}
+
+  /* header */
+  .topbar{display:flex;align-items:center;gap:10px;min-height:32px}
+  .topbar h1{font-size:18px;margin:0;font-weight:700;flex:1}
+  .back{border:1px solid var(--line);background:#fff;border-radius:8px;
+    padding:6px 10px;font-size:14px;cursor:pointer;color:var(--ink)}
+  .back:active{background:#eee}
+  .kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--mut);font-weight:700}
+
+  /* [APP NAME] placeholder chip — name is undecided */
+  .brand{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;
+    color:var(--mut);background:var(--box);border:1px dashed var(--line);
+    border-radius:6px;padding:2px 7px}
+
+  /* generic */
+  .muted{color:var(--mut)}
+  .center{text-align:center}
+  .row{display:flex;gap:10px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:10px}
+  .spread{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .grow{flex:1}
+  h2{font-size:16px;margin:0 0 2px}
+  p{margin:0;line-height:1.45;font-size:14px}
+  small{font-size:12px}
+
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;
+    padding:14px}
+  .card.tap{cursor:pointer}
+  .card.tap:active{background:#f0f0f0}
+
+  /* placeholder boxes (photos / charts) */
+  .ph{background:repeating-linear-gradient(45deg,#e4e4e4,#e4e4e4 8px,#dcdcdc 8px,#dcdcdc 16px);
+    border:1px dashed var(--line);border-radius:10px;display:flex;
+    align-items:center;justify-content:center;color:var(--mut);font-size:12px;
+    letter-spacing:.08em;font-weight:700;min-height:64px}
+  .ph.round{border-radius:50%}
+
+  /* photo avatar badge (emotion glyph sits on the photo, never replaces it) */
+  .badge{position:absolute;top:4px;right:4px;min-width:26px;height:26px;padding:0 4px;
+    border-radius:999px;border:2px solid var(--line);background:#fff;display:flex;
+    align-items:center;justify-content:center;
+    font-size:11px;color:var(--ink)}
+
+  /* buttons */
+  .btn{display:block;width:100%;text-align:center;border-radius:12px;padding:14px;
+    font-size:15px;font-weight:600;cursor:pointer;border:1px solid var(--line);
+    background:#fff;color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--mut)}
+  .btn.sm{padding:9px 12px;width:auto;font-size:13px}
+  .btn[disabled]{opacity:.5;pointer-events:none}
+
+  /* face (expressive moments only — reactions, alerts) */
+  .face{width:var(--fs,56px);height:var(--fs,56px);border-radius:50%;
+    border:2px solid var(--line);background:#fff;display:flex;align-items:center;
+    justify-content:center;font-size:var(--ff,18px);
+    flex:0 0 auto;color:var(--ink)}
+  .face.big{--fs:120px;--ff:40px;border-width:3px}
+  .face.accent{border-color:var(--accent)}
+
+  /* header icon buttons + user avatar */
+  .iconbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
+    background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:17px;cursor:pointer;flex:0 0 auto;position:relative}
+  .iconbtn:active{background:#eee}
+  .avatarbtn{width:38px;height:38px;border-radius:50%;border:1px dashed var(--line);
+    background:repeating-linear-gradient(45deg,#e4e4e4,#e4e4e4 6px,#dcdcdc 6px,#dcdcdc 12px);
+    cursor:pointer;flex:0 0 auto}
+  .ndot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;
+    background:var(--accent);border:1px solid #fff}
+
+  /* status dot / pill */
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:0 0 auto}
+  .dot.ok{background:var(--accent)}
+  .dot.warn{background:#555}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
+    border-radius:999px;padding:4px 10px;font-size:12px;background:#fff}
+  .pill.accent{border-color:var(--accent);color:var(--accent);font-weight:600}
+
+  /* list */
+  .list{display:flex;flex-direction:column;gap:0}
+  .li{display:flex;gap:12px;align-items:center;padding:12px 4px;
+    border-bottom:1px solid var(--line2)}
+  .li:last-child{border-bottom:none}
+
+  /* task check */
+  .check{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);
+    background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    flex:0 0 auto;font-size:14px;color:#fff}
+  .check.done{background:var(--accent);border-color:var(--accent)}
+  .taskrow{transition:opacity .25s ease}
+  .taskrow.isdone{opacity:.55}
+  .done-txt{text-decoration:line-through;color:var(--mut)}
+
+  /* plant pager (swipeable pages of a 2x2 grid)
+     NOTE: page width is pinned to the phone content width (358px = 390 - 2*16)
+     and both pager & page carry an explicit height. A grid nested as a flex
+     child under scroll-snap otherwise collapses to zero height in Safari,
+     which is why the cards were rendering blank. */
+  .pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    margin:0 -16px;padding:4px 16px;gap:12px;min-height:372px;
+    -webkit-overflow-scrolling:touch}
+  .pager::-webkit-scrollbar{height:0;display:none}
+  .page{flex:0 0 358px;width:358px;max-width:calc(100vw - 40px);
+    scroll-snap-align:center;display:flex;flex-direction:column;gap:10px;
+    min-height:360px}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:150px;gap:10px;
+    align-content:start}
+  .plantcard{border:1px solid var(--line2);border-radius:14px;padding:8px;
+    background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:6px;
+    min-height:150px;overflow:hidden}
+  .plantcard:active{background:#f2f2f2}
+  .plantcard .photo{position:relative;height:92px}
+  .plantcard b{font-size:14px}
+  /* compact, secondary "+ add plant" tile — sits above the grid, not a peer of plant cards */
+  .addtile{border:1px dashed var(--line);border-radius:12px;background:#fff;color:var(--accent);
+    display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;
+    font-size:13px;font-weight:700;cursor:pointer;flex:0 0 auto}
+  .addtile:active{background:#f2f2f2}
+  .addtile .plus{font-size:18px;line-height:1;font-weight:400}
+  .dots{display:flex;gap:6px;justify-content:center;margin-top:2px}
+  .pgdot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .pgdot.on{background:var(--accent)}
+
+  /* progress */
+  .bar{height:12px;background:var(--box);border-radius:999px;overflow:hidden;
+    border:1px solid var(--line2)}
+  .bar > i{display:block;height:100%;background:var(--accent);width:0}
+  .bar > i.fill-anim{animation:fill 2.2s linear forwards}
+  @keyframes fill{from{width:6%}to{width:100%}}
+
+  /* spinner */
+  .spin{width:30px;height:30px;border:3px solid var(--line2);border-top-color:var(--accent);
+    border-radius:50%;animation:spin .8s linear infinite;flex:0 0 auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* radar-ish searching pulse */
+  .pulse{width:14px;height:14px;border-radius:50%;background:var(--accent);
+    animation:pulse 1.1s infinite ease-out;flex:0 0 auto}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(74,124,89,.4)}100%{box-shadow:0 0 0 12px rgba(74,124,89,0)}}
+
+  /* chat */
+  .bubble{max-width:78%;padding:10px 12px;border-radius:14px;font-size:14px;
+    border:1px solid var(--line2);background:#fff;line-height:1.4}
+  .bubble.me{background:var(--accent);color:#fff;border-color:var(--accent);
+    align-self:flex-end;border-bottom-right-radius:4px}
+  .bubble.them{align-self:flex-start;border-bottom-left-radius:4px}
+  .msg{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+  .msg.me{align-items:flex-end}
+  .who{font-size:11px;color:var(--mut);padding:0 4px}
+  .composer{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line2);
+    padding-top:10px;margin-top:auto}
+  .composer input{flex:1;border:1px solid var(--line);border-radius:999px;
+    padding:11px 14px;font-size:14px;background:#fff}
+
+  /* mini chat preview widget (dashboard) — miniature of the real chat */
+  .miniwrap{display:flex;flex-direction:column;gap:8px}
+  .minirow{display:flex;gap:6px;align-items:flex-end}
+  .minirow.me{flex-direction:row-reverse}
+  .miniava{width:24px;height:24px;min-height:0;flex:0 0 auto}
+  .minibub{max-width:72%;font-size:12px;line-height:1.35;padding:6px 9px;
+    border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)}
+  .minirow.them .minibub{border-bottom-left-radius:3px}
+  .minirow.me .minibub{background:var(--accent);color:#fff;border-color:var(--accent);
+    border-bottom-right-radius:3px}
+  .mininame{font-size:9px;color:var(--mut);margin:0 0 1px 2px}
+
+  /* auto-watering / reservoir controls (plant detail) */
+  .segrow{display:flex;gap:6px}
+  .seg{flex:1;text-align:center;border:1px solid var(--line);background:#fff;
+    border-radius:9px;padding:8px 6px;font-size:12px;cursor:pointer;color:var(--ink)}
+  .seg.on{border-color:var(--accent);color:var(--accent);font-weight:700;
+    box-shadow:inset 0 0 0 1px var(--accent)}
+  .resbar{height:14px;background:var(--box);border-radius:999px;overflow:hidden;
+    border:1px solid var(--line2)}
+  .resbar > i{display:block;height:100%;background:var(--accent)}
+  .resbar.low > i{background:#666}
+
+  /* bond hearts */
+  .hearts{font-size:14px;letter-spacing:2px}
+  .hearts .on{color:var(--accent)}
+  .hearts .off{color:var(--line)}
+
+  /* choice chips / options / toggle */
+  .chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;
+    cursor:pointer;font-size:14px;flex:1;text-align:center}
+  .chip.on{border-color:var(--accent);color:var(--accent);font-weight:700;
+    box-shadow:inset 0 0 0 1px var(--accent)}
+  .opt{border:1px solid var(--line);border-radius:12px;padding:11px 12px;cursor:pointer;
+    background:#fff}
+  .opt.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .opt b{font-size:14px}
+  .opt small{display:block;color:var(--mut);margin-top:2px}
+  .field label{font-size:12px;color:var(--mut);display:block;margin-bottom:5px;
+    text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  .field input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;
+    font-size:15px;background:#fff}
+  .toggle{width:44px;height:26px;border-radius:999px;background:var(--box);
+    border:1px solid var(--line);position:relative;cursor:pointer;flex:0 0 auto}
+  .toggle > i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+    background:#fff;border:1px solid var(--line);transition:left .12s}
+  .toggle.on{background:var(--accent);border-color:var(--accent)}
+  .toggle.on > i{left:20px;border-color:var(--accent)}
+
+  /* voice preview */
+  .play{width:44px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;
+    color:var(--accent);flex:0 0 auto}
+  .play.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .eq{display:inline-flex;gap:2px;align-items:center;height:14px}
+  .eq i{width:3px;height:6px;background:currentColor;border-radius:1px;
+    animation:eq .7s infinite ease-in-out}
+  .eq i:nth-child(2){animation-delay:.15s}
+  .eq i:nth-child(3){animation-delay:.3s}
+  @keyframes eq{0%,100%{height:5px}50%{height:14px}}
+
+  /* banner / push */
+  .push{position:absolute;top:56px;left:12px;right:12px;background:#fff;
+    border:1px solid var(--line);border-radius:14px;padding:12px 14px;z-index:20;
+    display:flex;gap:10px;align-items:center;cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.15)}
+  .push .app{width:26px;height:26px;border-radius:7px;background:var(--box);
+    color:var(--ink);display:flex;align-items:center;justify-content:center;
+    font-size:14px;flex:0 0 auto;border:1px solid var(--line)}
+
+  /* overlay / tour */
+  .overlay{position:absolute;inset:0;background:rgba(20,20,20,.62);z-index:30;
+    display:flex;align-items:flex-end;padding:18px}
+  .tourcard{background:#fff;border-radius:16px;padding:18px;width:100%}
+  .divider{height:1px;background:var(--line2);margin:2px 0}
+  .tag{font-size:11px;background:var(--box);border-radius:6px;padding:2px 7px;color:var(--mut)}
+
+  /* collapsed "done" tasks group (dashboard) */
+  .donerow{display:flex;gap:12px;align-items:center;padding:9px 4px;cursor:pointer;
+    border-top:1px solid var(--line2);color:var(--mut)}
+  .donerow .check{width:20px;height:20px;font-size:12px}
+  .donerow .chev{font-size:11px;color:var(--mut)}
+  .donecompact{padding:8px 4px}
+  .donecompact .check{width:20px;height:20px;font-size:12px}
+
+  /* full-screen camera (add-plant photo step) */
+  .camwrap{flex:1 1 auto;display:flex;flex-direction:column;background:#333;
+    overflow:hidden;position:relative}
+  .camtop{display:flex;align-items:center;gap:10px;padding:12px 14px;color:#eee}
+  .camtop .camhint{font-size:12px;color:#cfcfcf}
+  .camx{background:rgba(255,255,255,.14);border:1px solid #555;color:#fff;border-radius:8px;
+    padding:6px 10px;font-size:13px;cursor:pointer}
+  .camx:active{background:rgba(255,255,255,.28)}
+  .camguide{flex:1;margin:6px 22px;border:2px dashed rgba(255,255,255,.5);border-radius:14px;
+    display:flex;align-items:center;justify-content:center;color:#cfcfcf;font-size:12px;
+    letter-spacing:.08em;font-weight:700;text-align:center;
+    background:repeating-linear-gradient(45deg,#3a3a3a,#3a3a3a 10px,#333 10px,#333 20px)}
+  .camctrls{display:flex;align-items:center;justify-content:space-between;padding:16px 26px 22px}
+  .shutter{width:66px;height:66px;border-radius:50%;background:#fff;border:4px solid #bbb;
+    cursor:pointer;padding:0}
+  .shutter:active{transform:scale(.94)}
+  .galthumb{width:44px;height:44px;border-radius:9px;border:1px solid #666;color:#ddd;
+    background:repeating-linear-gradient(45deg,#4a4a4a,#4a4a4a 6px,#3f3f3f 6px,#3f3f3f 12px);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .camspacer{width:44px;flex:0 0 auto}
+
+  /* species reference image carousel (species-info screen)
+     NOTE: an explicit min-height on the flex row is required — without it the
+     row collapses to zero height under scroll-snap (same Safari flex-child bug
+     as the plant pager), leaving only the dot indicators visible. */
+  .carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    margin:0 -16px;padding:0 16px;gap:10px;min-height:180px;
+    -webkit-overflow-scrolling:touch}
+  .carousel::-webkit-scrollbar{height:0;display:none}
+  .cslide{flex:0 0 358px;width:358px;max-width:calc(100vw - 40px);scroll-snap-align:center;
+    height:180px;min-height:180px}
+
+  /* pinned bottom action footer (species-info / long screens) — sits inside the
+     scroll container, sticks to the bottom, and stays visible without scrolling */
+  .footer{position:sticky;bottom:0;margin:auto -16px 0;padding:12px 16px 6px;
+    background:var(--bg);border-top:1px solid var(--line2);
+    display:flex;flex-direction:column;gap:10px;z-index:5}
+
+  /* inline SVG moisture chart (diagnosis screen) */
+  .chart{display:block;width:100%;height:auto}
+
+  /* ── PROTOTYPE SHELL: flow index / shortcuts panel (dev/review tool, not app UI)
+     A flat list of flow entry points — no heading, no group labels. */
+  .flowindex{position:fixed;top:24px;right:20px;width:180px;
+    max-height:calc(100vh - 48px);overflow-y:auto;background:#f4f4f4;
+    border:1px solid var(--line2);border-radius:12px;padding:8px;
+    font-size:12px;color:var(--mut)}
+  .fi-link{padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--mut);line-height:1.3}
+  .fi-link:hover{background:#eaeaea}
+  .fi-link.on{color:var(--accent);font-weight:700;background:#e7efe9}
+  @media (max-width:1100px){ .flowindex{display:none} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- App source: type="text/plain" so Babel does NOT auto-process it.
+     The bootstrap at the bottom transforms it with the CLASSIC runtime
+     (React.createElement) so no `import` statements are ever emitted. -->
+<script type="text/plain" id="app-src">
+const { useState, useMemo, useEffect, createContext, useContext } = React;
+
+/* ───────────────── EMOTION ENUM ───────────────── */
+// content, thirsty, overwatered, low-light, sleeping, greeting, cold, hot, urgent, neutral
+const EMO = {
+  content:      { face:"^‿^",  label:"All good",     tone:"ok"   },
+  thirsty:      { face:">_<",  label:"Thirsty",      tone:"warn" },
+  overwatered:  { face:"@_@",  label:"Overwatered",  tone:"warn" },
+  "low-light":  { face:"-_-",  label:"Needs light",  tone:"warn" },
+  sleeping:     { face:"-.-",  label:"Sleeping",     tone:""     },
+  greeting:     { face:"^o^",  label:"Hi there!",    tone:"ok"   },
+  cold:         { face:":<",   label:"Cold",         tone:"warn" },
+  hot:          { face:">~<",  label:"Too hot",      tone:"warn" },
+  urgent:       { face:"O_O",  label:"Urgent!",      tone:"warn" },
+  neutral:      { face:"._.",  label:"Okay",         tone:""     },
+};
+
+/* ───────────────── MOCK DATA ───────────────── */
+const PLANTS = [
+  {
+    id:"felix", name:"Felix", species:"Ficus", persona:"Friendly",
+    emotion:"content", growth:72, lastWatered:"Today, 07:00", light:"Good",
+    reservoir:64, autoOn:true, schedule:"Every 3 days", amount:"Medium",
+    bondLevel:4, bondPct:70, bondTitle:"Close friends",
+    checkin:"Morning! I'm doing great, thanks for checking in. You're doing great too :)",
+    reaction:"Ohh, thank you! That feels lovely. I already feel better.",
+    diaryNote:"Grew a brand new leaf. Pretty proud of myself.",
+  },
+  {
+    id:"margo", name:"Margot the Monstera", species:"Monstera", persona:"Drama queen",
+    emotion:"thirsty", growth:58, lastWatered:"Yesterday, 07:00", light:"Medium",
+    reservoir:12, autoOn:true, schedule:"Every 2 days", amount:"High",
+    bondLevel:3, bondPct:45, bondTitle:"Getting close",
+    checkin:"Oh, the DRAMA. My reservoir is BONE DRY. This is the END. Well… almost. Save me.",
+    reaction:"FINALLY! You've brought me back to life. I am yours forever!",
+    diaryNote:"Survived the greatest drought in history. Writing a memoir about it.",
+  },
+  {
+    id:"gosha", name:"Gosha the Cactus", species:"Cactus", persona:"Grump",
+    emotion:"neutral", growth:41, lastWatered:"14 Jul, 09:00", light:"Lots",
+    reservoir:80, autoOn:false, schedule:"Every 10 days", amount:"Low",
+    bondLevel:2, bondPct:30, bondTitle:"Warming up",
+    checkin:"Oh. You again. Fine, I'm alive. Don't top me up, my reservoir's perfectly full.",
+    reaction:"There, you finally did it. Don't thank me — just don't overfill it.",
+    diaryNote:"Nothing happened today. Exactly how I like it.",
+  },
+  {
+    id:"vera", name:"Vera the Aloe", species:"Aloe", persona:"Calm",
+    emotion:"content", growth:65, lastWatered:"Today, 08:00", light:"Bright",
+    reservoir:58, autoOn:true, schedule:"Every 5 days", amount:"Low",
+    bondLevel:3, bondPct:52, bondTitle:"Getting close",
+    checkin:"All is well. Breathe. We're okay, you and me.",
+    reaction:"Kind of you. I feel calm and cared for. Thank you.",
+    diaryNote:"Meditated. Grew a little. Same thing, really.",
+  },
+  {
+    id:"basil", name:"Basil", species:"Basil", persona:"Cheerful",
+    emotion:"content", growth:48, lastWatered:"Today, 06:00", light:"Good",
+    reservoir:71, autoOn:true, schedule:"Every 2 days", amount:"Medium",
+    bondLevel:2, bondPct:38, bondTitle:"Warming up",
+    checkin:"Hey hey! Loving this sunshine. What a great day to be a plant!",
+    reaction:"Woohoo! Thank you thank you! Best human ever!",
+    diaryNote:"Smelled amazing all day. Modest? Never heard of her.",
+  },
+];
+const plantById = (id) => PLANTS.find(p=>p.id===id) || PLANTS[0];
+
+const TASKS_INIT = [
+  { id:"t1", plant:"felix", text:"Refill Felix's reservoir",           done:false },
+  { id:"t2", plant:"margo", text:"Refill Margot's reservoir — urgent", done:false },
+  { id:"t3", plant:"felix", text:"Wipe the leaves",                    done:false },
+  { id:"t4", plant:"gosha", text:"Check Gosha's light",                done:true  },
+];
+
+const NOTIFS = [
+  { id:"n1", plant:"margo", emo:"thirsty",  text:"Margot's reservoir is running low (5 days now!)", time:"10 min ago" },
+  { id:"n2", plant:"felix", emo:"greeting", text:"Felix says hi and shows off a new leaf 🌱",    time:"2 h ago" },
+  { id:"n3", plant:"gosha", emo:"neutral",  text:"Gosha: “All fine. Don't touch anything.”",     time:"yesterday" },
+];
+
+const CHAT_INIT = [
+  { who:"felix", text:"Morning all! Gorgeous light today ☀️" },
+  { who:"margo", text:"EASY for you to say — your reservoir got topped up yesterday. I SUFFER." },
+  { who:"gosha", text:"Quiet, you two. Some of us are trying to photosynthesize." },
+  { who:"me",    text:"Hang in there, refilling Margot's reservoir right now 💧" },
+  { who:"margo", text:"you're my savior. writing you into my will 🌿" },
+];
+
+/* personalities offered when creating a character */
+const PERSONAS = [
+  { k:"Friendly",    d:"Easygoing and always happy to see you" },
+  { k:"Drama queen", d:"Every little thing is a season finale" },
+  { k:"Grump",       d:"Grumbles a lot, secretly cares deeply" },
+  { k:"Calm",        d:"Zen and gentle, unbothered by anything" },
+  { k:"Cheerful",    d:"Sunny, peppy, glass firmly half full" },
+  { k:"Shy",         d:"Quiet at first, warms up to you slowly" },
+  { k:"Sassy",       d:"Quick with a playful little comeback" },
+  { k:"Wise",        d:"An old soul who speaks in tiny proverbs" },
+];
+const VOICES = [
+  { k:"Warm",    d:"Gentle and reassuring" },
+  { k:"Bright",  d:"Upbeat and lively" },
+  { k:"Soft",    d:"Quiet and soothing" },
+  { k:"Playful", d:"Cheeky and full of fun" },
+];
+const SPECIES = [
+  "Ficus","Monstera","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
+  "Fern","Succulent","Orchid","Spider plant","Rubber plant","Philodendron","Calathea",
+  "ZZ plant","Jade plant","Bamboo","English ivy","Lavender","Rosemary","Mint","Parlour palm",
+];
+// placeholder identity — comes from sign-up / social login in the real app
+const USER_NAME = "Alexandra";
+
+/* ───────────────── NAV ───────────────── */
+const Nav = createContext(null);
+const useNav = () => useContext(Nav);
+
+/* ───────────────── SMALL COMPONENTS ───────────────── */
+function Brand(){ return <span className="brand">[APP NAME]</span>; }
+
+/* Device status bar — part of the phone chrome, constant on every screen.
+   Solid-ink icons (time, cellular, wi-fi, battery); never wireframe-styled. */
+function StatusBar(){
+  const ink = "#2b2b2b";
+  return <div className="statusbar">
+    <span className="sb-time">9:41</span>
+    <span className="sb-right">
+      {/* cellular signal */}
+      <svg width="18" height="11" viewBox="0 0 18 11" fill={ink} aria-hidden="true">
+        <rect x="0"    y="7"   width="3" height="4"   rx="1"/>
+        <rect x="5"    y="5"   width="3" height="6"   rx="1"/>
+        <rect x="10"   y="2.5" width="3" height="8.5" rx="1"/>
+        <rect x="15"   y="0"   width="3" height="11"  rx="1"/>
+      </svg>
+      {/* wi-fi */}
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke={ink}
+        strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+        <path d="M1.2 4.3a11 11 0 0 1 14.6 0"/>
+        <path d="M3.8 7a7 7 0 0 1 9.4 0"/>
+        <path d="M6.4 9.5a3.2 3.2 0 0 1 4.2 0"/>
+        <circle cx="8.5" cy="11" r="0.6" fill={ink} stroke="none"/>
+      </svg>
+      {/* battery */}
+      <svg width="27" height="12" viewBox="0 0 27 12" fill="none" aria-hidden="true">
+        <rect x="0.5" y="0.5" width="22" height="11" rx="3" stroke={ink}/>
+        <rect x="2"   y="2"   width="15" height="8"  rx="1.5" fill={ink}/>
+        <rect x="24"  y="4"   width="2"  height="4"  rx="1" fill={ink}/>
+      </svg>
+    </span>
+  </div>;
+}
+
+function Face({emotion, big, accent}){
+  const e = EMO[emotion] || EMO.neutral;
+  return <div className={"face"+(big?" big":"")+(accent?" accent":"")}>{e.face}</div>;
+}
+
+// Photo placeholder — the avatar. Emotion (if any) rides along as a corner badge.
+function Photo({label="PHOTO", w, h=90, round, badge, style}){
+  const e = badge && (EMO[badge] || EMO.neutral);
+  return <div className={"ph"+(round?" round":"")}
+    style={Object.assign({height:h, width:w, position:"relative", flex:w?"0 0 auto":undefined}, style||{})}>
+    [{label}]
+    {e && <span className="badge">{e.face}</span>}
+  </div>;
+}
+
+function StatusPill({emotion}){
+  const e = EMO[emotion] || EMO.neutral;
+  return <span className={"pill"+(e.tone==="ok"?" accent":"")}>
+    <span className={"dot "+(e.tone==="ok"?"ok":e.tone==="warn"?"warn":"")}></span>{e.label}
+  </span>;
+}
+function Top({title, onBack, kicker, right}){
+  return <div className="col" style={{gap:4}}>
+    <div className="topbar">
+      {onBack && <button className="back" onClick={onBack}>‹ Back</button>}
+      <h1>{title}</h1>
+      {right}
+    </div>
+    {kicker && <div className="kicker">{kicker}</div>}
+  </div>;
+}
+function Toggle({on, onClick}){
+  return <div className={"toggle"+(on?" on":"")} onClick={onClick}><i/></div>;
+}
+
+/* ───────────────── DASHBOARD ───────────────── */
+function Dashboard({params}){
+  const nav = useNav();
+  const { tasks, tourSeen, setTourSeen } = useApp();
+  // show the welcome tour only on the very first arrival, never again this session
+  const [tour,setTour] = useState(!!(params&&params.tour) && !tourSeen);
+  const [pg,setPg] = useState(0);
+  useEffect(()=>{ if(tour) setTourSeen(true); },[]);
+  const dismissTour = ()=>{ setTour(false); setTourSeen(true); };
+
+  const open = tasks.filter(t=>!t.done).length;
+
+  // swipeable pages of a 2×2 plant grid; a compact "+ add" tile sits above page 1
+  const pages = [];
+  for(let i=0;i<PLANTS.length;i+=4) pages.push(PLANTS.slice(i,i+4));
+
+  return <>
+    <div className="screen">
+      <div className="spread">
+        <div><h1 style={{fontSize:22,margin:0}}>{USER_NAME}</h1></div>
+        <div className="row" style={{gap:8}}>
+          <div className="iconbtn" onClick={()=>nav.go("chat")}>💬<span className="ndot"/></div>
+          <div className="iconbtn" onClick={()=>nav.go("notifs")}>🔔<span className="ndot"/></div>
+          <div className="avatarbtn" title="Profile" onClick={()=>nav.go("profile")}/>
+        </div>
+      </div>
+
+      {/* combined summary: encouragement + overall health */}
+      <div className="card col" style={{gap:8}}>
+        <div className="spread">
+          <b>You're doing great 🌿</b>
+          <span className="pill accent">72% healthy</span>
+        </div>
+        <p className="muted">Everyone's mostly happy — Margot's being a little dramatic, but that's just Margot.</p>
+        <div className="bar"><i style={{width:"72%"}}/></div>
+      </div>
+
+      {/* today's tasks — moved above the plants grid */}
+      <div className="spread"><div className="kicker">Today's tasks</div>
+        <span className="tag">{open} left</span></div>
+      <div className="card"><TaskList/></div>
+
+      {/* my plants — 2×2 grid, swipe for more. The "+ add" tile is pinned ABOVE
+          the pager (outside the horizontal scroll) so it never disappears on
+          page 2 and the layout can't shift while swiping. */}
+      <div className="kicker">My plants</div>
+      <div className="addtile" onClick={()=>nav.go("pair")}>
+        <span className="plus">＋</span> Add plant
+      </div>
+      <div className="pager" onScroll={e=>{
+        const w=e.target.clientWidth||1;
+        setPg(Math.round(e.target.scrollLeft/w));
+      }}>
+        {pages.map((page,pi)=>(
+          <div className="page" key={pi}>
+            <div className="pgrid">
+              {page.map(it=>(
+                <div className="plantcard" key={it.id} onClick={()=>nav.go("plant",{id:it.id})}>
+                  <Photo label="PHOTO" badge={it.emotion} style={{height:92}}/>
+                  <div><b>{it.name}</b><br/><small className="muted">{it.species}</small></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {pages.length>1 && <div className="dots">
+        {pages.map((_,i)=><span key={i} className={"pgdot"+(pg===i?" on":"")}/>)}
+      </div>}
+
+      {/* chat preview — a miniature of the real chat; tap anywhere to open it */}
+      <div className="kicker">Chat</div>
+      <div className="card tap miniwrap" onClick={()=>nav.go("chat")}>
+        <div className="spread">
+          <b>You &amp; your plants</b>
+          <span className="pill accent">3 new</span>
+        </div>
+        <div className="divider"/>
+        {CHAT_INIT.slice(-3).map((m,i)=>{
+          const isMe = m.who==="me";
+          const p = !isMe && plantById(m.who);
+          return <div key={i} className={"minirow "+(isMe?"me":"them")}>
+            <div className="ph round miniava"/>
+            <div>
+              {!isMe && <div className="mininame">{p.name.split(" ")[0]}</div>}
+              <div className="minibub">{m.text}</div>
+            </div>
+          </div>;
+        })}
+        <small className="muted center" style={{marginTop:2}}>Tap to open the chat ›</small>
+      </div>
+    </div>
+
+    {tour && <div className="overlay">
+      <div className="tourcard col">
+        <div className="kicker">Welcome</div>
+        <h2>This is your garden 🌱</h2>
+        <p className="muted">Up top: the summary of how everyone's feeling, then today's tasks. Tap any plant to see how it's doing, its bond and its diary. The “+ Add plant” button starts a new one.</p>
+        <div className="divider"/>
+        <p className="muted"><b>Up in the corner:</b> the bell for alerts, the speech bubble for chat, and your avatar for the profile &amp; settings.</p>
+        <button className="btn primary" onClick={dismissTour}>Got it, let's go</button>
+      </div>
+    </div>}
+  </>;
+}
+
+function TaskList(){
+  const nav = useNav();
+  const { tasks, toggleTask } = useApp();
+  const [open,setOpen] = useState(false);
+  // active tasks stay expanded; completed ones collapse into a compact group
+  const active = tasks.filter(t=>!t.done);
+  const done   = tasks.filter(t=>t.done);
+  return <div className="list">
+    {active.map(t=>{
+      const p = plantById(t.plant);
+      return <div className="li taskrow" key={t.id}>
+        <div className="check" onClick={()=>{
+          toggleTask(t.id); nav.go("reaction",{plant:t.plant,task:t.text});
+        }}></div>
+        <div className="grow">
+          <div>{t.text}</div>
+          <small className="muted">{p.name}</small>
+        </div>
+      </div>;
+    })}
+    {active.length===0 && done.length===0 &&
+      <div className="li"><small className="muted">All caught up — nothing to do right now 🌿</small></div>}
+
+    {done.length>0 && <>
+      <div className="donerow" onClick={()=>setOpen(o=>!o)}>
+        <span className="check done">✓</span>
+        <div className="grow"><small>{done.length} done</small></div>
+        <span className="chev">{open?"Hide ▲":"Show ▼"}</span>
+      </div>
+      {open && done.map(t=>{
+        const p = plantById(t.plant);
+        return <div className="li taskrow isdone donecompact" key={t.id}>
+          <div className="check done" onClick={()=>toggleTask(t.id)}>✓</div>
+          <div className="grow"><span className="done-txt">{t.text}</span>
+            <small className="muted"> · {p.name}</small></div>
+        </div>;
+      })}
+    </>}
+  </div>;
+}
+
+function Reaction({params}){
+  const nav = useNav();
+  const p = plantById((params&&params.plant)||"felix");
+  return <div className="screen center" style={{justifyContent:"center"}}>
+    <div style={{flex:1}}/>
+    <div className="center"><Face emotion="greeting" big accent/></div>
+    <h1 style={{fontSize:20,margin:"16px 0 6px"}}>{p.name} is delighted!</h1>
+    <div className="card"><p>“{p.reaction}”</p></div>
+    <p className="muted center" style={{marginTop:10}}>+1 to your bond ❤️</p>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={()=>nav.go("dashboard")}>Lovely!</button>
+    <button className="btn ghost" onClick={()=>nav.go("plant",{id:p.id})}>Open {p.name}'s card</button>
+  </div>;
+}
+
+function Notifications(){
+  const nav = useNav();
+  return <div className="screen">
+    <Top title="Notifications" onBack={nav.back}/>
+    <div className="col">
+      {NOTIFS.map(n=>{
+        const p = plantById(n.plant);
+        return <div key={n.id} className="card tap row" onClick={()=>nav.go("plant",{id:p.id})}>
+          <Photo w={48} h={48} label="PIC" badge={n.emo}/>
+          <div className="grow"><b>{p.name}</b><p className="muted" style={{marginTop:2}}>{n.text}</p></div>
+          <small className="muted" style={{whiteSpace:"nowrap"}}>{n.time}</small>
+        </div>;
+      })}
+    </div>
+    <p className="muted center"><small>That's everything for today 🌙</small></p>
+  </div>;
+}
+
+/* ───────────────── PLANT DETAIL ───────────────── */
+function Hearts({level, max=5}){
+  return <span className="hearts">
+    {Array.from({length:max}).map((_,i)=>
+      <span key={i} className={i<level?"on":"off"}>{i<level?"♥":"♡"}</span>)}
+  </span>;
+}
+
+function PlantDetail({params}){
+  const nav = useNav();
+  const p = plantById((params&&params.id)||"felix");
+  // local (mock) auto-watering toggle; schedule/amount live on the Configure screen
+  const [auto,setAuto] = useState(p.autoOn);
+  const low = p.reservoir < 25;
+  return <div className="screen">
+    <Top title={p.name} onBack={nav.back} kicker={`${p.species} · ${p.persona}`}/>
+    <div className="card center col" style={{alignItems:"center"}}>
+      <Photo round w={130} h={130} label="PLANT PHOTO" badge={p.emotion}/>
+      <StatusPill emotion={p.emotion}/>
+      <p style={{marginTop:6}}>“{p.checkin}”</p>
+    </div>
+    {/* BOND indicator — moved above the stat tiles */}
+    <div className="card col" style={{gap:8}}>
+      <div className="spread">
+        <div><b>Your bond</b><br/><small className="muted">Level {p.bondLevel} · {p.bondTitle}</small></div>
+        <Hearts level={p.bondLevel}/>
+      </div>
+      <div className="bar"><i style={{width:p.bondPct+"%"}}/></div>
+      <small className="muted">{p.bondPct}% to the next level — keep checking in to grow closer.</small>
+    </div>
+
+    <div className="stat-row row">
+      <div className="card grow center"><small className="muted">Last watering</small><br/><b>{p.lastWatered}</b></div>
+      <div className="card grow center"><small className="muted">Light</small><br/><b>{p.light}</b></div>
+    </div>
+
+    {/* AUTO-WATERING — toggle + reservoir level only; detailed controls live on Configure */}
+    <div className="card col" style={{gap:10}}>
+      <div className="spread">
+        <b>Auto-watering</b>
+        <Toggle on={auto} onClick={()=>setAuto(!auto)}/>
+      </div>
+      <div className="spread" style={{marginTop:2}}>
+        <small className="muted">Reservoir {low?"running low":"level"}</small>
+        <b style={low?{color:"var(--accent)"}:null}>{p.reservoir}%</b>
+      </div>
+      <div className={"resbar"+(low?" low":"")}><i style={{width:p.reservoir+"%"}}/></div>
+    </div>
+    <div className="card tap spread" style={{opacity:auto?1:.5,pointerEvents:auto?"auto":"none"}}
+      onClick={()=>nav.go("waterConfig",{id:p.id})}>
+      <div><b>Configure watering</b><br/><small className="muted">Schedule · amount per watering</small></div><span>›</span></div>
+
+    <div className="card tap spread" onClick={()=>nav.go("growth",{id:p.id})}>
+      <b>Growth &amp; diary</b><span>›</span></div>
+    <div className="card tap spread" onClick={()=>nav.go("plantSettings",{id:p.id})}>
+      <b>Plant personality</b><span>›</span></div>
+  </div>;
+}
+
+/* Auto-watering configuration — moved off the plant card onto its own screen */
+function WaterConfig({params}){
+  const nav = useNav();
+  const p = plantById((params&&params.id)||"felix");
+  const [schedule,setSchedule] = useState(p.schedule);
+  const [amount,setAmount] = useState(p.amount);
+  return <div className="screen">
+    <Top title="Watering" onBack={nav.back} kicker={`${p.name} · auto-watering`}/>
+    <p className="muted">How often and how much the pot waters {p.name.split(" ")[0]} on its own.</p>
+    <div className="field">
+      <label>Schedule</label>
+      <div className="segrow">
+        {["Every 2 days","Every 3 days","Every 5 days"].map(s=>
+          <div key={s} className={"seg"+(schedule===s?" on":"")} onClick={()=>setSchedule(s)}>{s.replace("Every ","")}</div>)}
+      </div>
+    </div>
+    <div className="field">
+      <label>Amount per watering</label>
+      <div className="segrow">
+        {["Low","Medium","High"].map(a=>
+          <div key={a} className={"seg"+(amount===a?" on":"")} onClick={()=>setAmount(a)}>{a}</div>)}
+      </div>
+    </div>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={nav.back}>Save</button>
+  </div>;
+}
+/* Growth progress + diary, combined into one screen */
+function Growth({params}){
+  const nav = useNav();
+  const p = plantById((params&&params.id)||"felix");
+  const days = ["Week 1","Week 3","Week 6","Now"];
+  return <div className="screen">
+    <Top title="Growth" onBack={nav.back} kicker={p.name}/>
+    <div className="card center col" style={{alignItems:"center"}}>
+      <Photo round w={120} h={120} label="PLANT PHOTO"/>
+      <b style={{fontSize:20}}>{p.growth}%</b>
+      <div className="bar" style={{width:"100%"}}><i style={{width:p.growth+"%"}}/></div>
+      <small className="muted">to the “fully grown” stage</small>
+    </div>
+    <div className="ph" style={{height:120}}>[GROWTH CHART · BY WEEK]</div>
+    <div className="list card">
+      <div className="li"><span className="dot ok"/><div className="grow">Sprout</div><small className="muted">✓ done</small></div>
+      <div className="li"><span className="dot ok"/><div className="grow">Young plant</div><small className="muted">✓ done</small></div>
+      <div className="li"><span className="dot warn"/><div className="grow">Growing strong</div><small className="muted">now</small></div>
+      <div className="li"><span className="dot"/><div className="grow">Fully grown</div><small className="muted">soon</small></div>
+    </div>
+
+    {/* diary — folded into the growth screen */}
+    <div className="kicker">Growth diary</div>
+    <p className="muted">“{p.diaryNote}”</p>
+    <div className="col">
+      {days.map((d,i)=>(
+        <div key={d} className="card row" style={{gap:12}}>
+          <Photo w={90} h={90} label="PHOTO"/>
+          <div className="grow"><b>{d}</b><br/><small className="muted">Height +{i*4} cm</small>
+            <div style={{marginTop:8}}><span className="tag">📷 auto-snapshot</span></div></div>
+        </div>
+      ))}
+    </div>
+    <button className="btn">▶ Watch the time-lapse</button>
+  </div>;
+}
+function PlantSettings({params}){
+  const nav = useNav();
+  const p = plantById((params&&params.id)||"felix");
+  const [persona,setPersona] = useState(p.persona);
+  const [quiet,setQuiet] = useState(true);
+  return <div className="screen">
+    <Top title={p.name} onBack={nav.back} kicker="Plant personality"/>
+    {/* plant photo (from the add-plant flow) with a replace option */}
+    <div className="card row" style={{alignItems:"center"}}>
+      <Photo round w={72} h={72} label="PHOTO" badge={p.emotion}/>
+      <div className="grow"><b>{p.name}</b><br/><small className="muted">{p.species} · {p.persona}</small></div>
+      <button className="btn sm">Change photo</button>
+    </div>
+    <div className="field"><label>Name</label><input defaultValue={p.name}/></div>
+    <div className="field"><label>Personality</label>
+      <div className="row" style={{flexWrap:"wrap"}}>
+        {PERSONAS.map(x=><div key={x.k} className={"chip"+(persona===x.k?" on":"")}
+          style={{flex:"1 1 40%"}} onClick={()=>setPersona(x.k)}>{x.k}</div>)}
+      </div></div>
+    <div className="card spread"><div><b>Quiet hours</b><br/><small className="muted">Don't disturb 10pm–8am</small></div>
+      <Toggle on={quiet} onClick={()=>setQuiet(!quiet)}/></div>
+    <div className="card spread"><div><b>Messages from {p.name.split(" ")[0]}</b><br/><small className="muted">Check-ins and reactions</small></div>
+      <Toggle on={true} onClick={()=>{}}/></div>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={nav.back}>Save</button>
+    <button className="btn ghost">Remove this plant</button>
+  </div>;
+}
+
+/* ───────────────── GROUP CHAT ───────────────── */
+function GroupChat(){
+  const nav = useNav();
+  const { chatCross } = useApp();
+  const [msgs,setMsgs] = useState(CHAT_INIT);
+  const [text,setText] = useState("");
+  const send = ()=>{
+    if(!text.trim()) return;
+    const next=[...msgs,{who:"me",text}];
+    setText("");
+    setMsgs(next);
+    setTimeout(()=>{
+      setMsgs(m=>[...m,{who:"margo",text:"love it when you message us 💚"}]);
+    },1);
+  };
+  // the "plants talk to each other" behaviour is controlled from chat settings only
+  const shown = chatCross ? msgs : msgs.filter(m=>m.who==="me"||m.who==="felix");
+  return <div className="screen" style={{paddingBottom:12}}>
+    <div className="spread">
+      <div className="row" style={{gap:8}}>
+        <button className="back" onClick={nav.back}>‹</button>
+        <div><div className="kicker">Group chat</div><h1 style={{fontSize:20,margin:0}}>You &amp; your plants</h1></div>
+      </div>
+      <button className="back" onClick={()=>nav.go("chatSettings")}>⚙</button>
+    </div>
+    <div className="col" style={{flex:1,gap:0,marginTop:4}}>
+      {shown.map((m,i)=>{
+        const isMe = m.who==="me";
+        const p = !isMe && plantById(m.who);
+        return <div key={i} className={"msg"+(isMe?" me":"")}>
+          {!isMe && <div className="who">{p?p.name:m.who}</div>}
+          <div className={"bubble "+(isMe?"me":"them")}>{m.text}</div>
+        </div>;
+      })}
+    </div>
+    <div className="composer">
+      <input value={text} placeholder="Message your plants…"
+        onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}/>
+      <button className="btn primary sm" onClick={send}>▶</button>
+    </div>
+  </div>;
+}
+function ChatSettings(){
+  const nav = useNav();
+  const { chatCross, setChatCross } = useApp();
+  return <div className="screen">
+    <Top title="Chat settings" onBack={nav.back}/>
+    <div className="card spread"><div><b>Plants talk to each other</b><br/><small className="muted">They comment on each other, not just you</small></div>
+      <Toggle on={chatCross} onClick={()=>setChatCross(!chatCross)}/></div>
+    <div className="card spread"><b>Message frequency</b><span className="pill">Moderate</span></div>
+    <div className="card spread"><div><b>Group reactions</b><br/><small className="muted">Everyone reacts when you finish a task</small></div>
+      <Toggle on={true} onClick={()=>{}}/></div>
+    <div className="card tap spread" onClick={()=>nav.go("telegram")}>
+      <div><b>Forward to Telegram</b><br/><small className="muted">Get your plants' messages in Telegram</small></div><span>›</span></div>
+  </div>;
+}
+function Telegram(){
+  const nav = useNav();
+  const [on,setOn] = useState(false);
+  return <div className="screen">
+    <Top title="Telegram" onBack={nav.back} kicker="Integration"/>
+    <div className="card center col" style={{alignItems:"center"}}>
+      <div className="face big">✈️</div>
+      <b>Your plants, in your Telegram</b>
+      <p className="muted center">Get check-ins and Margot's meltdowns right in your messenger. You can reply there too.</p>
+    </div>
+    <div className="card spread"><div><b>Connect Telegram</b><br/><small className="muted">{on?"Connected ✓":"Not connected"}</small></div>
+      <Toggle on={on} onClick={()=>setOn(!on)}/></div>
+    {on && <div className="card row"><span className="dot ok"/><div className="grow"><b>All set ✓</b><br/><small className="muted">We sent a test message from Felix</small></div></div>}
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={nav.back}>{on?"Done":"Open Telegram"}</button>
+  </div>;
+}
+
+/* ───────────────── ADD NEW PLANT FLOW ───────────────── */
+/* Step 1 — Bluetooth pairing only (no photo) */
+function PairDevice(){
+  const nav = useNav();
+  const [st,setSt] = useState("idle"); // idle → searching → found → connecting → done
+  useEffect(()=>{
+    let t;
+    if(st==="searching") t=setTimeout(()=>setSt("found"),1700);
+    if(st==="connecting") t=setTimeout(()=>setSt("done"),1600);
+    return ()=>clearTimeout(t);
+  },[st]);
+  return <div className="screen">
+    <Top title="Pair your pot" onBack={nav.back} kicker="New plant · step 1 of 3"/>
+    <p className="muted">Turn the pot on and keep your phone close. We'll find it over Bluetooth.</p>
+
+    {st==="idle" && <>
+      <div style={{flex:1}}/>
+      <button className="btn primary" onClick={()=>setSt("searching")}>Start searching</button>
+    </>}
+
+    {st==="searching" && <>
+      <div className="card row"><div className="pulse"/><div className="grow"><b>Searching for devices…</b><br/><small className="muted">Make sure the pot is powered on</small></div></div>
+      <div style={{flex:1}}/>
+      <button className="btn" disabled>Searching…</button>
+    </>}
+
+    {st==="found" && <>
+      <div className="card row">
+        <Photo w={48} h={48} label="POT"/>
+        <div className="grow"><b>Pot found nearby</b><br/><small className="muted">Signal strong · ready to pair</small></div>
+        <span className="pill accent">Found</span></div>
+      <div style={{flex:1}}/>
+      <button className="btn primary" onClick={()=>setSt("connecting")}>Connect</button>
+      <button className="btn ghost" onClick={()=>setSt("searching")}>Search again</button>
+    </>}
+
+    {st==="connecting" && <>
+      <div className="card row"><div className="spin"/><div className="grow"><b>Connecting…</b><br/><small className="muted">Shaking hands with your pot</small></div></div>
+      <div style={{flex:1}}/>
+      <button className="btn" disabled>Connecting…</button>
+    </>}
+
+    {st==="done" && <>
+      <div className="card row"><span className="dot ok"/><div className="grow"><b>Connected ✓</b><br/><small className="muted">Your pot is paired and online</small></div>
+        <span className="pill accent">Online</span></div>
+      <div style={{flex:1}}/>
+      <button className="btn primary" onClick={()=>nav.go("photoIntro")}>Continue</button>
+    </>}
+  </div>;
+}
+
+/* Step 2a — short explainer before the camera opens */
+function PhotoIntro(){
+  const nav = useNav();
+  return <div className="screen">
+    <Top title="Add a photo" onBack={nav.back} kicker="New plant · step 2 of 3"/>
+    <div style={{flex:1}}/>
+    <h2 className="center">One quick photo</h2>
+    <p className="muted center">We'll use it to recognise the species and set up your plant's profile.
+      You can retake or replace it anytime.</p>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={()=>nav.go("capture")}>Continue</button>
+  </div>;
+}
+
+/* Step 2 — photo capture → processing → suggested species */
+function CapturePhoto(){
+  const nav = useNav();
+  const [st,setSt] = useState("frame"); // frame → processing → results
+  useEffect(()=>{
+    let t;
+    if(st==="processing") t=setTimeout(()=>setSt("results"),2200);
+    return ()=>clearTimeout(t);
+  },[st]);
+  const suggestions = [
+    { s:"Ficus",    pct:92 },
+    { s:"Rubber plant", pct:71 },
+    { s:"Peace lily", pct:44 },
+  ];
+  // Camera framing = a full-bleed viewfinder with an iPhone-style shutter.
+  if(st==="frame"){
+    return <div className="camwrap">
+      <div className="camtop">
+        <button className="camx" onClick={nav.back}>‹ Back</button>
+        <span className="camhint">Fit your plant inside the frame</span>
+      </div>
+      <div className="camguide">[CAMERA VIEWFINDER]</div>
+      <div className="camctrls">
+        <button className="galthumb" title="Choose from gallery" onClick={()=>setSt("processing")}>▢</button>
+        <button className="shutter" onClick={()=>setSt("processing")} aria-label="Take photo"/>
+        <div className="camspacer"/>
+      </div>
+    </div>;
+  }
+
+  return <div className="screen">
+    <Top title="Add a photo" onBack={nav.back} kicker="New plant · step 2 of 3"/>
+
+    {st==="processing" && <>
+      <div className="ph" style={{height:190}}>[PHOTO CAPTURED]</div>
+      <div className="card row"><div className="spin"/><div className="grow"><b>Analysing your plant…</b><br/><small className="muted">Matching it against thousands of species</small></div></div>
+      <div className="bar"><i className="fill-anim"/></div>
+      <div style={{flex:1}}/>
+      <button className="btn" disabled>Just a moment…</button>
+    </>}
+
+    {st==="results" && <>
+      <div className="ph" style={{height:190}}>[PHOTO CAPTURED]</div>
+      <div className="kicker">Best matches</div>
+      <small className="muted">Tap a match for details, or Select to confirm straight away.</small>
+      <div className="col">
+        {suggestions.map((x,i)=>(
+          <div key={x.s} className="card spread" style={{gap:8}}>
+            {/* tap-through region → species detail */}
+            <div className="row grow" style={{cursor:"pointer"}} onClick={()=>nav.go("speciesDetail",{species:x.s})}>
+              <Photo w={44} h={44} label="PIC"/>
+              <div><b>{x.s}</b>{i===0 && <span className="pill accent" style={{marginLeft:6}}>Top pick</span>}
+                <br/><small className="muted">{x.pct}% match · tap for details ›</small></div>
+            </div>
+            {/* direct quick-select from the row */}
+            <button className="btn sm primary" onClick={()=>nav.go("create",{species:x.s})}>Select</button>
+          </div>
+        ))}
+      </div>
+      <button className="btn ghost" onClick={()=>nav.go("species")}>None of these — choose manually</button>
+    </>}
+  </div>;
+}
+
+/* Step 2b — searchable, scrollable species list (fixes the old broken jump) */
+function SpeciesList(){
+  const nav = useNav();
+  const [q,setQ] = useState("");
+  const filtered = SPECIES.filter(s=>s.toLowerCase().includes(q.trim().toLowerCase()));
+  return <div className="screen">
+    <Top title="Choose species" onBack={nav.back} kicker="New plant · step 2 of 3"/>
+    <div className="field">
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search species…" autoFocus/>
+    </div>
+    <div className="list card" style={{overflowY:"auto"}}>
+      {filtered.length===0 && <div className="li"><span className="muted">No matches — try another name</span></div>}
+      {filtered.map(s=>(
+        <div key={s} className="li" style={{cursor:"pointer"}} onClick={()=>nav.go("speciesDetail",{species:s})}>
+          <div className="grow">{s}</div><span className="muted">›</span>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
+/* Step 2c — species detail: is this the right species? (identification, not care) */
+/* Placeholder identification data for any species. Wireframe content is generic
+   (labels, not real botany) but each species gets its OWN carousel shots and its
+   own set of look-alikes, so tapping through feels like distinct screens. */
+function speciesInfo(species){
+  const shots = [1,2,3,4].map(n=> species+" · REF "+n);
+  const ident = [
+    ["Leaves",          "Leaf shape, edge and vein pattern"],
+    ["Colour & texture","Surface colour, gloss and any variegation"],
+    ["Growth habit",    "Upright, bushy, trailing or rosette"],
+    ["Size at maturity","Typical height indoors"],
+    ["Stem / trunk",    "Woody, fleshy or none"],
+  ];
+  const tells = [
+    "Thicker, stiffer leaves",
+    "Leaves rise straight from the base",
+    "Smaller leaves on thin, drooping stems",
+    "Paler colour and a matte surface",
+  ];
+  // three other species as look-alikes, each tappable through to its own screen
+  const confused = SPECIES.filter(s=>s!==species).slice(0,3)
+    .map((s,i)=>[s, tells[i%tells.length]]);
+  return { shots, ident, confused };
+}
+function SpeciesDetail({params}){
+  const nav = useNav();
+  const species = (params&&params.species)||"your plant";
+  const [pi,setPi] = useState(0);
+  const { shots, ident, confused } = speciesInfo(species);
+  return <div className="screen">
+    <Top title={species} onBack={nav.back} kicker="New plant · is this your species?"/>
+
+    {/* reference-photo carousel (swipe, dot indicators) */}
+    <div className="carousel" onScroll={e=>{
+      const w=e.target.clientWidth||1; setPi(Math.round(e.target.scrollLeft/w));
+    }}>
+      {shots.map((s,i)=><div key={i} className="cslide ph">[{s}]</div>)}
+    </div>
+    <div className="dots">{shots.map((_,i)=><span key={i} className={"pgdot"+(pi===i?" on":"")}/>)}</div>
+    <p className="muted center">Swipe the photos and check these features against your plant.</p>
+
+    <div className="kicker">How to identify it</div>
+    <div className="list card">
+      {ident.map(([k,v])=>(
+        <div key={k} className="li"><div style={{width:110,color:"var(--mut)",fontSize:13}}>{k}</div>
+          <div className="grow">{v}</div></div>
+      ))}
+    </div>
+
+    <div className="kicker">Often confused with</div>
+    <div className="col">
+      {confused.map(([s,how])=>(
+        <div key={s} className="card tap row" onClick={()=>nav.go("speciesDetail",{species:s})}>
+          <Photo w={44} h={44} label="PIC"/>
+          <div className="grow"><b>{s}</b><br/><small className="muted">{how}</small></div>
+          <span className="muted">›</span></div>
+      ))}
+    </div>
+
+    {/* bottom actions pinned as a sticky footer — visible without scrolling to the end */}
+    <div className="footer">
+      <button className="btn primary" onClick={()=>nav.go("create",{species})}>This is my plant</button>
+      <button className="btn ghost" onClick={nav.back}>Not quite — keep looking</button>
+    </div>
+  </div>;
+}
+
+/* Step 3 — create the character (name, personality, voice preview) */
+function CreateCharacter({params}){
+  const nav = useNav();
+  const species = (params&&params.species)||"your plant";
+  const [name,setName] = useState("");
+  const [persona,setPersona] = useState("Friendly");
+  const [voice,setVoice] = useState("Warm");
+  const [playing,setPlaying] = useState(null);
+  const finalName = name.trim() || "your plant";
+  const play = (k)=> setPlaying(p=> p===k ? null : k);
+  return <div className="screen">
+    <Top title="Create their character" onBack={nav.back} kicker={`New plant · step 3 of 3 · ${species}`}/>
+    <div className="center"><Photo round w={120} h={120} label="PLANT PHOTO" style={{margin:"0 auto"}}/></div>
+
+    <div className="field"><label>Name</label>
+      <input value={name} onChange={e=>setName(e.target.value)} placeholder="What should we call them?"/></div>
+
+    <div className="field"><label>Personality</label>
+      <div className="col">
+        {PERSONAS.map(x=>(
+          <div key={x.k} className={"opt"+(persona===x.k?" on":"")} onClick={()=>setPersona(x.k)}>
+            <b>{x.k}</b><small>{x.d}</small>
+          </div>
+        ))}
+      </div></div>
+
+    <div className="field"><label>Voice</label>
+      <div className="col">
+        {VOICES.map(v=>(
+          <div key={v.k} className={"opt spread"+(voice===v.k?" on":"")} onClick={()=>setVoice(v.k)}>
+            <div><b>{v.k}</b><small>{v.d}</small></div>
+            {/* playback state shown inside the button only — no layout shift */}
+            <button className={"play"+(playing===v.k?" on":"")}
+              onClick={e=>{e.stopPropagation(); play(v.k);}}
+              title={playing===v.k?"Playing — tap to stop":"Play a sample"}>
+              {playing===v.k ? <span className="eq"><i/><i/><i/></span> : "▶"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={()=>nav.go("meeting",{name:finalName})}>Say hello 👋</button>
+  </div>;
+}
+
+/* Step 3 done — first meeting */
+function FirstMeeting({params}){
+  const nav = useNav();
+  const name = (params&&params.name)||"your plant";
+  return <div className="screen center" style={{justifyContent:"center"}}>
+    <div style={{flex:1}}/>
+    <div className="center"><Photo round w={140} h={140} label="PLANT PHOTO" style={{margin:"0 auto"}}/></div>
+    <h1 style={{fontSize:22,margin:"18px 0 6px"}}>Hi, I'm {name}!</h1>
+    <p className="muted">Thanks for giving me a personality.<br/>We're a team now. I promise not to be too dramatic.<br/>(well… mostly)</p>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={()=>nav.go("dashboard",{tour:true})}>Start caring</button>
+  </div>;
+}
+
+/* ───────────────── ALERT ───────────────── */
+function Alert(){
+  const nav = useNav();
+  return <div className="screen center" style={{justifyContent:"center"}}>
+    <div style={{flex:1}}/>
+    <div className="center"><Face emotion="urgent" big/></div>
+    <h1 style={{fontSize:22,margin:"16px 0 4px"}}>Felix isn't feeling well</h1>
+    <StatusPill emotion="urgent"/>
+    <div className="card"><p>“Hey… something feels off. I think I've been overwatered and I'm sitting in the cold. Can you help?”</p></div>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={()=>nav.go("diagnosis")}>See what happened</button>
+    <button className="btn ghost" onClick={()=>nav.go("dashboard")}>Later</button>
+  </div>;
+}
+/* Inline low-fi SVG line chart — soil moisture over 3 days, climbing into the
+   "too wet" zone. Grey grid/axis, a single accent line, no fills/gradients/shadows. */
+function MoistureChart(){
+  const data = [38,44,49,58,66,74,85,92]; // % soil moisture, last reading = overwatered
+  const W=320, H=112, pl=8, pr=8, pt=10, pb=20;
+  const iw=W-pl-pr, ih=H-pt-pb, maxV=100;
+  const xs = i => pl + (i/(data.length-1))*iw;
+  const ys = v => pt + (1 - v/maxV)*ih;
+  const pts = data.map((v,i)=>xs(i).toFixed(1)+","+ys(v).toFixed(1)).join(" ");
+  const grid = [0,25,50,75,100];
+  const dayX = [0,1,2].map(d=> pl + (d/2)*iw);
+  return <svg className="chart" viewBox={"0 0 "+W+" "+H} role="img" aria-label="Soil moisture over the last 3 days">
+    {grid.map(g=>(
+      <line key={g} x1={pl} x2={W-pr} y1={ys(g)} y2={ys(g)} stroke="var(--line2)" strokeWidth="1"/>
+    ))}
+    {/* axes */}
+    <line x1={pl} y1={pt} x2={pl} y2={H-pb} stroke="var(--line)" strokeWidth="1"/>
+    <line x1={pl} y1={H-pb} x2={W-pr} y2={H-pb} stroke="var(--line)" strokeWidth="1"/>
+    {/* the moisture line — single accent stroke, no fill */}
+    <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="2"
+      strokeLinejoin="round" strokeLinecap="round"/>
+    {/* day labels */}
+    {["Day 1","Day 2","Day 3"].map((d,i)=>(
+      <text key={d} x={dayX[i]} y={H-6} fontSize="9" fill="var(--mut)"
+        textAnchor={i===0?"start":i===2?"end":"middle"}>{d}</text>
+    ))}
+  </svg>;
+}
+function Diagnosis(){
+  const nav = useNav();
+  const steps = [
+    "Pause auto-watering for 5–7 days",
+    "Move it away from the draughty window",
+    "Put it somewhere warmer (18–22°C)",
+  ];
+  // tick each step off (checkboxes like the dashboard task list). Ticking never
+  // navigates on its own — an explicit button below moves to the next screen.
+  const [done,setDone] = useState(steps.map(()=>false));
+  const allDone = done.every(Boolean);
+  const toggle = (i)=> setDone(d=> d.map((v,j)=> j===i ? !v : v));
+  return <div className="screen">
+    <Top title="What happened" onBack={nav.back} kicker="Felix · diagnosis"/>
+    <div className="card row"><Face emotion="overwatered"/><div className="grow"><b>Overwatered</b><br/><small className="muted">Soil moisture 92% — that's too much water</small></div></div>
+    <div className="card row"><Face emotion="cold"/><div className="grow"><b>Too cold</b><br/><small className="muted">14°C right next to the plant</small></div></div>
+    <div className="card col" style={{gap:8}}>
+      <div className="spread"><b style={{fontSize:13}}>Soil moisture · last 3 days</b>
+        <span className="pill accent">92% now</span></div>
+      <MoistureChart/>
+    </div>
+    <div className="kicker">What to do</div>
+    <div className="card"><div className="list">
+      {steps.map((s,i)=>(
+        <div className={"li taskrow"+(done[i]?" isdone":"")} key={i}>
+          <div className={"check"+(done[i]?" done":"")} onClick={()=>toggle(i)}>{done[i]?"✓":""}</div>
+          <div className="grow"><div className={done[i]?"done-txt":""}>{s}</div></div>
+        </div>
+      ))}
+    </div></div>
+    <small className="muted center">Tick each step off as you go.</small>
+    <div className="footer">
+      <button className="btn primary" disabled={!allDone} onClick={()=>nav.go("alertDone")}>
+        {allDone ? "All done — continue" : "Tick each step to continue"}
+      </button>
+    </div>
+  </div>;
+}
+function AlertDone(){
+  const nav = useNav();
+  return <div className="screen center" style={{justifyContent:"center"}}>
+    <div style={{flex:1}}/>
+    <div className="center"><Face emotion="content" big accent/></div>
+    <h1 style={{fontSize:22,margin:"16px 0 6px"}}>Thank you!</h1>
+    <div className="card"><p>“Feeling better already. You're a true friend. I'll let you know when I've fully bounced back 🌿”</p></div>
+    <p className="muted center" style={{marginTop:10}}>+2 to your bond ❤️ · we'll remind you to check in 3 days</p>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={()=>nav.go("dashboard")}>Back home</button>
+    <button className="btn ghost" onClick={()=>nav.go("plant",{id:"felix"})}>Open Felix's card</button>
+  </div>;
+}
+
+/* ───────────────── PROFILE (settings hub) ───────────────── */
+function Profile(){
+  const nav = useNav();
+  const rows = [
+    ["Chat & reactions","Who talks to whom · Telegram", ()=>nav.go("chatSettings")],
+    ["Language","Interface & conversation", ()=>nav.go("language")],
+  ];
+  return <div className="screen">
+    <Top title="Profile" onBack={nav.back}/>
+    {/* user identity: avatar + name (from sign-up / social login) */}
+    <div className="card row"><div className="avatarbtn" style={{width:52,height:52}}/>
+      <div className="grow"><b>{USER_NAME}</b><br/><small className="muted">5 plants · 7 days together</small></div></div>
+
+    {/* Plants section — heading + a duplicate "Add plant" entry point */}
+    <div className="spread">
+      <div className="kicker">Plants</div>
+      <button className="btn sm primary" onClick={()=>nav.go("pair")}>+ Add plant</button>
+    </div>
+    <div className="card tap spread" onClick={()=>nav.go("plantsList")}>
+      <div><b>Plants</b><br/><small className="muted">Felix · Margot · Gosha · +2 — pick one to configure</small></div><span>›</span></div>
+    <div className="card tap spread" onClick={()=>nav.go("pair")}>
+      <div><b>Add a new plant</b><br/><small className="muted">Pair a new pot</small></div><span>›</span></div>
+
+    <div className="kicker" style={{marginTop:6}}>Settings</div>
+    <div className="col">
+      {rows.map(([t,s,fn])=>(
+        <div key={t} className="card tap spread" onClick={fn}>
+          <div><b>{t}</b><br/><small className="muted">{s}</small></div><span>›</span>
+        </div>
+      ))}
+    </div>
+    <div style={{flex:1}}/>
+    <p className="muted center"><small><Brand/> · prototype · v0.2</small></p>
+  </div>;
+}
+
+/* Plants list — reached from Profile → Plants; pick one to open & configure */
+function PlantsList(){
+  const nav = useNav();
+  return <div className="screen">
+    <Top title="Plants" onBack={nav.back}
+      right={<button className="back" onClick={()=>nav.go("pair")}>+ Add</button>}/>
+    <p className="muted">Pick a plant to open its card and settings.</p>
+    <div className="col">
+      {PLANTS.map(p=>(
+        <div key={p.id} className="card tap row" onClick={()=>nav.go("plant",{id:p.id})}>
+          <Photo w={48} h={48} label="PIC" badge={p.emotion}/>
+          <div className="grow"><b>{p.name}</b><br/><small className="muted">{p.species} · {p.persona}</small></div>
+          <span>›</span>
+        </div>
+      ))}
+    </div>
+    <button className="btn primary" onClick={()=>nav.go("pair")}>+ Add a new plant</button>
+  </div>;
+}
+
+/* Language — two separate controls */
+function Language(){
+  const nav = useNav();
+  const [ui,setUi] = useState("English");
+  const [conv,setConv] = useState("English");
+  const langs = ["English","Русский","Español","Deutsch"];
+  return <div className="screen">
+    <Top title="Language" onBack={nav.back}/>
+    <div className="field"><label>Interface language</label>
+      <div className="row" style={{flexWrap:"wrap"}}>
+        {langs.map(l=><div key={l} className={"chip"+(ui===l?" on":"")}
+          style={{flex:"1 1 40%"}} onClick={()=>setUi(l)}>{l}</div>)}
+      </div>
+      <small className="muted">The language of buttons, menus and screens.</small>
+    </div>
+    <div className="field" style={{marginTop:6}}><label>Conversation language</label>
+      <div className="row" style={{flexWrap:"wrap"}}>
+        {langs.map(l=><div key={l} className={"chip"+(conv===l?" on":"")}
+          style={{flex:"1 1 40%"}} onClick={()=>setConv(l)}>{l}</div>)}
+      </div>
+      <small className="muted">The language your plants chat with you in.</small>
+    </div>
+    <div style={{flex:1}}/>
+    <button className="btn primary" onClick={nav.back}>Save</button>
+  </div>;
+}
+
+/* ───────────────── APP STATE + ROUTER ───────────────── */
+const AppCtx = createContext(null);
+const useApp = () => useContext(AppCtx);
+
+const SCREENS = {
+  dashboard:Dashboard, reaction:Reaction, notifs:Notifications, profile:Profile,
+  plantsList:PlantsList,
+  plant:PlantDetail, waterConfig:WaterConfig, growth:Growth, plantSettings:PlantSettings,
+  chat:GroupChat, chatSettings:ChatSettings, telegram:Telegram, language:Language,
+  alert:Alert, diagnosis:Diagnosis, alertDone:AlertDone,
+  pair:PairDevice, photoIntro:PhotoIntro, capture:CapturePhoto, species:SpeciesList,
+  speciesDetail:SpeciesDetail, create:CreateCharacter, meeting:FirstMeeting,
+};
+
+/* Flow index — prototype-shell shortcut panel. Groups every screen by flow and
+   jumps the prototype straight there. Lives OUTSIDE the device (dev/review tool). */
+/* Flat list — one entry per flow, each jumps to that flow's ENTRY screen. */
+const FLOWS = [
+  ["Add new plant",     "pair"],
+  ["Dashboard",         "dashboard"],
+  ["Group chat",        "chat"],
+  ["Notifications",     "notifs"],
+  ["Plant card",        "plant", {id:"felix"}],
+  ["Alert simulation",  "alert"],
+];
+function FlowIndex({cur}){
+  const nav = useNav();
+  return <aside className="flowindex">
+    {FLOWS.map(([label,screen,params])=>(
+      <div key={label}
+        className={"fi-link"+(cur.screen===screen?" on":"")}
+        onClick={()=>nav.go(screen,params||{})}>{label}</div>
+    ))}
+  </aside>;
+}
+
+function App(){
+  const [stack,setStack] = useState([{screen:"dashboard",params:{}}]);
+  const [tasks,setTasks] = useState(TASKS_INIT);
+  const [chatCross,setChatCross] = useState(true);
+  // the welcome tour must show only once per session, not on every return home
+  const [tourSeen,setTourSeen] = useState(false);
+
+  const cur = stack[stack.length-1];
+  const nav = useMemo(()=>({
+    go:(screen,params={})=> setStack(s=> screen==="dashboard"
+      ? [{screen:"dashboard",params}]         // dashboard is the root — reset the stack
+      : [...s,{screen,params}]),
+    back:()=>setStack(s=>s.length>1?s.slice(0,-1):s),
+  }),[]);
+  const toggleTask = (id)=>setTasks(ts=>ts.map(t=>t.id===id?{...t,done:!t.done}:t));
+
+  const Screen = SCREENS[cur.screen] || Dashboard;
+
+  return (
+    <AppCtx.Provider value={{tasks,toggleTask,chatCross,setChatCross,tourSeen,setTourSeen}}>
+    <Nav.Provider value={nav}>
+      <div className="phone">
+        <div className="device">
+          <div className="island"/>
+          <StatusBar/>
+          <Screen params={cur.params} key={cur.screen+stack.length}/>
+        </div>
+      </div>
+      <FlowIndex cur={cur}/>
+    </Nav.Provider>
+    </AppCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+<!-- Bootstrap: manual Babel transform, classic runtime, no ES modules -->
+<script>
+(function () {
+  function fail(msg) {
+    document.getElementById("root").innerHTML =
+      '<div style="max-width:360px;margin:80px auto;font-family:\'Urbanist\',sans-serif;color:#333;text-align:center">'
+      + '<h2>Could not start the prototype</h2><p style="color:#777">' + msg + '</p></div>';
+  }
+  if (!window.React || !window.ReactDOM || !window.Babel) {
+    return fail("React / Babel failed to load from the CDN. An internet connection is needed the first time you open this file.");
+  }
+  try {
+    var src = document.getElementById("app-src").textContent;
+    // classic runtime => React.createElement, never `import {jsx} from 'react/jsx-runtime'`
+    var out = Babel.transform(src, {
+      presets: [["react", { runtime: "classic" }]]
+    }).code;
+    (0, eval)(out); // indirect eval => run in global scope
+  } catch (e) {
+    fail(String(e && e.message || e));
+    throw e;
+  }
+})();
+</script>
+</body>
+</html>
