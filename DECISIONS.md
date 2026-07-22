@@ -342,3 +342,31 @@ Shell-only changes; the phone mockup and everything inside the app screen are un
 
 ## Verification
 - Transformed `#app-src` through the page's Babel config (no `import`) and rendered in jsdom with **0 console errors**. Confirmed on **both** screens: 8 presets in order; Friendly→2 sliders (Chattiness+Energy), Drama queen→3 (Chattiness+Drama level+Self-pity), Grump→3 (Chattiness+Crust+Hidden warmth); preview phrase changes per preset and the slider-word line updates when a slider moves; no `PERSONAS`/`VOICES`/`.play`/`.eq` leftovers.
+
+---
+
+# Revision 7 — "Create their character" rebuilt as a live-preview personality tuner
+
+## Screen structure
+- **New order: PREVIEW (sticky) → NAME → PERSONALITY → FINE-TUNING → VOICE → CTA.** `CreateCharacter` is now bespoke (not the shared picker) but is composed from shared parts so the model stays single-source. Rationale: brief.
+
+## Live preview (brief 1)
+- **Sticky preview block** (`.preview`, `position:sticky;top:0`) so it stays visible while tuning below. Holds a **low-fi speech bubble** (plain 1px border + CSS-border downward tail, no shadow) with the in-character line, a **PLAY button beside it** (▶ ⇄ eq animation, fixed `.play` size → no layout shift), and the **plant PHOTO placeholder below** (100px in create, 90px in settings — smaller to keep the sticky block short). Rationale: brief (1).
+- **`sampleLine(preset,tune)`** builds the line live: `drama=2`→a "big"/theatrical variant, `chattiness=0`→a short "terse" variant, otherwise the "base"; `warmth 2/0` appends an affectionate / dry tag. Each preset has its own distinct copy (Grump reads nothing like Drama queen). So changing preset OR any slider changes the bubble. Chose this small-variant composition over a full per-slider line matrix — keeps the copy authorable while every slider still visibly matters. Rationale: brief (1).
+
+## Presets: 8 → 6 (brief 3)
+- **Kept Friendly, Drama queen, Grump** (map to Felix/Margot/Gosha) **plus Calm and Cheerful** (so mock plants Vera=Calm and Basil=Cheerful stay valid presets, no data breakage) **plus Sassy** (sharp, high-contrast voice). **Dropped Shy and Wise** — no mock plant used them. Rationale: brief (3); minimise plant breakage + maximise tonal variety.
+- **Compact 3×2 grid** (`.pgrid6`, `grid-template-columns:1fr 1fr 1fr`), name + a very short caption per tile. Chose **3×2 over 2×3**: verified the longest name ("Drama queen") fits one line at the ~114px column width in the phone, so 3 columns don't feel cramped. Selected tile uses the `#4A7C59` border/tint. Rationale: brief (3).
+
+## Fine-tuning: fixed 3-slider model (brief 4)
+- **Replaced the old per-preset variable sliders with THREE fixed sliders for every preset:** Warmth (Dry↔Affectionate), Drama (Understated↔Theatrical), Chattiness (Rarely↔Often). Each preset ships **sensible default positions**; the user nudges from there, and any change updates the preview. This is a **model-wide change** (`PERSONALITIES.sliders` + per-preset `defaults`), so plant settings adopts it too (single source of truth). Rationale: brief (4).
+- **Low-fi slider** (`RangeSlider`): grey track, `#4A7C59` fill + round handle, no shadow; three equal click zones snap to 0/1/2. Rationale: brief (4) styling note.
+
+## Voice section RESTORED (brief 5)
+- **Reversed Revision 6's "fold voice into personality" decision.** Brief (5) asks to keep the existing Voice section (which Rev 6 had removed), so the **`VOICES` picker (Warm/Bright/Soft/Playful) and `.play`/`.eq` CSS are restored** as `VoicePicker`, with the in-button eq playback (no layout shift). Voice (timbre) is now again distinct from personality (what it says). Two mock-play affordances exist: the preview PLAY (line in the selected voice) and each voice row's sample play. Rationale: brief (5).
+
+## Shared parts / plant settings
+- Extracted `SpeechPreview`, `PresetGrid`, `FineTuning`, `RangeSlider`, `sampleLine` and reused them; `PersonalityPicker` (plant settings) now = preview bubble + preset grid + fine-tuning, mirroring the onboarding tuner's core. One source of truth preserved. Configurator remains on its older model (out of scope).
+
+## Verification
+- Babel transform (no imports) + jsdom render, **0 console errors**, on both screens. Confirmed: sticky preview (computed `position:sticky`); 6 tiles [Friendly|Drama queen|Grump|Calm|Cheerful|Sassy] in a 3-col grid; 3 sliders [Warmth|Drama|Chattiness]; 4 voices [Warm|Bright|Soft|Playful]; distinct per-preset bubble copy; bubble updates when a slider moves (Drama queen "big" → base when Drama→Understated, + warm tag when Warmth→Affectionate); preview & voice play both swap to the eq indicator with no layout shift; plant settings renders the same tuner with Felix→Friendly.

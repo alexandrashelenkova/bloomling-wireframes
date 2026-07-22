@@ -257,19 +257,53 @@
   .toggle.on{background:var(--accent);border-color:var(--accent)}
   .toggle.on > i{left:20px;border-color:var(--accent)}
 
-  /* personality fine-tune sliders — wireframe-flat, 3 fixed positions.
-     A grey track with three dots; the selected dot fills with the accent. */
-  .slider{display:flex;flex-direction:column;gap:5px}
-  .slabel{font-size:13px;font-weight:600}
-  .strack{position:relative;display:flex;justify-content:space-between;align-items:center;
-    height:22px;padding:0 3px}
-  .sline{position:absolute;left:6px;right:6px;top:50%;height:2px;background:var(--line);
-    transform:translateY(-50%)}
-  .sdot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);background:#fff;
-    cursor:pointer;padding:0;position:relative;z-index:1}
-  .sdot.on{background:var(--accent);border-color:var(--accent)}
-  .sends{display:flex;justify-content:space-between}
-  .sends small{font-size:11px}
+  /* voice preview / play buttons — fixed size so playback state never shifts layout */
+  .play{width:44px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;
+    color:var(--accent);flex:0 0 auto}
+  .play.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .eq{display:inline-flex;gap:2px;align-items:center;height:14px}
+  .eq i{width:3px;height:6px;background:currentColor;border-radius:1px;
+    animation:eq .7s infinite ease-in-out}
+  .eq i:nth-child(2){animation-delay:.15s}
+  .eq i:nth-child(3){animation-delay:.3s}
+  @keyframes eq{0%,100%{height:5px}50%{height:14px}}
+
+  /* live-preview block (create-character) — sticky at the top of the scroll area */
+  .preview{position:sticky;top:0;z-index:6;background:var(--bg);
+    margin:0 -16px;padding:6px 16px 12px;border-bottom:1px solid var(--line2);
+    display:flex;flex-direction:column;gap:8px;align-items:center}
+  .pv-top{display:flex;align-items:flex-end;gap:8px;width:100%}
+  /* low-fi speech bubble with a downward tail, plain border, no shadow */
+  .speech{position:relative;flex:1;border:1px solid var(--line);border-radius:12px;
+    background:#fff;padding:9px 12px;font-size:14px;line-height:1.4;min-height:40px}
+  .speech::before,.speech::after{content:"";position:absolute;top:100%;left:26px;
+    width:0;height:0;border:solid transparent}
+  .speech::before{border-width:8px;border-top-color:var(--line);margin-left:-8px}
+  .speech::after{border-width:7px;border-top-color:#fff;margin-left:-7px}
+
+  /* compact 3×2 personality preset grid */
+  .pgrid6{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .ptile{border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;
+    padding:10px 4px;text-align:center;min-height:58px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px}
+  .ptile:active{background:#f2f2f2}
+  .ptile.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .ptile b{font-size:13px;line-height:1.15}
+  .ptile small{font-size:10px;color:var(--mut)}
+  .ptile.on small{color:var(--accent)}
+
+  /* low-fi 3-position range slider — grey track, accent fill + handle, no shadow */
+  .range{display:flex;flex-direction:column;gap:3px}
+  .range-lab{display:flex;justify-content:space-between;font-size:12px}
+  .range-lab b{font-weight:600}
+  .range-lab small{color:var(--mut)}
+  .rtrack{position:relative;height:6px;background:var(--line);border-radius:999px;margin:12px 9px}
+  .rfill{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:999px}
+  .rhandle{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;
+    background:var(--accent);border:2px solid #fff;transform:translate(-50%,-50%)}
+  .rhits{position:absolute;inset:-11px 0;display:flex}
+  .rhits button{flex:1;background:transparent;border:0;cursor:pointer;padding:0}
 
   /* banner / push */
   .push{position:absolute;top:56px;left:12px;right:12px;background:#fff;
@@ -444,48 +478,76 @@ const CHAT_INIT = [
 ];
 
 /* ───────────────── PERSONALITY MODEL (single source of truth) ─────────────────
-   Mirrors the landing-page configurator's canonical model EXACTLY. Both the
-   onboarding "create character" step and the plant-settings screen read from
-   here — presets + fine-tune sliders + labels + a sample voice phrase. Keep this
-   shape trivially diff-able with the configurator's PERSONALITIES constant.
-   `common` sliders apply to every preset; `sliders` are the preset's own.
-   Slider positions are 0/1/2 (three positions, wireframe-flat). */
+   Six presets, each with default positions for THREE fixed sliders
+   (warmth / drama / chattiness) and a small set of in-character line variants.
+   Both the onboarding "create character" tuner and the plant-settings screen
+   read from here. Slider positions are 0 / 1 / 2. */
+const SLIDERS = [
+  { key:"warmth",     label:"Warmth",     lo:"Dry",         hi:"Affectionate" },
+  { key:"drama",      label:"Drama",      lo:"Understated", hi:"Theatrical"   },
+  { key:"chattiness", label:"Chattiness", lo:"Rarely",      hi:"Often"        },
+];
 const PERSONALITIES = {
-  common: [
-    { key:"chattiness", label:"Chattiness", lo:"quiet", hi:"talkative" },
-  ],
+  sliders: SLIDERS,
   presets: [
-    { k:"Friendly",    d:"Easygoing and always happy to see you",
-      sample:"Morning! So good to see you today — how are we doing?",
-      sliders:[ { key:"energy", label:"Energy", lo:"mellow", hi:"bouncy" } ] },
-    { k:"Drama queen", d:"Every little thing is a season finale",
-      sample:"This is, without question, the WORST day of my entire life. Probably.",
-      sliders:[ { key:"drama",    label:"Drama level", lo:"theatrical", hi:"full opera" },
-                { key:"selfpity", label:"Self-pity",   lo:"stoic",      hi:"tragic" } ] },
-    { k:"Grump",       d:"Grumbles a lot, secretly cares deeply",
-      sample:"Oh. It's you again. …fine, I suppose it's good to see you.",
-      sliders:[ { key:"crust",  label:"Crust",         lo:"soft grump",  hi:"old man yelling at clouds" },
-                { key:"warmth", label:"Hidden warmth", lo:"well-hidden", hi:"leaks out" } ] },
-    { k:"Calm",        d:"Zen and gentle, unbothered by anything",
-      sample:"All is well. Breathe. We're okay, you and me.",
-      sliders:[ { key:"zen", label:"Zen depth", lo:"gentle", hi:"nearly monastic" } ] },
-    { k:"Cheerful",    d:"Sunny, peppy, glass firmly half full",
-      sample:"Hey hey! What a great day to be a plant. Loving this light!",
-      sliders:[ { key:"pep", label:"Pep", lo:"sunny", hi:"confetti cannon" } ] },
-    { k:"Shy",         d:"Quiet at first, warms up to you slowly",
-      sample:"oh… hi. i, um… i'm really glad you came by.",
-      sliders:[ { key:"openness", label:"Openness", lo:"barely whispers", hi:"almost comfortable" } ] },
-    { k:"Sassy",       d:"Quick with a playful little comeback",
-      sample:"Took you long enough. I'm thriving, thanks for finally asking.",
-      sliders:[ { key:"bite", label:"Bite", lo:"playful", hi:"roast mode" } ] },
-    { k:"Wise",        d:"An old soul who speaks in tiny proverbs",
-      sample:"A leaf that bends in the wind is the one that never breaks.",
-      sliders:[ { key:"proverb", label:"Proverb density", lo:"occasional", hi:"every sentence" } ] },
+    { k:"Friendly", d:"Warm & easy", defaults:{warmth:2, drama:1, chattiness:2},
+      lines:{
+        terse:"Hey! Good to see you.",
+        base:"Morning! So good to see you today — how are we doing?",
+        big:"There you are! Honestly, you just made my whole day.",
+        warm:"Missed you, you know.", dry:"Oh. Hello." } },
+    { k:"Drama queen", d:"Season finale", defaults:{warmth:1, drama:2, chattiness:2},
+      lines:{
+        terse:"Ugh. Fine. Alive. Barely.",
+        base:"This is, without question, the WORST day of my entire life. Probably.",
+        big:"Call the papers — this is my FINAL act! One leaf left! Farewell, cruel windowsill!",
+        warm:"…but I'm glad it's you who found me.", dry:"Whatever. You're here, I suppose." } },
+    { k:"Grump", d:"Secretly caring", defaults:{warmth:0, drama:1, chattiness:0},
+      lines:{
+        terse:"Hmph. You again.",
+        base:"Oh. It's you. …fine, I suppose it's good you came by.",
+        big:"In MY day we didn't 'check in' — we just stood there and coped! Now shut the blinds.",
+        warm:"…don't let it go to your head, but I did miss you.", dry:"Don't touch anything." } },
+    { k:"Calm", d:"Zen & gentle", defaults:{warmth:1, drama:0, chattiness:1},
+      lines:{
+        terse:"All is well.",
+        base:"All is well. Breathe. We're okay, you and me.",
+        big:"Feel how the light moves through the room — nothing to fix, nothing to chase, just this.",
+        warm:"I'm glad we share this quiet.", dry:"It is fine." } },
+    { k:"Cheerful", d:"Sunny & peppy", defaults:{warmth:2, drama:1, chattiness:2},
+      lines:{
+        terse:"Hi! Lovely day!",
+        base:"Hey hey! What a great day to be a plant. Loving this light!",
+        big:"WOOHOO best day EVER — sunshine, water, AND you showed up?! I could burst!",
+        warm:"So happy you're here!", dry:"…nice day, I guess." } },
+    { k:"Sassy", d:"Playful bite", defaults:{warmth:1, drama:2, chattiness:1},
+      lines:{
+        terse:"Oh, look who it is.",
+        base:"Took you long enough. I'm thriving, thanks for finally asking.",
+        big:"Absolutely SERVING chlorophyll realness today and you're lucky to witness it, darling.",
+        warm:"…you're kind of my favourite, don't tell the cactus.", dry:"Cool. Great. You're back." } },
   ],
 };
 const personaByName = (k)=> PERSONALITIES.presets.find(p=>p.k===k) || PERSONALITIES.presets[0];
-// full slider set for a preset = the shared Chattiness slider + the preset's own
-const slidersFor = (k)=> [...PERSONALITIES.common, ...personaByName(k).sliders];
+
+/* Live in-character sample line. Drama picks the base variant (theatrical → "big",
+   otherwise "base"); a quiet chattiness collapses to the "terse" variant; warmth
+   appends an affectionate or a dry tag. So nudging ANY slider changes the line. */
+function sampleLine(k, t){
+  const L = personaByName(k).lines;
+  let line = t.drama===2 ? L.big : (t.chattiness===0 ? L.terse : L.base);
+  if(t.warmth===2 && L.warm)      line += " " + L.warm;
+  else if(t.warmth===0 && L.dry)  line += " " + L.dry;
+  return line;
+}
+
+/* Voice = timbre of the spoken sample (distinct from personality). */
+const VOICES = [
+  { k:"Warm",    d:"Gentle and reassuring" },
+  { k:"Bright",  d:"Upbeat and lively" },
+  { k:"Soft",    d:"Quiet and soothing" },
+  { k:"Playful", d:"Cheeky and full of fun" },
+];
 const SPECIES = [
   "Ficus","Monstera","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
   "Fern","Succulent","Orchid","Spider plant","Rubber plant","Philodendron","Calathea",
@@ -568,60 +630,98 @@ function Toggle({on, onClick}){
   return <div className={"toggle"+(on?" on":"")} onClick={onClick}><i/></div>;
 }
 
-/* One wireframe-flat fine-tune slider: 3 fixed positions (0/1/2). */
-function Slider({label, lo, hi, val, onChange}){
-  return <div className="slider">
-    <div className="slabel">{label}</div>
-    <div className="strack">
-      <span className="sline"/>
-      {[0,1,2].map(i=>(
-        <button key={i} className={"sdot"+(val===i?" on":"")}
-          aria-label={label+": "+[lo,"balanced",hi][i]} onClick={()=>onChange(i)}/>
-      ))}
+/* Low-fi 3-position range slider — grey track, accent fill + handle, no shadow.
+   Three equal click zones snap the value to 0 / 1 / 2. */
+function RangeSlider({label, lo, hi, val, onChange}){
+  const pct = val*50; // 0 / 50 / 100 %
+  return <div className="range">
+    <div className="range-lab"><b>{label}</b><small>{[lo,"balanced",hi][val]}</small></div>
+    <div className="rtrack">
+      <div className="rfill" style={{width:pct+"%"}}/>
+      <div className="rhandle" style={{left:pct+"%"}}/>
+      <div className="rhits">
+        {[0,1,2].map(i=>(
+          <button key={i} aria-label={label+": "+[lo,"balanced",hi][i]} onClick={()=>onChange(i)}/>
+        ))}
+      </div>
     </div>
-    <div className="sends"><small className="muted">{lo}</small><small className="muted">{hi}</small></div>
+    <div className="range-lab"><small>{lo}</small><small>{hi}</small></div>
   </div>;
 }
 
-/* Shared personality picker — the SINGLE UI for personality, used identically by
-   both onboarding (create character) and plant settings. Preset list, then the
-   fine-tune sliders for the selected preset, then a live voice-preview line. */
+/* Compact 3×2 personality preset grid (6 presets). */
+function PresetGrid({value, onChange}){
+  return <div className="pgrid6">
+    {PERSONALITIES.presets.map(x=>(
+      <div key={x.k} className={"ptile"+(value===x.k?" on":"")} onClick={()=>onChange(x.k)}>
+        <b>{x.k}</b><small>{x.d}</small>
+      </div>
+    ))}
+  </div>;
+}
+
+/* The three fixed fine-tune sliders (warmth / drama / chattiness). */
+function FineTuning({tune, onChange}){
+  return <div className="card col" style={{gap:16}}>
+    {PERSONALITIES.sliders.map(s=>(
+      <RangeSlider key={s.key} label={s.label} lo={s.lo} hi={s.hi}
+        val={tune[s.key]} onChange={i=>onChange(s.key,i)}/>
+    ))}
+  </div>;
+}
+
+/* Live-preview block: speech bubble (in-character line) + play button, plant photo
+   below. Used sticky on create-character and inline on plant settings. */
+function SpeechPreview({preset, tune, playing, onPlay, sticky, photo=100, badge}){
+  return <div className={"preview"+(sticky?"":" flat")} style={sticky?null:{position:"static",margin:0,borderBottom:"none",padding:0}}>
+    <div className="pv-top">
+      <div className="speech">{sampleLine(preset,tune)}</div>
+      <button className={"play"+(playing?" on":"")} onClick={onPlay}
+        title={playing?"Playing — tap to pause":"Play in the selected voice"}
+        aria-label={playing?"Pause":"Play sample"}>
+        {playing ? <span className="eq"><i/><i/><i/></span> : "▶"}
+      </button>
+    </div>
+    <Photo round w={photo} h={photo} label="PLANT PHOTO" style={{margin:"0 auto"}} badge={badge}/>
+  </div>;
+}
+
+/* Restored voice picker — timbre of the spoken line; playback shown IN the button
+   (eq animation) so the row never shifts. */
+function VoicePicker({value, onChange, playing, onPlay}){
+  return <div className="field"><label>Voice</label>
+    <div className="col">
+      {VOICES.map(v=>(
+        <div key={v.k} className={"opt spread"+(value===v.k?" on":"")} onClick={()=>onChange(v.k)}>
+          <div><b>{v.k}</b><small>{v.d}</small></div>
+          <button className={"play"+(playing===v.k?" on":"")}
+            onClick={e=>{e.stopPropagation(); onPlay(v.k);}}
+            title={playing===v.k?"Playing — tap to stop":"Play a sample"}>
+            {playing===v.k ? <span className="eq"><i/><i/><i/></span> : "▶"}
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
+/* Shared personality tuner used by PLANT SETTINGS — preview bubble, preset grid,
+   fine-tuning. (Onboarding builds its own richer layout from the same parts.) */
 function PersonalityPicker({initial="Friendly"}){
   const [preset,setPreset] = useState(personaByName(initial).k);
-  const [tune,setTune]     = useState({}); // slider key -> 0/1/2 (default middle)
-  const cur   = personaByName(preset);
-  const list  = slidersFor(preset);
-  const pos   = (key)=> (key in tune ? tune[key] : 1);
-  // changing preset resets the fine-tune to neutral for the new preset's sliders
-  const pick  = (k)=>{ setPreset(k); setTune({}); };
-  const setSlider = (key,i)=> setTune(t=>({...t,[key]:i}));
+  const [tune,setTune]     = useState(personaByName(initial).defaults);
+  const [playing,setPlaying] = useState(false);
+  const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); setPlaying(false); };
+  const setSlider = (key,i)=>{ setTune(t=>({...t,[key]:i})); setPlaying(false); };
   return <div className="col" style={{gap:12}}>
+    <div className="field"><label>Voice preview</label>
+      <SpeechPreview preset={preset} tune={tune} playing={playing}
+        onPlay={()=>setPlaying(p=>!p)} photo={90}/>
+    </div>
     <div className="field"><label>Personality</label>
-      <div className="col">
-        {PERSONALITIES.presets.map(x=>(
-          <div key={x.k} className={"opt"+(preset===x.k?" on":"")} onClick={()=>pick(x.k)}>
-            <b>{x.k}</b><small>{x.d}</small>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* fine-tune sliders — shown for the selected preset (always one selected) */}
-    <div className="field"><label>Fine-tune {cur.k}</label>
-      <div className="card col" style={{gap:18}}>
-        {list.map(s=>(
-          <Slider key={s.key} label={s.label} lo={s.lo} hi={s.hi}
-            val={pos(s.key)} onChange={i=>setSlider(s.key,i)}/>
-        ))}
-      </div>
-    </div>
-
-    {/* live voice preview — updates on preset change AND on any slider change */}
-    <div className="card col" style={{gap:4}}>
-      <small className="muted">{cur.k} voice · preview</small>
-      <p>“{cur.sample}”</p>
-      <small className="muted">{list.map(s=>[s.lo,"balanced",s.hi][pos(s.key)]).join(" · ")}</small>
-    </div>
+      <PresetGrid value={preset} onChange={pick}/></div>
+    <div className="field"><label>Fine-tune</label>
+      <FineTuning tune={tune} onChange={setSlider}/></div>
   </div>;
 }
 
@@ -1243,22 +1343,46 @@ function SpeciesDetail({params}){
   </div>;
 }
 
-/* Step 3 — create the character (name + personality; voice is the preset's sample) */
+/* Step 3 — create the character: a live-preview personality tuner.
+   Order: PREVIEW (sticky) → NAME → PERSONALITY → FINE-TUNING → VOICE → CTA. */
 function CreateCharacter({params}){
   const nav = useNav();
   const species = (params&&params.species)||"your plant";
-  const [name,setName] = useState("");
+  const [name,setName]     = useState("");
+  const [preset,setPreset] = useState("Friendly");
+  const [tune,setTune]     = useState(personaByName("Friendly").defaults);
+  const [voice,setVoice]   = useState("Warm");
+  const [previewPlaying,setPreviewPlaying] = useState(false);
+  const [voicePlaying,setVoicePlaying]     = useState(null);
   const finalName = name.trim() || "your plant";
+  // any change to the character stops the mock preview playback
+  const pickPreset = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); setPreviewPlaying(false); };
+  const setSlider  = (key,i)=>{ setTune(t=>({...t,[key]:i})); setPreviewPlaying(false); };
+
   return <div className="screen">
     <Top title="Create their character" onBack={nav.back} kicker={`New plant · step 3 of 3 · ${species}`}/>
-    <div className="center"><Photo round w={120} h={120} label="PLANT PHOTO" style={{margin:"0 auto"}}/></div>
 
+    {/* 1 — LIVE PREVIEW (sticky): in-character line + play, plant photo below */}
+    <SpeechPreview preset={preset} tune={tune} playing={previewPlaying}
+      onPlay={()=>setPreviewPlaying(p=>!p)} sticky photo={100}/>
+
+    {/* 2 — NAME */}
     <div className="field"><label>Name</label>
       <input value={name} onChange={e=>setName(e.target.value)} placeholder="What should we call them?"/></div>
 
-    {/* personality — the single shared picker (presets + fine-tune + voice preview) */}
-    <PersonalityPicker initial="Friendly"/>
+    {/* 3 — PERSONALITY (6 presets, compact 3×2 grid) */}
+    <div className="field"><label>Personality</label>
+      <PresetGrid value={preset} onChange={pickPreset}/></div>
 
+    {/* 4 — FINE-TUNING (revealed once a preset is chosen — always one selected) */}
+    <div className="field"><label>Fine-tune {preset}</label>
+      <FineTuning tune={tune} onChange={setSlider}/></div>
+
+    {/* 5 — VOICE (timbre; in-button playback, no layout shift) */}
+    <VoicePicker value={voice} onChange={setVoice}
+      playing={voicePlaying} onPlay={(k)=>setVoicePlaying(v=>v===k?null:k)}/>
+
+    {/* 6 — CTA */}
     <div style={{flex:1}}/>
     <button className="btn primary" onClick={()=>nav.go("meeting",{name:finalName})}>Say hello 👋</button>
   </div>;
