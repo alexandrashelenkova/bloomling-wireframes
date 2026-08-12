@@ -867,3 +867,100 @@ listed in §3.
   load from `assets/`, the four corners of every bubble differ, the tight corner
   faces the avatar (mirrored on user messages), the header carries only bell +
   avatar, and the expanded hero is pixel-identical to Revision 14.
+
+---
+
+# Revision 16 — dashboard: header spacing, reactions, motion, scroll behaviour
+
+Scope: the dashboard only (collapsed header, chat behaviour, expand animation).
+No other screen touched.
+
+## 1. Header spacing — measured off the mockup (`343:6`)
+| what | mockup | was | now |
+|---|---|---|---|
+| headline left edge | x=41 (pill starts at 14 → **27px inner padding**) | `left:27px` — measured from the *screen* edge, so only 13px of padding | `left:41px` |
+| icon row right inset | avatar right edge 371 of 402 → 31 | 31 | 31 (unchanged) |
+| bell → avatar gap | 10 (bell 297–321, avatar 331) | 10 | **14** |
+| badge dot | 8px core at (314,84) — 1px past the bell's right edge, ring extends 3px | `right:-9px` — leaned 9px into the gap | `top:-3px; right:-3px` |
+- **Fork — the gap is 14px, not Figma's 10px.** Figma measured 10px with *three*
+  items in the row; with the leaf gone (Revision 15) two items at 10px read
+  cramped. The real culprit was the badge dot hanging 9px into the gap, which is
+  fixed to the mockup's placement; 14px is the deliberate extra on top.
+
+## 2. User avatar (`360:552`)
+- Exported to `assets/avatar-user.jpg` — centre-cropped square, 160px (4× the
+  40px header circle), JPEG q88, 8 KB. JPEG over PNG because it is a photograph
+  with no transparency (50 KB → 8 KB).
+- Used in the collapsed header (40px, `object-fit:cover`) and next to every user
+  message (37.81px), replacing the grey circle. It joins the `AVATAR` map as
+  `me` with a `round` flag, so one code path serves plants and user; the plant
+  entries keep their overhang offsets, the user's is a plain circle crop.
+- This reverses the Revision 14/15 call to keep a placeholder — the avatar is
+  part of the design file and its use was asked for explicitly.
+
+## 3. Reactions
+- Data: `rx:[[emoji, count], …]` on a message. Rendered as chips absolutely
+  positioned at `bottom:-11px`, hooked over the bubble's bottom edge, 15px in
+  from the bubble's outer edge — left on plant messages, right on user messages,
+  so they never sit under the tight avatar corner. White pill, 23px tall,
+  `0 1px 4px` shadow to lift them off same-coloured bubbles.
+- Seeded set (reactions come from everyone, both directions):
+  | message | reactions |
+  |---|---|
+  | Felix — "New leaf today!" | 💚 2 (user + Margot), 🎉 1 |
+  | user — "Congrats, Felix!" | 🌿 1 (Felix) |
+  | Margot — "…photoshoot?!" | 😂 2 (Felix + user) |
+  | Gosha — "A leaf. Everyone's celebrating a leaf." | 💅 1 (Margot), 😂 1 (user) |
+  | user — "Calm down, Gosha." | 👍 1 (Felix) |
+  | Margot — alert | none |
+- **Fork — the alert bubble gets no reactions.** Emoji on a "my soil's soggy"
+  alert undercuts it; the alert is the one message that asks for action.
+- **Fork — the count always shows, even at 1.** Uniform chip width reads calmer
+  than a mix of bare emoji and emoji+number, and matches the referenced style.
+- Chip text is `--t-sm` (13px), the locked scale's smallest step — no new size.
+- Rows carrying chips get 24px bottom margin instead of 11px, so the chip never
+  collides with the next message.
+- Static only, as specified: no picker, no add/remove.
+
+## 4. Chat top fade — now conditional
+- The fade is opacity-0 by default and gets `.on` only while
+  `scrollTop > 4`. At the very first message there is nothing hidden above, so
+  the gradient would be dimming a bubble for no reason.
+- Driven by the scroll handler plus a refresh after the programmatic
+  scroll-to-bottom lands, so the flag is right on first paint too. 220ms fade so
+  it never pops.
+
+## 5. Expand animation
+- Two easings: `--spring: cubic-bezier(.16,.84,.28,1.02)` — a gentle
+  ease-out-back with ~2% overshoot, used on everything expanding; and
+  `--soft: cubic-bezier(.22,1,.36,1)` for the reverse.
+- **Stagger (expand, ~530ms total):** green surface 500ms from frame 0 →
+  headline 460ms at +40ms (so it reads as carried *by* the surface, not racing
+  it) → date 260ms at +200ms → CTA 280ms at +250ms. Date and CTA also slide
+  (−6px / +10px) as they fade.
+- **Collapse is the same in reverse and faster:** everything 380ms with no
+  delays, and date/CTA drop out in 140ms so the pill's contents are clean before
+  it finishes shrinking.
+- **Blur:** `saturate(.45) blur(2.5px)` on `.gscroll` — the content — rather than
+  on `.gchat`, so the sheet's fill and its 36px corners stay crisp while the
+  conversation goes soft-focus. 460ms in (+60ms), 340ms out. `filter` over
+  `backdrop-filter` because the thing being blurred is the element's own content,
+  not what's behind it.
+
+## 6. Scroll-to-collapse
+- With the hero open the stream is frozen (`overflow-y:hidden`), so a wheel or
+  touch-drag over the chat is unambiguous: both collapse the hero, alongside the
+  existing tap. The collapse runs the faster 380ms reverse curve.
+
+## 7. Bubble width hug
+- `.gbub` goes from a fixed `width:269px` to `width:auto` with
+  `max-width:min(269px, calc(100% - 48px))`. Short messages now produce short
+  bubbles; long ones still wrap at the mockup's 269px.
+- The blob background stretches to whatever width results, so a narrow bubble
+  keeps proportional corners rather than a squashed silhouette.
+
+## Verification
+- Rendered collapsed (scrolled and at top), and expanded, in headless Chrome:
+  no gradient at the top of the stream, gradient present once scrolled, chips
+  attached to every seeded message, user avatar in header and chat, bubbles
+  hugging their content, expanded chat blurred with the sheet edge crisp.

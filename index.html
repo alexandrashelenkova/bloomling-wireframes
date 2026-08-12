@@ -58,6 +58,11 @@
     --r-btn:28px;            /* white pill button      (345:216) */
     --r-sheet:36px;          /* chat sheet top corners (345:213) */
     --r-card:24px;           /* DERIVED: cards on restyled screens */
+
+    /* ── MOTION ── gentle ease-out-back for the hero (gets there fast, settles
+       with a 2% overshoot); plain soft ease-out for everything reversing out. */
+    --spring:cubic-bezier(.16,.84,.28,1.02);
+    --soft:cubic-bezier(.22,1,.36,1);
     /* Organic blob bubble: four different large radii, tight corner by the avatar.
        Derived from the Ellipse 19/20/21 vectors (near-half-height corners). */
     --bub:10px 56px 44px 64px / 10px 44px 60px 52px;
@@ -307,70 +312,92 @@
   /* the morphing sage surface: pill → full bleed */
   .gsurface{position:absolute;left:14px;right:14px;top:12px;height:74px;z-index:12;
     background:var(--sage);border-radius:var(--r-pill);cursor:pointer;
-    transition:left .46s cubic-bezier(.22,.9,.28,1),right .46s cubic-bezier(.22,.9,.28,1),
-      top .46s cubic-bezier(.22,.9,.28,1),height .46s cubic-bezier(.22,.9,.28,1),
-      border-radius .46s cubic-bezier(.22,.9,.28,1)}
-  .dash.open .gsurface{left:0;right:0;top:0;height:434px;border-radius:0}
+    transition:left .38s var(--soft),right .38s var(--soft),
+      top .38s var(--soft),height .38s var(--soft),border-radius .38s var(--soft)}
+  /* the green leads the sequence — it starts moving on frame 1, everything else
+     is timed off it */
+  .dash.open .gsurface{left:0;right:0;top:0;height:434px;border-radius:0;
+    transition:left .5s var(--spring),right .5s var(--spring),
+      top .5s var(--spring),height .5s var(--spring),border-radius .5s var(--spring)}
   /* sage underlay — only visible through the sheet's rounded corners once open */
   .gunder{position:absolute;inset:0;z-index:8;background:var(--sage);opacity:0;
     pointer-events:none;transition:opacity .2s ease-out}
   .dash.open .gunder{opacity:1;transition:opacity .24s ease-out .2s}
 
   /* display headline — slides from the pill's left edge to the centre and grows */
-  .ghead{position:absolute;left:27px;top:23px;z-index:14;transform:translateX(0);
+  /* left:41px = the pill's own left edge (14) + the mockup's 27px inner padding */
+  .ghead{position:absolute;left:41px;top:23px;z-index:14;transform:translateX(0);
     font-family:'Riccione',Georgia,serif;font-weight:400;color:var(--serif-ink);
     font-size:var(--t-lg);line-height:1.18;letter-spacing:0;pointer-events:none;
-    transition:left .46s cubic-bezier(.22,.9,.28,1),top .46s cubic-bezier(.22,.9,.28,1),
-      font-size .46s cubic-bezier(.22,.9,.28,1),transform .46s cubic-bezier(.22,.9,.28,1)}
+    transition:left .38s var(--soft),top .38s var(--soft),
+      font-size .38s var(--soft),transform .38s var(--soft)}
+  /* travels WITH the surface (40ms behind it) so it reads as one shared element */
   .dash.open .ghead{left:50%;top:121px;transform:translateX(-50%);
-    font-size:var(--t-xl);text-align:center;white-space:nowrap}
+    font-size:var(--t-xl);text-align:center;white-space:nowrap;
+    transition:left .46s var(--spring) .04s,top .46s var(--spring) .04s,
+      font-size .46s var(--spring) .04s,transform .46s var(--spring) .04s}
 
   /* date — only in the expanded state, fades in */
+  /* date + CTA are the tail of the stagger: they fade and slide in once the green
+     has most of the way expanded, and leave immediately on collapse */
   .gdate{position:absolute;left:14px;top:39px;z-index:14;font-size:var(--t-md);
-    color:var(--ink);opacity:0;pointer-events:none;
-    transition:opacity .3s ease-out}
-  .dash.open .gdate{opacity:.4}
+    color:var(--ink);opacity:0;pointer-events:none;transform:translateY(-6px);
+    transition:opacity .14s ease-in,transform .14s ease-in}
+  .dash.open .gdate{opacity:.4;transform:translateY(0);
+    transition:opacity .26s var(--soft) .2s,transform .26s var(--soft) .2s}
 
   /* header icons: plant · bell (+ dot) · avatar. They keep their vertical place
      and only slide out to the screen edge as the pill becomes full-bleed. */
   .gicons{position:absolute;right:31px;top:29px;z-index:16;display:flex;
-    align-items:center;gap:10px;
-    transition:right .46s cubic-bezier(.22,.9,.28,1)}
-  .dash.open .gicons{right:14px}
+    align-items:center;gap:14px;
+    transition:right .38s var(--soft)}
+  .dash.open .gicons{right:14px;transition:right .46s var(--spring)}
   .gicon{width:24px;height:24px;cursor:pointer;position:relative;display:block}
   .gicon svg{display:block}
-  .gdot{position:absolute;top:-1px;right:-9px;width:12px;height:12px}
+  /* the badge sits ON the bell's top-right corner (Figma 314,84 against a bell at
+     297,85) — it must not lean into the gap before the avatar */
+  .gdot{position:absolute;top:-3px;right:-3px;width:12px;height:12px}
   .gava{width:40px;height:40px;border-radius:50%;cursor:pointer;flex:0 0 auto;
-    background:repeating-linear-gradient(45deg,#E4E5DE,#E4E5DE 6px,#DCDDD6 6px,#DCDDD6 12px)}
+    object-fit:cover;display:block}
 
   /* white pill CTA — expanded state only */
   .gcta{position:absolute;left:50%;top:250px;transform:translateX(-50%);z-index:14;
     width:269px;padding:15px;border:none;border-radius:var(--r-btn);background:#fff;
     color:var(--ink);font-size:var(--t-md);text-align:center;cursor:pointer;
-    opacity:0;pointer-events:none;transition:opacity .28s ease-out .12s}
-  .dash.open .gcta{opacity:1;pointer-events:auto}
-  .gcta:active{transform:translateX(-50%) translateY(1px)}
+    opacity:0;pointer-events:none;
+    transition:opacity .14s ease-in,transform .14s ease-in}
+  .dash.open .gcta{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);
+    transition:opacity .28s var(--soft) .25s,transform .28s var(--soft) .25s}
+  .gcta{transform:translateX(-50%) translateY(10px)}
+  .dash.open .gcta:active{transform:translateX(-50%) translateY(1px);transition:transform .08s}
 
   /* the chat layer — the whole content in the collapsed state; pushed down,
      desaturated and peeking at the bottom edge when expanded */
   .gchat{position:absolute;left:0;right:0;top:0;bottom:0;z-index:10;
     border-radius:0;background:transparent;
-    transition:top .46s cubic-bezier(.22,.9,.28,1),background .46s ease-out,
-      border-radius .46s ease-out,filter .46s ease-out}
+    transition:top .38s var(--soft),background .38s ease-out,border-radius .38s ease-out}
   .dash.open .gchat{top:434px;background:var(--bg2);cursor:pointer;
-    border-radius:var(--r-sheet) var(--r-sheet) 0 0;filter:saturate(.42)}
+    border-radius:var(--r-sheet) var(--r-sheet) 0 0;
+    transition:top .5s var(--spring),background .5s ease-out,border-radius .5s ease-out}
   .gscroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
-    padding:100px 14px 100px;border-radius:inherit}
+    padding:100px 14px 100px;border-radius:inherit;
+    filter:saturate(1) blur(0);transition:filter .34s var(--soft)}
   .gscroll::-webkit-scrollbar{width:0}
-  .dash.open .gscroll{padding-top:26px;overflow-y:hidden}
-  /* soft fade where the chat runs under the header / the sheet's top edge */
+  /* the conversation goes soft-focus behind the hero — blur on the CONTENT, not on
+     the sheet, so the sheet's edge and corners stay crisp */
+  .dash.open .gscroll{padding-top:26px;overflow-y:hidden;
+    filter:saturate(.45) blur(2.5px);transition:filter .46s var(--soft) .06s}
+  /* soft fade where the chat runs under the header / the sheet's top edge.
+     Only present when something is actually scrolled up behind it (.on). */
   .gfade{position:absolute;left:0;right:0;top:0;height:244px;z-index:11;
-    pointer-events:none;
+    pointer-events:none;opacity:0;
     background:linear-gradient(180deg,var(--bg) 0,var(--bg) 96px,rgba(237,238,233,0) 244px);
-    transition:top .46s cubic-bezier(.22,.9,.28,1),background .46s ease-out}
+    transition:top .38s var(--soft),background .38s ease-out,opacity .22s ease-out}
+  .gfade.on{opacity:1}
   .dash.open .gfade{top:434px;height:230px;
     background:linear-gradient(180deg,var(--bg2) 0%,rgba(239,239,239,0) 78%);
-    border-radius:var(--r-sheet) var(--r-sheet) 0 0}
+    border-radius:var(--r-sheet) var(--r-sheet) 0 0;
+    transition:top .5s var(--spring),background .5s ease-out,opacity .22s ease-out}
 
   /* message row — grey avatar circle + organic colour-coded bubble */
   .grow-row{display:flex;gap:5px;align-items:flex-start;margin-bottom:11px}
@@ -381,10 +408,23 @@
      the circle upwards, exactly as the avatar frame draws it */
   .gmava.art{background:transparent}
   .gmava.art img{position:absolute;display:block;max-width:none;pointer-events:none}
-  /* silhouette comes from the stretched Figma path (see blobBg), not border-radius */
-  .gbub{width:269px;max-width:calc(100% - 48px);padding:15px;background-color:transparent;
+  .gmava.art img.round{border-radius:50%;object-fit:cover}
+  /* silhouette comes from the stretched Figma path (see blobBg), not border-radius.
+     width:auto so a short line makes a short bubble; the mockup's 269px is the cap. */
+  .gbub{position:relative;width:auto;max-width:min(269px,calc(100% - 48px));
+    padding:15px;background-color:transparent;
     background-size:100% 100%;background-repeat:no-repeat;
     display:flex;flex-direction:column;gap:8px}
+  /* reactions — messenger-style chips hooked over the bubble's bottom edge */
+  .grx{position:absolute;bottom:-11px;display:flex;gap:4px;z-index:3}
+  .grow-row.them .grx{left:15px}
+  .grow-row.me .grx{right:15px}
+  .grxchip{display:inline-flex;align-items:center;gap:4px;height:23px;padding:0 8px;
+    border-radius:999px;background:var(--card);font-size:var(--t-sm);line-height:1;
+    box-shadow:0 1px 4px rgba(30,12,0,.10)}
+  .grxchip span{opacity:.5;font-weight:500}
+  /* a row carrying chips needs room for them before the next message */
+  .grow-row.rx{margin-bottom:24px}
   .gmeta{display:flex;gap:10px;align-items:center;font-size:var(--t-sm);
     letter-spacing:.52px;line-height:1.2}
   .gmeta b{font-weight:500;color:var(--ink)}
@@ -672,17 +712,21 @@ const MILESTONES = [
      cross:true  → the plant-to-plant banter thread, including the user's reply to it
                    (hidden when "plants talk to each other" is off, leaving Felix's
                    news, the congratulations and Margot's alert — still coherent)
-     urgent:true → accent-styled; tapping opens the ALERT → diagnosis flow */
+     urgent:true → carries the inline "Check what happened" CTA into the alert flow
+     rx          → reactions, [emoji, count]; everyone reacts to everyone */
 const CHAT_INIT = [
   { who:"felix", at:"09:02",
-    text:"New leaf today! The pot's already taking pictures — get my good side 🌿" },
-  { who:"me",    at:"09:04", text:"Congrats, Felix! Looking great" },
+    text:"New leaf today! The pot's already taking pictures — get my good side 🌿",
+    rx:[["💚",2],["🎉",1]] },
+  { who:"me",    at:"09:04", text:"Congrats, Felix! Looking great", rx:[["🌿",1]] },
   { who:"margo", at:"09:06", cross:true,
-    text:"Wait — nobody told me there was a photoshoot?! I would have turned my leaves." },
+    text:"Wait — nobody told me there was a photoshoot?! I would have turned my leaves.",
+    rx:[["😂",2]] },
   { who:"gosha", at:"09:09", cross:true,
-    text:"A leaf. Everyone's celebrating a leaf. It happens, you know." },
+    text:"A leaf. Everyone's celebrating a leaf. It happens, you know.",
+    rx:[["💅",1],["😂",1]] },
   { who:"me",    at:"09:11", cross:true,
-    text:"Calm down, Gosha. It's just a leaf. Be happy for him." },
+    text:"Calm down, Gosha. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
   { who:"margo", at:"17:30", urgent:true,
     text:"Something's off — my soil's soggy and it's cold by this window. Can you take a look?" },
 ];
@@ -804,6 +848,7 @@ const SPECIES = [
 ];
 // placeholder identity — comes from sign-up / social login in the real app
 const USER_NAME = "Alexandra";
+const USER_AVATAR = "assets/avatar-user.jpg";
 
 /* ───────────────── NAV ───────────────── */
 const Nav = createContext(null);
@@ -1035,6 +1080,8 @@ const AVATAR = {
   felix:{ src:"assets/avatar-felix.png",  w:38, h:47,    l:0,  t:-9  },
   margo:{ src:"assets/avatar-margot.png", w:51, h:65.81, l:-5, t:-28 },
   gosha:{ src:"assets/avatar-gosha.png",  w:39, h:42.81, l:0,  t:-5  },
+  // the user's own avatar (Figma 360:552) — a plain circle crop, no overhang
+  me:   { src:USER_AVATAR, w:37.81, h:37.81, l:0, t:0, round:true },
 };
 
 /* "Wednesday, 12th August" — the expanded state shows today's real date. */
@@ -1075,7 +1122,8 @@ function Dashboard({params}){
       <span className="gicon" title="Notifications" onClick={()=>nav.go("notifs")}>
         <IconBell/><span className="gdot"><IconDot/></span>
       </span>
-      <span className="gava" title="Profile &amp; settings" onClick={()=>nav.go("profile")}/>
+      <img className="gava" src={USER_AVATAR} alt="" title="Profile &amp; settings"
+        onClick={()=>nav.go("profile")}/>
     </div>
 
     <div className="gcta" onClick={()=>nav.go("plantsList")}>See your plants</div>
@@ -1096,8 +1144,12 @@ function GardenChat({focus, open, onCollapse}){
   const { chatCross } = useApp();
   const [msgs,setMsgs] = useState(CHAT_INIT);
   const [text,setText] = useState("");
+  // the top fade only exists while there IS hidden content above the viewport —
+  // at the very first message the bubble must be fully lit, not dimmed
+  const [scrolled,setScrolled] = useState(true);
   const scroller = useRef(null);
   const target = useRef(null);
+  const onScroll = (e)=> setScrolled(e.currentTarget.scrollTop > 4);
 
   // "plants talk to each other" is controlled from the profile's chat settings
   const shown = chatCross ? msgs : msgs.filter(m=>!m.cross);
@@ -1110,6 +1162,7 @@ function GardenChat({focus, open, onCollapse}){
     // a focused message wins; otherwise land on the newest (the urgent one)
     if(target.current) el.scrollTop = Math.max(0, target.current.offsetTop - 120);
     else el.scrollTop = el.scrollHeight;
+    setScrolled(el.scrollTop > 4);
   },[shown.length]);
 
   // while the hero expands/collapses the pane changes height — keep the stream
@@ -1120,7 +1173,8 @@ function GardenChat({focus, open, onCollapse}){
     let raf, stop = false;
     const pin = ()=>{ if(stop) return; el.scrollTop = el.scrollHeight; raf = requestAnimationFrame(pin); };
     pin();
-    const t = setTimeout(()=>{ stop = true; cancelAnimationFrame(raf); }, 520);
+    const t = setTimeout(()=>{ stop = true; cancelAnimationFrame(raf);
+      setScrolled(el.scrollTop > 4); }, 520);
     return ()=>{ stop = true; cancelAnimationFrame(raf); clearTimeout(t); };
   },[open]);
 
@@ -1134,17 +1188,22 @@ function GardenChat({focus, open, onCollapse}){
   };
 
   return <>
-    <div className="gchat" onClick={()=> open && onCollapse()}>
-      <div className="gscroll" ref={scroller}>
+    {/* while the hero is open the stream is frozen, so a scroll gesture over it is
+        unambiguous: it means "give me the chat back" */}
+    <div className="gchat" onClick={()=> open && onCollapse()}
+      onWheel={()=> open && onCollapse()}
+      onTouchMove={()=> open && onCollapse()}>
+      <div className="gscroll" ref={scroller} onScroll={onScroll}>
         {shown.map((m,i)=>{
           const isMe = m.who==="me";
           const p = !isMe && plantById(m.who);
-          const av = !isMe && AVATAR[m.who];
+          const av = AVATAR[m.who];
           const shape = isMe ? "me" : (m.urgent ? "alert" : "them");
-          return <div key={i} className={"grow-row "+(isMe?"me":"them")}
+          return <div key={i} className={"grow-row "+(isMe?"me":"them")+(m.rx?" rx":"")}
             ref={i===hot ? target : null}>
             <div className={"gmava"+(av?" art":"")}>
-              {av && <img src={av.src} alt="" style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
+              {av && <img src={av.src} alt="" className={av.round?"round":null}
+                style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
             </div>
             <div className="gbub" style={{backgroundImage:
               blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[m.who]||BUBBLE.margo))}}>
@@ -1159,12 +1218,17 @@ function GardenChat({focus, open, onCollapse}){
                   Check what happened
                 </div>
               </>}
+              {m.rx && <div className="grx">
+                {m.rx.map(([e,n])=>(
+                  <div className="grxchip" key={e}>{e}<span>{n}</span></div>
+                ))}
+              </div>}
             </div>
           </div>;
         })}
       </div>
     </div>
-    <div className="gfade"/>
+    <div className={"gfade"+(scrolled?" on":"")}/>
 
     {/* composer — elongated pill, microphone in place of a send arrow */}
     <div className="gcomposer" onClick={e=>e.stopPropagation()}>
