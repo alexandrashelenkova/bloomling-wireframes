@@ -762,3 +762,108 @@ layout, structure, navigation or content changed outside the dashboard.
 - Collapsed and expanded states compared side by side against the two Figma
   frame screenshots — headline, icon row, bubble colours, scrim, sheet, CTA and
   composer all land in the designed positions.
+
+---
+
+# Revision 15 — collapsed dashboard: blob bubbles, pot-character avatars, new script
+
+Scope: the **collapsed** dashboard state only. The expanded hero, every other
+screen, all layouts and all navigation are untouched apart from the one removal
+listed in §3.
+
+## 0. Design source — Figma MCP (access OK)
+- Bubble reference: section `353:321`, frames `343:6` / `344:126` (the vectors
+  `Ellipse 19/20/21` inside them).
+- Avatars: section `360:555` — three composed avatar frames, `360:549`
+  (monstera), `360:550` (cactus), `360:551` (ficus), plus the user photo avatar
+  `360:552` (not used, see §2).
+
+## 1. Bubble silhouette — rebuilt from the vector paths
+- **Why the previous pass read as a rounded rectangle:** it used `border-radius`,
+  which can only draw elliptical corners. The mockup's bubbles are *vector blobs*
+  whose cubic control points sit **on the corner vertex** — the outline hugs the
+  edge and turns late, a superellipse. Measured from `Ellipse 19`: its
+  bottom-right corner passes through (251.2, 103.9) where a true ellipse of the
+  same radii would pass through (229.5, 97.3) — i.e. visibly fuller than anything
+  `border-radius` can express.
+- **Now painted from the path itself**: each bubble gets an inline SVG
+  data-URI background (`blobBg()`), `preserveAspectRatio="none"` +
+  `background-size:100% 100%`, so one path adapts to any message length. Chosen
+  over `mask-image` because a mask also clips the text; a background cannot.
+- Extracted geometry, per shape (viewBox = the Figma vector's own box):
+  | shape | viewBox | Figma source |
+  |---|---|---|
+  | plant message | 269.327 × 114 | `Ellipse 19` |
+  | alert message | 269.383 × 165.181 | `Ellipse 20` |
+  | user message | 268.673 × 70 | `Ellipse 21` |
+- **Fork — "use the values exactly" vs "four DIFFERENT radii".** In Figma all
+  four corners run at half the box (136 × 57 on the plant bubble), so three of
+  them read identically — which is exactly the too-even look being complained
+  about. Kept Figma's *construction* (controls on the vertex) and its largest
+  radius, then staggered the rest: plant `TR 90×44 · BR 136×57 · BL 70×52`,
+  alert `TR 100×62 · BR 136×82.7 · BL 64×74`, user `TL 90×24 · BL 70×35 ·
+  BR 120×28`. Uneven silhouette, same curve character.
+- **Tight corner at the avatar: 16px**, top-left on plant messages, mirrored to
+  top-right on user messages. This is a brief-over-Figma call (repeat of
+  Revision 14): the Figma blobs have no tight corner at all, but it is what gives
+  the bubble a direction and anchors it to its avatar.
+- Verified no text escapes the narrower shape: the tightest case is the alert
+  CTA, where the outline is at x=258.5 while the text box ends at x=254.
+- `--bub` / `--bub-me` stay defined — `.pdspeech` on plant detail and
+  create-character still uses them, and those screens are out of scope.
+
+## 2. Plant avatars — illustrated pot characters
+- The three characters are **composed** assets, not raw exports. Each Figma
+  avatar frame draws one source illustration **twice**: once masked to the
+  37.81px circle (the pot), once clipped to a rectangular band (the plant, which
+  overhangs the circle). `get_screenshot` will not upscale past 1x, so the
+  composition was rebuilt at **4x** from the 1024² source art plus the frame
+  geometry, and the white backing circle (`Rectangle 24`) baked in:
+  | file | frame | circle | source placed at | band |
+  |---|---|---|---|---|
+  | `assets/avatar-margot.png` (monstera) | 51 × 65.81 | (5, 28) d37.81 | (−22, −8) 92×92 | (0,0,51,54) |
+  | `assets/avatar-gosha.png` (cactus) | 39 × 42.81 | (0, 5) d37.81 | (−24.57, −22.72) 86×87.07 | (0,0,39,27) |
+  | `assets/avatar-felix.png` (ficus) | 38 × 47 | (0, 9) d37.81 | (−15, −7) 67×67 | (−15,−7,67,38) |
+  34–66 KB each, RGBA, transparent outside the circle ∪ band.
+- **Character mapping is by species, not by frame order:** monstera → Margot,
+  cactus → Gosha, ficus → Felix.
+- Placed with the pot sitting exactly on the 37.81px avatar circle (`AVATAR`
+  offsets `l/t` in the source), so the plant overhangs upward as designed —
+  Margot's monstera by 28px, Felix 9px, Gosha 5px. The overhang lands in the
+  empty avatar column of the row above, so nothing collides.
+- **Fork — Vera and Basil have no artwork.** They are not in the new script, and
+  the avatar frame only ships three characters; they fall back to the grey
+  placeholder circle. No invented art.
+- **User messages keep the grey `#D9D9D9` circle** — that is what both mockup
+  frames show for the user; the photo avatar `360:552` is header-only, and a
+  stranger's face still does not belong in a wireframe (Revision 14 call).
+
+## 3. Header
+- **Leaf icon removed**, along with its `nav.go("plantsList")` handler and the
+  `IconLeaf` component (deleted, not just unmounted). The plants overview is now
+  reached only from "See your plants" in the expanded hero — and from Profile's
+  existing "5 plants ›" row, which is out of scope and was left alone.
+- **Badge dot ring is now the sage pill colour** `#C9D6BC` instead of the
+  exported `#D9D9D9`, so the dot reads as cut into the header rather than
+  floating on it. This is a deliberate override of the exported asset.
+
+## 4. Chat script
+- Replaced with the six-message script verbatim, in order: Felix's new leaf →
+  user's congratulations → Margot's photoshoot outrage → Gosha's deadpan → user
+  telling Gosha off → Margot's alert. Timestamps continue the existing style
+  (09:02 → 09:11, alert at 17:30).
+- Bubble colours are unchanged and still keyed to the character, so the alert
+  bubble is now **Margot blue-grey** rather than Felix terracotta.
+- **Fork — `cross:true` flags.** Messages 3, 4 **and 5** carry it, including the
+  user's reply: the banter is one exchange, and hiding Gosha's line while keeping
+  "Calm down, Gosha" would dangle. With "plants talk to each other" off the chat
+  reads Felix → congratulations → Margot's alert, which still holds together.
+- **Known inconsistency, deliberately not fixed:** the alert is now Margot's, but
+  the alert/diagnosis screens it opens still say Felix. Those screens are
+  explicitly out of scope this pass.
+
+## Verification
+- Rendered collapsed and expanded in headless Chrome at device size: avatars
+  load from `assets/`, the four corners of every bubble differ, the tight corner
+  faces the avatar (mirrored on user messages), the header carries only bell +
+  avatar, and the expanded hero is pixel-identical to Revision 14.

@@ -375,10 +375,16 @@
   /* message row — grey avatar circle + organic colour-coded bubble */
   .grow-row{display:flex;gap:5px;align-items:flex-start;margin-bottom:11px}
   .grow-row.me{flex-direction:row-reverse}
-  .gmava{width:38px;height:38px;border-radius:50%;background:var(--ava);flex:0 0 auto}
-  .gbub{width:269px;max-width:calc(100% - 48px);padding:15px;background:var(--c-margo);
-    border-radius:var(--bub);display:flex;flex-direction:column;gap:8px}
-  .grow-row.me .gbub{border-radius:var(--bub-me);background:var(--c-me)}
+  .gmava{width:37.81px;height:37.81px;border-radius:50%;background:var(--ava);
+    flex:0 0 auto;position:relative}
+  /* an illustrated pot character brings its own circle — and its plant overhangs
+     the circle upwards, exactly as the avatar frame draws it */
+  .gmava.art{background:transparent}
+  .gmava.art img{position:absolute;display:block;max-width:none;pointer-events:none}
+  /* silhouette comes from the stretched Figma path (see blobBg), not border-radius */
+  .gbub{width:269px;max-width:calc(100% - 48px);padding:15px;background-color:transparent;
+    background-size:100% 100%;background-repeat:no-repeat;
+    display:flex;flex-direction:column;gap:8px}
   .gmeta{display:flex;gap:10px;align-items:center;font-size:var(--t-sm);
     letter-spacing:.52px;line-height:1.2}
   .gmeta b{font-weight:500;color:var(--ink)}
@@ -663,18 +669,22 @@ const MILESTONES = [
 /* The pot is self-aware: it already knows the reservoir was refilled and that the
    plant was moved, so the plants never hand out chores — they talk, they react,
    and they thank you. Message flags:
-     cross:true  → plant-to-plant chatter (hidden when "plants talk to each other" is off)
+     cross:true  → the plant-to-plant banter thread, including the user's reply to it
+                   (hidden when "plants talk to each other" is off, leaving Felix's
+                   news, the congratulations and Margot's alert — still coherent)
      urgent:true → accent-styled; tapping opens the ALERT → diagnosis flow */
 const CHAT_INIT = [
-  { who:"felix", text:"Morning! The light on this shelf is glorious today ☀️ Hope you slept well.", at:"07:12" },
-  { who:"gosha", text:"It's a windowsill, Felix. Contain yourself.", cross:true, at:"07:14" },
-  { who:"felix", text:"It's OUR windowsill, Gosha 💚", cross:true, at:"07:15" },
-  { who:"margo", text:"I would like it noted that yesterday I very nearly DIED of thirst. One leaf from the end.", at:"09:02" },
-  { who:"me",    text:"The pot topped you up at 7am, Margot.", at:"09:05" },
-  { who:"margo", text:"thanks, reservoir's full again 💚 you're my favourite human. I'm writing you into my will 🌿", at:"09:06" },
-  { who:"gosha", text:"The pot says you shifted me into the light. …Fine. Acceptable. Don't make it weird.", at:"12:40" },
-  { who:"felix", urgent:true,
-    text:"Something's off — my soil's soggy and it's cold by this window. Can you take a look?", at:"17:30" },
+  { who:"felix", at:"09:02",
+    text:"New leaf today! The pot's already taking pictures — get my good side 🌿" },
+  { who:"me",    at:"09:04", text:"Congrats, Felix! Looking great" },
+  { who:"margo", at:"09:06", cross:true,
+    text:"Wait — nobody told me there was a photoshoot?! I would have turned my leaves." },
+  { who:"gosha", at:"09:09", cross:true,
+    text:"A leaf. Everyone's celebrating a leaf. It happens, you know." },
+  { who:"me",    at:"09:11", cross:true,
+    text:"Calm down, Gosha. It's just a leaf. Be happy for him." },
+  { who:"margo", at:"17:30", urgent:true,
+    text:"Something's off — my soil's soggy and it's cold by this window. Can you take a look?" },
 ];
 
 /* ───────────────── PERSONALITY MODEL (single source of truth) ─────────────────
@@ -961,12 +971,7 @@ function PersonalityPicker({initial="Friendly"}){
 
 /* ───────────────── DASHBOARD ICONS ─────────────────
    Exported 1:1 from the Figma "concept2" frames (24×24 boxes, 2px strokes,
-   #1F1F1F, the leaf + bell at 40% opacity as designed). */
-function IconLeaf(){
-  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <g opacity="0.4"><path fill="#1F1F1F" d="M21.075 8.335e-06C18.7936 -0.00319315 16.5753 0.915969 14.9726 2.597C12.9953 4.67237 12.2479 7.61006 12.9846 10.3518C12.1772 11.71 11.5463 13.1819 11.1817 14.8115C11.0156 14.4727 10.8363 14.1422 10.6456 13.8191C11.269 11.437 10.6135 8.89114 8.89761 7.09007C7.498 5.6221 5.56101 4.81946 3.56924 4.82223C3.01155 4.82301 2.44954 4.88693 1.89381 5.01702L1.91008 5.01515C1.77281 5.04415 1.64574 5.10918 1.54192 5.20355C1.4381 5.29792 1.36128 5.41822 1.31934 5.55211C0.55278 8.02125 1.18944 10.7116 2.98035 12.5906C4.63071 14.3214 7.028 15.127 9.38152 14.7783C10.1914 16.1946 10.7337 17.7456 10.8731 19.5277V23.2098C10.8731 23.4194 10.9564 23.6204 11.1046 23.7686C11.2528 23.9167 11.4538 24 11.6633 24C11.7671 24 11.8698 23.9796 11.9657 23.9399C12.0616 23.9001 12.1487 23.8419 12.2221 23.7686C12.2954 23.6952 12.3537 23.6081 12.3934 23.5122C12.4331 23.4163 12.4535 23.3136 12.4535 23.2098V16.9659C12.6193 14.8378 13.2747 12.9909 14.2499 11.3078C16.9731 11.7399 19.757 10.819 21.6669 8.81601C23.7177 6.66425 24.4463 3.58499 23.5687 0.758202C23.5268 0.624309 23.45 0.503996 23.3461 0.409625C23.2423 0.315254 23.1152 0.250228 22.9779 0.221228L22.9942 0.223106C22.3576 0.0740773 21.7138 0.000888743 21.075 8.335e-06ZM21.0724 1.58038C21.4408 1.58087 21.8114 1.61101 22.1805 1.6717C22.6876 3.82522 22.077 6.09503 20.5229 7.72556C19.1431 9.17263 17.1948 9.92532 15.2177 9.82215C16.3985 8.18936 17.8608 6.69114 19.423 5.2017C19.5746 5.05709 19.6627 4.85815 19.6677 4.64864C19.6727 4.43913 19.5942 4.23622 19.4496 4.08454C19.37 4.00103 19.2731 3.93597 19.1656 3.89393C19.0581 3.8519 18.9428 3.83391 18.8276 3.84122C18.6422 3.853 18.4669 3.92972 18.3325 4.05791C16.8947 5.42877 15.4884 6.85774 14.2889 8.43061C14.2381 6.69859 14.8762 4.98941 16.1165 3.68752C17.415 2.32559 19.2167 1.57791 21.0724 1.58038ZM3.57185 6.40261C5.13782 6.40053 6.6582 7.0315 7.75357 8.18035C8.72351 9.19852 9.25682 10.5111 9.29502 11.8607C8.30293 10.6009 7.16396 9.44818 6.00433 8.34251C5.86988 8.21432 5.69456 8.1376 5.50917 8.12582C5.39401 8.1185 5.27866 8.13649 5.1712 8.17853C5.06374 8.22056 4.9668 8.28562 4.88717 8.36913C4.81557 8.44424 4.75946 8.53271 4.72205 8.6295C4.68464 8.72629 4.66666 8.8295 4.66914 8.93324C4.67162 9.03698 4.6945 9.13921 4.73649 9.23411C4.77848 9.329 4.83875 9.4147 4.91385 9.4863C6.20182 10.7143 7.40682 11.9453 8.39378 13.2756C6.79703 13.302 5.24019 12.6705 4.12434 11.5003C2.831 10.1433 2.31346 8.26271 2.7105 6.46875C2.99763 6.42531 3.28545 6.40298 3.57185 6.40261Z"/></g>
-  </svg>;
-}
+   #1F1F1F, the bell at 40% opacity as designed). */
 function IconBell(){
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <g opacity="0.4" stroke="#1F1F1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -977,7 +982,7 @@ function IconBell(){
 }
 function IconDot(){
   return <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-    <circle cx="6" cy="6" r="5" fill="#1F1F1F" stroke="#D9D9D9" strokeWidth="2"/>
+    <circle cx="6" cy="6" r="5" fill="#1F1F1F" stroke="#C9D6BC" strokeWidth="2"/>
   </svg>;
 }
 function IconMic(){
@@ -991,10 +996,45 @@ function IconMic(){
 }
 
 /* Character-coded bubble fills. Margot + Felix are Figma values; the other three
-   are derived in the same muted register (see DECISIONS.md). */
+   are derived in the same muted register (see DECISIONS.md). Literal hex, not the
+   CSS vars — these are painted into an SVG data URI, which cannot read them. */
 const BUBBLE = {
-  margo:"var(--c-margo)", felix:"var(--c-felix)", gosha:"var(--c-gosha)",
-  vera:"var(--c-vera)",   basil:"var(--c-basil)",
+  margo:"#BCCAD7", felix:"#E3D2CA", gosha:"#E0D3B8",
+  vera:"#CBD5C9",  basil:"#D3D0DC", me:"#FFFFFF",
+};
+
+/* ── BUBBLE SILHOUETTE ──────────────────────────────────────────────────────
+   The mockup's bubbles are vector blobs (Ellipse 19/20/21), not rounded rects:
+   their corners are superellipse-ish — the outline hugs the edge and turns late,
+   which is what gives them the soft pebble character. border-radius cannot draw
+   that curve at all, so each bubble is painted from the actual Figma path,
+   stretched to the message box (preserveAspectRatio="none").
+   Every corner keeps Figma's construction — both control points sitting on the
+   corner vertex, which is what makes the curve hug the edge and turn late.
+   Two edits: Figma runs all four corners at half the box (so three of them read
+   the same), so the radii are staggered per corner (them 44/57/62/16,
+   alert 62/82.7/74/16, me 24/35/28/16) for the uneven pebble silhouette the
+   brief asks for; and the corner nearest the avatar is re-cut tight at 16px,
+   mirrored to the right on user messages. */
+const BLOB = {
+  them: { w:269.327, h:114, d:"M16 0L179.327 0C269.327 0 269.327 0 269.327 44L269.327 57C269.327 114 269.327 114 133.327 114L70 114C0 114 0 114 0 62L0 16C0 0 0 0 16 0Z" },
+  alert:{ w:269.383, h:165.181, d:"M16 0L169.383 0C269.383 0 269.383 0 269.383 62L269.383 82.5C269.383 165.181 269.383 165.181 133.383 165.181L64 165.181C0 165.181 0 165.181 0 91.181L0 16C0 0 0 0 16 0Z" },
+  me:   { w:268.673, h:70, d:"M268.673 16L268.673 42C268.673 70 268.673 70 148.673 70L70 70C0 70 0 70 0 35L0 24C0 0 0 0 90 0L252.673 0C268.673 0 268.673 0 268.673 16Z" },
+};
+function blobBg(kind, fill){
+  const b = BLOB[kind];
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"'
+    + ' viewBox="0 0 ' + b.w + ' ' + b.h + '"><path d="' + b.d + '" fill="' + fill + '"/></svg>';
+  return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+}
+
+/* Illustrated pot characters (Figma node 360:555), composed at 4x from the source
+   art + the frame's circle/band geometry. `w/h/l/t` place each one so its pot sits
+   exactly on the 37.81px avatar circle and its plant overhangs above, as designed. */
+const AVATAR = {
+  felix:{ src:"assets/avatar-felix.png",  w:38, h:47,    l:0,  t:-9  },
+  margo:{ src:"assets/avatar-margot.png", w:51, h:65.81, l:-5, t:-28 },
+  gosha:{ src:"assets/avatar-gosha.png",  w:39, h:42.81, l:0,  t:-5  },
 };
 
 /* "Wednesday, 12th August" — the expanded state shows today's real date. */
@@ -1008,7 +1048,7 @@ function todayLabel(){
 /* ───────────────── DASHBOARD ─────────────────
    Two states of ONE screen (Figma "concept2" A + B):
 
-   COLLAPSED — a sage header pill (serif headline left, plant/bell/avatar right)
+   COLLAPSED — a sage header pill (serif headline left, bell + avatar right)
    sitting over the group chat, which IS the body of the screen.
    EXPANDED  — tapping the pill makes it flood the screen: the date fades in, the
    headline slides to the centre and grows, a white "See your plants" pill appears,
@@ -1032,9 +1072,6 @@ function Dashboard({params}){
     <div className="ghead">Your garden is<br/>98% healthy</div>
 
     <div className="gicons">
-      <span className="gicon" title="My plants" onClick={()=>nav.go("plantsList")}>
-        <IconLeaf/>
-      </span>
       <span className="gicon" title="Notifications" onClick={()=>nav.go("notifs")}>
         <IconBell/><span className="gdot"><IconDot/></span>
       </span>
@@ -1102,10 +1139,15 @@ function GardenChat({focus, open, onCollapse}){
         {shown.map((m,i)=>{
           const isMe = m.who==="me";
           const p = !isMe && plantById(m.who);
+          const av = !isMe && AVATAR[m.who];
+          const shape = isMe ? "me" : (m.urgent ? "alert" : "them");
           return <div key={i} className={"grow-row "+(isMe?"me":"them")}
             ref={i===hot ? target : null}>
-            <div className="gmava"/>
-            <div className="gbub" style={isMe?null:{background:BUBBLE[m.who]||"var(--c-margo)"}}>
+            <div className={"gmava"+(av?" art":"")}>
+              {av && <img src={av.src} alt="" style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
+            </div>
+            <div className="gbub" style={{backgroundImage:
+              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[m.who]||BUBBLE.margo))}}>
               {!isMe && <div className="gmeta">
                 <b>{p.name.split(" ")[0]}</b><span>{m.at}</span>
               </div>}
