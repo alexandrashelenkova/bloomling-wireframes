@@ -387,3 +387,378 @@ Shell-only changes; the phone mockup and everything inside the app screen are un
 
 ## Verification
 - Babel transform (no imports) + jsdom render, **0 console errors**. Confirmed: voice rows contain 0 play buttons (1 play button total = the preview), tap selects exactly one row; three `input[type=range].rng` with max=100/step=1 and `touch-action:none`; Warmth cycles through all five words 0→100 with the fill gradient tracking the value and settling at arbitrary points (e.g. 37 → "Reserved"); the preview bubble reacts to continuous drags (drama 90→Theatrical "big" line, 40→base; chattiness 5→"terse"; warmth 5→appends the dry tag).
+
+---
+
+# Revision 9 — smart pot IA: dashboard = compact hero + full plant chat
+
+Concept shift: **the pot is self-aware.** It already knows the reservoir was
+refilled or the plant was moved, so a manual to-do list is meaningless. The
+dashboard becomes a compact hero over a full-height plant chat.
+
+## 1. Removals (brief 1)
+- **Deleted the entire "Today's tasks" block** — `TaskList`, `TASKS_INIT`, the `tasks`/`toggleTask` app state, the collapsed "done" group and its `.donerow`/`.donecompact` CSS. Rationale: brief (1); a self-aware pot has nothing to ask the user to tick.
+- **Deleted the `Reaction` screen too.** It was reachable *only* from a task checkbox, so removing tasks orphaned it; the praise it delivered now lives in the chat as a plant message. Rationale: no dead routes — the reward moment moved, it wasn't lost. (`PLANTS[].reaction` copy is kept as the in-character praise voice reference.)
+- **Moved the 2×2 plant grid + "Add plant" off the dashboard** (see §3) and **dropped the mini chat-preview widget** and its `.mini*` CSS — the real chat is now the dashboard body, so a preview of it would be a preview of itself. Rationale: brief (1, 4).
+
+## 2. Hero (brief 2)
+- **Hero = greeting + all-clear card + 3 nav icons**, wrapped in `.hero` (`flex:0 0 auto`) so it never grows. Measures **~215px of ~770px usable (~28%)** — deliberately at the low end of "roughly the top third"; the brief says keep it tight and every pixel saved goes to the chat. Rationale: brief (2).
+- **Kept the slim progress bar** (optional per brief) — it carries the 72% figure visually at ~12px cost, cheaper than a second line of copy.
+- **Status copy rewritten to sell the concept**: "Everything's fine 🌿" + "The pot handles the watering — you just keep them company." Rationale: the status line must explain *why* there are no tasks.
+- **Nav row = exactly three targets: 🌿 plants list · 🔔 notifications (badge dot kept) · avatar → profile.** **Chat icon removed** — chat is the screen. Rationale: brief (2).
+- **Chose a leaf glyph (🌿) for the plants-list target** over a grid/list glyph: it reads as "my plants" rather than "a view mode", and the file already uses 🌿/💚 in plant copy.
+
+## 3. Plants list screen (brief 3)
+- **`PlantsList` rewritten from a flat row list into the dashboard's old pager**: swipeable pages of a 2×2 `.pgrid`, `+ Add plant` tile **pinned above** the pager (outside the horizontal scroll, so it can't vanish on page 2), page dots below. Behaviour unchanged, just relocated; tapping a card still pushes `plant`. Rationale: brief (3) — "just relocated" means moving the component, not re-designing it.
+- Reachable from **both** the hero leaf icon and the existing Profile → Plants row; no duplicate screen was added.
+
+## 4. Plant chat as the dashboard body (brief 4)
+- **Folded the standalone `GroupChat` screen into `PlantChat`, rendered inside `Dashboard`.** One chat, same messages, same send behaviour; the `chat` route is gone from `SCREENS`. Rationale: brief (4) — two copies would drift.
+- **Layout: `.dash` sets `overflow:hidden`** so the dashboard itself never scrolls; only `.chatscroll` (`flex:1;min-height:0;overflow-y:auto`) scrolls, and `.composer` stays pinned at the bottom of `.chatpane`. Rationale: a page-level scroll would push the composer off-screen and break "pinned input".
+- **Auto-scroll to the newest message on mount** (`useRef` + `useEffect` on message count). Rationale: the urgent message sits at the bottom of the mock stream — without this it would be invisible on arrival.
+- **Message row = small round photo-placeholder avatar + name + bubble** (`.mrow/.mava/.mname/.mbub`), user messages mirrored to the right in accent. Rationale: brief (4).
+- **Mock stream covers all three required behaviours**: Felix warm ("the light is glorious today"), Gosha grumpy ("It's a windowsill, Felix. Contain yourself."), Margot dramatic ("I very nearly DIED of thirst"); **plant-to-plant exchange** = Gosha's jab + Felix's reply; **praise** = Margot's "thanks, reservoir's full again 💚" and Gosha's grudging "The pot says you shifted me into the light. …Fine." Rationale: brief (4).
+- **Praise is triggered by the pot's own knowledge, never by a user tick** — the user's line is "The pot topped you up at 7am, Margot." Rationale: the copy has to carry the concept, or the removal of tasks reads as a missing feature.
+- **`cross:true` flag replaces the old `who==="felix"` filter** for the "plants talk to each other" setting. The old filter hid *every* non-Felix plant, which mismatched the setting's label; now it hides exactly the plant-to-plant messages. Rationale: bug fix surfaced by re-siting the chat.
+- **URGENT = `.mbub.urgent`** (accent border + accent text + "NEEDS YOU NOW" tag + "See what happened ›"), tap → `nav.go("alert")` → existing diagnosis flow, untouched. **Chose Felix as the urgent sender** so the message matches the existing alert content (Felix, overwatered + cold) rather than inventing a second incident. Rationale: brief (4).
+- **Chat header = kicker + title + `.gear`** → `chatSettings` (plants talk to each other / frequency / Telegram), which is otherwise unchanged. Its "Group reactions" copy was rewritten off "when you finish a task" to "when the pot sees a need was handled".
+
+## 5. Flow index (brief 5)
+- **"Group chat" → "Chat settings"** (`chatSettings`), since the chat itself is now the Dashboard entry. Order and active-item highlight (`.fi-link.on`) preserved; all six entries resolve to live routes. Rationale: brief (5).
+- **Welcome-tour copy rewritten** to explain the smart pot and point at the new three icons instead of tasks and the speech bubble.
+
+## Verification
+- Babel classic-runtime transform + `new Function()` parse of the emitted JS: **clean, no imports**.
+- Headless-Chrome render of `dashboard`: hero ≈28% of the device, chat filling the rest, stream auto-scrolled to the accent urgent message, composer pinned, flow index showing "Chat settings" with Dashboard highlighted.
+- Headless-Chrome render of `plantsList`: 2×2 grid + pinned "＋ Add plant" + page dots (2 pages, 5 plants).
+- Grepped clean: no remaining references to `TaskList`, `TASKS_INIT`, `toggleTask`, `GroupChat`, `Reaction`, `nav.go("chat")` or the `.mini*`/`.done*` CSS.
+
+---
+
+# Revision 10 — taller hero, chat settings → profile, growth timeline on the plant card
+
+## 1. Hero +10% (brief 1)
+- **Measured before changing anything**: the hero's content height was **179.6px** in headless Chrome at the 412px device width. Set **`min-height:198px`** (= 179.6 × 1.10) rather than guessing at padding. Rationale: "roughly 10% taller" is a number, so it was worth measuring instead of eyeballing.
+- **The extra 18px is spent as breathing space, not content**: `justify-content:space-between` + `gap:10px→12px` + `padding-top:4px` distribute it around the same greeting / status card / icon row. Rationale: brief (1) — layout inside stays the same.
+- The chat pane absorbs the loss automatically (`flex:1`), 562px → 543px; nothing else needed touching.
+
+## 2. Chat settings moved to Profile (brief 2)
+- **Gear removed from the chat header** (and its `.gear` CSS deleted); the header is now just kicker + title. Rationale: brief (2).
+- **Profile's existing settings row relabelled** "Chat & reactions" → **"Chat settings"**, subtitle "Plants talk to each other · frequency · Telegram", sitting next to Language. No new screen or row was created — the route already existed there, so this is a pure removal of the second entry point. Rationale: one entry point per destination.
+- **Flow index: "Chat settings" now builds the stack `profile → chatSettings`** instead of jumping straight to it, so the shortcut lands where the user would land and **Back correctly returns to Profile**. This needed a new `nav.jump(path)` (replaces the whole stack) and FLOWS restructured from tuples to `{label, path}` objects. Rationale: brief (2) says it "opens from within profile" — a shortcut that skipped Profile would misrepresent the IA. Active-item highlight now matches on the *last* screen in the path.
+
+## 3–4. Growth timeline at the top of the plant card (brief 3, 4)
+- **"Growth & diary" row deleted** from the plant card; the timeline owns growth now. Rationale: brief (3).
+- **`GrowthTimeline`: a 352px-tall (≈46% of the 770px usable screen — "about ½") horizontally snap-scrolling pager of photo-placeholder frames.** Same explicit width/height + `scroll-snap-align` recipe as the existing plant pager and species carousel, which the file already documents as required (a flex child under scroll-snap collapses to zero height in Safari). Rationale: brief (4).
+- **Stages live on the frames.** Six frames, oldest → newest: Sprout 12 Mar · Seedling 29 Mar · Young plant 18 Apr · Established 24 May · Growing strong 21 Jun · Now Today. Each frame carries a white stage+date plate pinned to its bottom edge, so scrubbing the timeline *is* reading the stage history — no separate progress section. Rationale: brief (4).
+- **Opens on "now" and swipes backwards into the past** (`scrollLeft = scrollWidth` on mount). Rationale: the current state is what you came to see; history is the deliberate gesture.
+- **Dot indicators** reuse the existing `.pgdot` / `.dots`. **Scroll position is computed from the real frame pitch** (`firstChild.offsetWidth + gap`) rather than the container width the older pagers use — with 6 frames the container-width approximation drifts and lights the wrong dot.
+- **Emotion badge on the CURRENT frame only** (top-right, the shared `.badge` component). Rationale: the emotion is a *now* fact — stamping it on a photo from March would be a lie; the brief's "consistent with how avatars show emotion badges elsewhere" is satisfied by reusing the same badge in the same corner.
+- **Progress-chart entry point = a small round icon pinned top-LEFT of the block**, absolutely positioned over the pager (outside the scroller) so it never swipes away, opposite the emotion badge. Opens the unchanged `growth` screen. Rationale: brief (4) — "small icon entry point somewhere on this block".
+- **Icon is an inline SVG chart glyph, not a 📈 emoji.** The emoji renders full-colour (red/blue) and would break the grayscale + single-accent rule; the SVG uses a grey axis + one `#4A7C59` polyline, matching the file's other inline SVGs. Caught in a render check.
+- **Old round photo + emotion badge removed** from the status card, which now holds just the status pill and the plant's spoken line. Rationale: brief (4) — the timeline replaces it.
+- **Growth screen kept fully intact** (%, chart, stage list, diary, time-lapse) — the brief moved its *entry point*, not its content. Two small alignments: retitled "Growth" → "Growth progress", and its stage list is now generated from `GROWTH_FRAMES` so the two views can't contradict each other.
+
+## 5. Everything below the timeline (brief 5)
+- Unchanged and in the same order: spoken status line → Your bond → Last watering / Light → Auto-watering + reservoir → Configure watering → Plant personality.
+
+## Verification
+- Babel classic-runtime transform + `new Function()` parse: **clean, no imports**.
+- Headless-Chrome measurement: hero **179.6px → 198.0px (×1.102)**.
+- Headless-Chrome renders: dashboard (taller hero, no gear in the chat header); plant card at frame 6 (badge present, "Now / Today"); plant card scrolled to frame 3 (badge correctly absent, "Young plant / 18 Apr", third dot lit, monochrome chart glyph).
+- Scripted click-through of the flow index: "Chat settings" → lands on **Chat settings**, entry highlighted, **Back → Profile**.
+
+---
+
+# Revision 11 — major restructure: gauge hero, Windowsill, flat profile, immersive plant card
+
+## 1. Dashboard
+- **1a — avatar moved LEFT of the greeting; only two icons on the right** (🌿 plants list, 🔔 notifications with its badge dot). The profile is now reached by tapping your own face, which is where a user looks for it.
+- **1b — the health banner is replaced by a semi-circle gauge** (`HealthGauge`): one grey `--box` track arc plus one `#4A7C59` arc drawn over it with `stroke-dasharray`. Chose **two overlaid `<path>` arcs over an SVG `<circle>` + rotation** because a half-ring needs only a single `A` command and the accent length is then just `πR × pct` — no transforms, no gradient, no shadow. **97%** and **healthy** sit inside the arc.
+- **1c — status line: "Everyone's thriving — Margot's being dramatic, but that's just Margot."** Chosen because it names a *specific* plant: a generic line ("all systems normal") reads as a status field, whereas naming Margot makes it sound like a household. Kept the brief's own phrasing over inventing a weaker variant.
+- **1d — hero `min-height:252px` ≈ the top third** of the 770px content area; the chat takes the remaining ~⅔ with the composer pinned at the very bottom (`.dash{overflow:hidden}`, only the message stream scrolls).
+- **1e — the chat is now "Windowsill 🌿"** (subline: the plant names). Chose it over "The group chat 🌿" and "Leaf it to us": it names the *place* the plants share, so the header reads like a room they're all in rather than a feature label — and unlike the pun it doesn't wear out by the tenth read. Messages and behaviour unchanged.
+
+## 2. Profile & settings — flattened to one page
+- **2a/2b** — "7 days together" gone; the **plant count is the link** to the plants list (underlined, tappable).
+- **2c** — the Plants section card, the "Add a new plant" row and the "+ Add plant" button are all gone from Profile. **Adding a plant now exists in exactly one place**: the plants-list screen.
+- **2d** — chat settings are **expanded inline** under a subheading, two controls only: "Plants talk to each other" (toggle) and "Message frequency". Frequency is a **3-up segmented control (Quiet / Moderate / Chatty) rather than another sub-screen** — with only three values, a drill-down would cost a screen to save nothing. "Group reactions" was dropped (the brief allows two controls) and **Telegram is deleted everywhere** — the `telegram` screen, its route and the forwarding row.
+- **2e** — Language is inline too: two rows showing the current value, each opening `langPick`, which renders a **plain `.list` of options with a ✓** on the current one (not the old full-width `.chip` tiles). Selecting returns immediately. `uiLang`/`convLang` moved into app state so the Profile row and the picker share one truth.
+- **2f** — **Log out is a small underlined muted text button** (`.linkbtn`), deliberately not a `.btn`. It returns to the dashboard root because this prototype has no sign-in screen — the alternative was inventing an auth flow the brief didn't ask for.
+- The `chatSettings` and `language` screens were deleted; nothing else linked to them.
+
+## 3. Plant detail — rebuilt as an immersive screen
+- **3a — the photo is a fixed full-bleed layer** (`.pd` replaces `.screen`, so the page itself never scrolls). Only the sheet translates; the photo never moves.
+- **3b — ⋯ context menu** top-right: Plant personality / Rename / Quiet hours / Remove plant. **Personality navigates** (it is a whole tuner); **Rename, Quiet hours and Remove are in-place dialogs** — leaving an immersive screen to flip one toggle would defeat the point. Remove asks for confirmation, then **`nav.jump` to plants list** so the card you just deleted isn't sitting behind Back. `PlantSettings` was stripped to the personality tuner, since name/quiet/remove now live in this menu.
+- **3c — initial state**: big pot with the emotion on it, the plant's check-in line in a speech bubble above it, the timeline near the bottom of the photo, and the "Your bond" sheet peeking (`PEEK = 96px`).
+- **3d — drag**: `SHEET_H 560 / PEEK 96`, so the sheet travels 464px. Pointer events (mouse + touch in one path) with `touch-action:none` on the grab area; a drag under 6px counts as a **tap that toggles**, anything longer **snaps to the nearer end**. Progress `t` drives the dim (`0.55·t`) and fades the timeline out (`1 − 3t`). Content order is exactly as briefed: bond → tiles → auto-watering → configure → personality.
+- **3e — universal milestones: Seed → Sprout → Young plant → Established → Thriving → Now**, the same six for every plant. Built the timeline as a **scroll-snap strip of milestone ticks** rather than a custom drag handle: it gives real momentum swiping, keyboard/trackpad scrolling and the labels for free, and index comes from `scrollLeft / tick width`. Opens on "Now" and swipes back into the past.
+- **3f — proportions follow the timeline**: `plantH 70→220`, `potH 58→150`, and the emotion's opacity/size ramp `(g−0.2)/0.8` so it is fully **absent at Seed and Sprout** and prominent at Now. At past stages the frame is about how the plant grew; at Now it's about how it feels. The speech bubble is replaced by a **stage + date chip** on any past frame — the plant isn't talking to you in March.
+- **3g — the growth chart, the chart icon, `ChartGlyph`, `GROWTH_FRAMES` and the whole `growth` screen are deleted.** The timeline is the growth view now.
+
+## 4. Notifications — a digest, not a feed
+- Rewrote the data: **"Felix needs a look" (urgent), "Margot's reservoir is empty", "Gosha needs more light"**. Social chatter is gone — it lives in the chat.
+- Urgent → the alert/diagnosis flow. Everything else → **the chat, focused on that plant**: `nav.go("dashboard",{focus:id})` scrolls the stream to that plant's most recent message and outlines it (`.mbub.focus`). Chose this over dropping the user at the top of an unrelated chat, which would have made the tap feel like it did nothing. No checkboxes anywhere; the closing "That's everything for today 🌙" stays.
+
+## 5. Add new plant
+- **5a** — the idle pair screen is now a proper welcome: centred art placeholder, "Let's meet your new plant 🌱", a warm line, and the button at the bottom. Every other pairing state got a one-line lead-in so none of them are a bare card.
+- **5b** — the "Connected ✓" state and the photo explainer are **one screen with one Continue** ("Take a photo"). `PhotoIntro` deleted.
+- **5c/5d — the back-navigation bug**: the cause was that "Best matches" was an internal *state* of the camera screen, so returning to it remounted the camera. Split it into its own **`matches` screen** that capture pushes on success. Back from species detail now lands on Best matches. For "Not quite — keep looking" that isn't enough — the user may have hopped through several "often confused with" species — so added **`nav.backTo(screen)`**, which pops the stack back to the named screen (falling back to a single step if it isn't there).
+- **5e** — gender added to character setup as a 3-up segmented control: **Male / Female / Rather not say**, defaulting to "Rather not say" so the neutral option is never a leftover.
+
+## 6. Diagnosis — split by who can actually act
+- Checkboxes and the "Tick each step to continue" gate are gone, along with the `.check`/`.taskrow` CSS.
+- **In-app section first** ("One thing to change in the app"): Pause auto-watering has a **real button** → confirmed state, with the reason stated — *only you can change this, the pot won't override your watering settings*. Put it above the advice because it's the only thing on the screen that needs a tap.
+- **Physical section** ("What to do in the room"): three recommendations as `.adv` rows, each with a line about how the pot will notice, closing with "No need to tick anything off — the pot notices on its own." Added a third piece of advice (skip hand-watering) so the section reads as guidance rather than a two-item list.
+- The moisture chart stays at the top; the footer button is now a plain, always-enabled "Got it".
+
+## 7. Onboarding tutorial removed
+- The "This is your garden" overlay, its copy, the `tour` param, the `tourSeen` state and the `{tour:true}` argument on "Start caring" are all deleted. `.overlay` survives (re-used by the ⋯ dialogs); `.tourcard` was renamed `.dlg`.
+
+## 8. Flow index
+- Entries are now **Add new plant · Dashboard · Notifications · Plant card · Alert simulation · Profile & settings**, active-item highlight preserved.
+
+## Verification
+- Babel classic-runtime transform + `new Function()` parse: **clean, no imports**.
+- Headless-Chrome renders: dashboard (avatar-left header, gauge, Windowsill), plant card at "Now" (big pot + face + speech bubble), plant card scrubbed to "Seed" (small pot, **no** emotion, stage chip), sheet dragged open (photo dimmed and stationary, timeline hidden, correct content order), flat profile, notifications digest, diagnosis, pair welcome.
+- Scripted click-throughs, all passing:
+  - species detail → Back = **Best matches**; nested look-alike → "keep looking" = **Best matches** (5c/5d).
+  - ⋯ menu lists all four items; Rename dialog opens/cancels; Remove → confirm → **My plants**.
+  - notification tap → chat with **Margot's message outlined**, header "Windowsill 🌿".
+  - Profile → Conversation → 4-option list → pick Español → back to Profile showing **Español**; Log out → dashboard.
+  - full add-plant run: searching → found → connect → **merged connected+photo screen** → camera → shutter → **Best matches** → Select → character setup with **Male/Female/Rather not say** → Say hello → Start caring → dashboard with **no overlay**.
+  - alert → diagnosis: **0 checkboxes**, 3 advice rows, 1 chart, Pause button reaches the confirmed state, "Got it" → "Thank you!".
+
+---
+
+# Revision 12 — uniform diagnosis list, scrolling plants grid, two-state timeline, immersive character setup
+
+## 1. Diagnosis
+- **1a** — the "Soil moisture · last 3 days" card is gone, along with the whole `MoistureChart` component and its `.chart` CSS. The two diagnosis cards above already state the 92% reading, so the chart was restating a number the user had just read.
+- **1b — one block, one heading ("What to do"), four identical `.adv` rows.** The in-app step carries a `btn sm primary` *inside its own row*; the other three are the same row with no button. Chose to keep **"Pause auto-watering" first** rather than last: it is the only thing on the screen that needs a tap, and burying it under three pieces of advice would make it easy to miss. The distinction between "you do this" and "the pot notices this" now lives in each row's sub-line rather than in the layout.
+- **1c** — "No need to tick anything off…" removed. With no checkboxes on screen there was nothing to explain away.
+- Net effect: the whole screen now fits without scrolling.
+
+## 2. My plants
+- **2a/2b** — the pager is gone. One `.pgrid` that flows down and scrolls; `.pager` and `.page` CSS deleted, and `.pgrid` gained `flex:0 0 auto` so its fixed 150px rows aren't squashed by the flex-column screen. The swipe hint and the page dots went with it.
+
+## 3. Plant detail
+- **3a — corrected to TWO framings, not a gradual zoom.** `atNow` picks between them:
+  - **NOW** — plant 148×200, pot 188×150 with the current emotion on it.
+  - **PAST** — one snap to a zoomed-in framing: plant 208 wide, pot a constant **246×26 rim** with `border-radius:8px 8px 0 0` so it reads as the pot continuing below the frame, and **no emotion** (a past frame is a photograph, not a mood).
+  Within the past **only the plant height moves**, `96 → 296px` across Seed…Thriving via `idx/(last-1)`. The pot no longer scales with timeline position at all. Verified by measurement: pot is 246×26 at Seed, Young plant *and* Thriving while the plant reads 96 / 196 / 296.
+- **3b** — the ⋯ menu is a single row, **"Personality & Settings"**. Kept it as a menu rather than making ⋯ a direct link: a one-item popover still announces that this is *the* place everything about the plant lives, and leaves room for future entries. That screen now holds **name, personality tuner, active hours (quiet-hours toggle + a 10pm–8am / 11pm–7am / Custom window) and a small "Remove plant"** as a muted `.linkbtn` low on the page with a confirm dialog — destructive actions never get a primary affordance. The old Rename / Quiet hours / Remove dialogs and the `QuietHours` component are deleted.
+- **3c** — the "Plant personality" row is out of the bottom sheet.
+- **3d** — "Configure watering" is no longer its own row: it's a **`.tlink` text link ("Configure schedule ›") inside the auto-watering card**, dimmed and inert when the toggle is off. A setting that only exists because of that toggle belongs in the same card as the toggle.
+
+## 4 & 5. Removed copy
+- "That's everything for today 🌙" (notifications) and "Swipe the photos and check these features against your plant." (species detail) both deleted. The carousel's dot indicators already say "swipeable".
+
+## 6. Create their character
+- **6a** — the top **~⅔ is an immersive plant + pot** (`.cchero`), built from the same `.pdplant` / `.pdpot` parts as the plant card so the two screens read as the same product. Every control is pushed below it.
+- **6b** — the live line is a **`.pdspeech` bubble coming off the pot**, the identical component the plant card uses, replacing the old `.speech` bubble/`SpeechPreview` block.
+- **6c** — the round play button is replaced by a **text "▶ Listen" button** under the bubble, `min-width:152px;height:38px` so switching to "Playing…" with the eq bars **cannot shift the layout** (measured 152×38 in both states). `.play` CSS deleted.
+- **The bubble + Listen are `position:sticky` inside the hero.** This was the one real fork: a purely static hero satisfies the composition but hides the line you are actively tuning, which is the entire point of a live preview. Sticking just the bubble keeps the requested framing at rest — bubble above plant above pot — and keeps the line on screen once the pot scrolls away, with no duplicated element. Verified: after scrolling 420px the bubble sits 8px from the top of the scroll area.
+- `SpeechPreview` became **`LinePreview`** (bubble + Listen) and is shared with the plant-settings tuner, so both screens got the text button and there is still one source of truth.
+- The pot in this hero wears the **greeting face `^o^`** — the plant is introducing itself and has no sensor history yet, so a mood glyph would be meaningless.
+
+## Verification
+- Babel classic-runtime transform + `new Function()` parse: **clean, no imports**.
+- Source grep confirms all five removed strings are gone (swipe hint, tick line, end-of-list line, species swipe line, moisture chart heading) — note `document.body.textContent` includes probe-script source, so removals were checked against the file, not the rendered DOM.
+- Renders: diagnosis (0 charts, one "What to do" heading, 4 uniform rows, 1 button, fits without scrolling), plants list (5 cards, 0 pagers, 0 dots), plant card at Now and scrubbed into the past, Personality & Settings, create-character hero.
+- Scripted checks: framing measurements above; ⋯ menu = one item → Personality & Settings; sheet contains no personality row; "Configure schedule" → Watering; Remove plant → confirm → My plants; Listen button 152×38 in both states with 0 round play buttons; sticky bubble after scroll.
+- Regression re-run of Revision 11's flows — full add-plant run, species-detail Back and "keep looking", notification→focused chat, language picker, log out — all still pass.
+
+---
+
+# Revision 13 — pot face follows the tuned line, "Try it", notifications kicker
+
+## 1. Face ⇄ line sync on the personality tuner
+- **Faces are keyed to the LINE VARIANT, not just the preset.** Extracted `lineVariant(t)` (big / terse / base) so the sentence and the face are chosen by the *same* function — they cannot drift apart by construction. `faceFor(preset,tune)` then reads a new per-preset `faces:{base,big,terse,warm,dry}` map that mirrors the existing `lines` keys exactly.
+- **Chose per-variant faces over one face per preset.** A single face per preset would go stale the moment a slider swings the wording — the brief explicitly asks the face to follow when the mood of the wording shifts, and e.g. Grump's theatrical "In MY day…" is a different mood from Grump's flat "Hmph. You again."
+- **Mapping (all from the existing EMO set, no new emotions):**
+  | preset | base | big | terse | warm tag | dry tag |
+  |---|---|---|---|---|---|
+  | Friendly | content `^‿^` | greeting `^o^` | content | greeting | neutral `._.` |
+  | Drama queen | thirsty `>_<` | urgent `O_O` | overwatered `@_@` | content | neutral |
+  | Grump | low-light `-_-` | hot `>~<` | low-light | content | cold `:<` |
+  | Calm | sleeping `-.-` | content | sleeping | content | neutral |
+  | Cheerful | greeting `^o^` | urgent `O_O` | content | greeting | neutral |
+  | Sassy | hot `>~<` | hot | neutral | content | cold |
+  Rationale per pick: `-_-` is the canonical unimpressed face for Grump; `@_@` reads "barely alive" for Drama queen's "Ugh. Fine. Alive. Barely."; `O_O` is wide-eyed for the two over-the-top "big" lines; `-.-` reads serene rather than asleep for Calm; Sassy stays smug whether understated or theatrical, so base and big share `>~<`.
+- **Precedence rule — the warmth tag re-colours the face EXCEPT on the "big" line.** The tag is appended to the end of the sentence, so it normally sets the parting mood; but a theatrical line dominates whatever is appended to it, and letting a warm tag turn Drama queen's "Call the papers — my FINAL act!" into a soft smile would read as a bug. This was the one real fork.
+- **Applied to both personality-setup surfaces**: the create-character pot renders `faceFor(...)`, and the Personality & Settings tuner's round photo now carries the same value as its emotion badge — one rule, both screens.
+
+## 2 & 3. Copy
+- "Listen" → **"Try it"** (button and the two comments that named it). Size is unchanged, so the no-layout-shift guarantee still holds.
+- Notifications' "Needs your attention" kicker removed; the three items already say what they need.
+
+## Verification
+- Babel classic-runtime transform + `new Function()` parse: **clean, no imports**.
+- Scripted sweep of the create-character screen reading the pot glyph and the bubble text together:
+  - preset switch: Friendly `^o^`, Drama queen `O_O` + "FINAL act!", Grump `:<` + "Don't touch anything.", Calm `-.-`, Cheerful `^o^`, Sassy `>~<` + "SERVING chlorophyll realness".
+  - slider thresholds on Grump: drama→90 flips to the big line **and** `>~<`; chattiness→80 returns the base line; warmth→90 appends the warm tag and the face becomes `^‿^`; warmth→5 restores the dry tag and `:<`.
+  - the precedence rule holds: Drama queen with warmth 95 keeps `O_O` on the big line, but drops to `^‿^` once drama falls to 10 and the line is base + warm tag.
+- Renders confirm Grump and Drama queen on the pot, the "▶ Try it" button, and Notifications with no kicker.
+
+---
+
+# Revision 14 — VISUAL DESIGN PASS (Figma "concept2")
+
+Scope: the Dashboard is **fully rebuilt** to the two new mockups; every other
+screen gets a **restyle only** — colours, fonts, bubble/button styling. No
+layout, structure, navigation or content changed outside the dashboard.
+
+## 0. Design source — Figma MCP (access OK, nothing approximated)
+- File `KLRJyy5g05eK4RgZ99zlqy`, section `353:321`. The two frames named
+  **concept2** are the two states of one screen:
+  - **Frame A `343:6`** — collapsed (default).
+  - **Frame B `344:126`** — expanded state of the same screen.
+- `get_design_context` returned full reference code + screenshots for both;
+  `get_variable_defs` returned `{}` — **the file has no design variables**, so
+  every token below was read off raw fills/type/geometry and re-declared by hand
+  in `:root`. Node ids are cited per token so they can be re-checked.
+- The blob bubble backgrounds are vectors, not rectangles — their SVG paths were
+  downloaded and measured (`Ellipse 19/20/21`) to derive the CSS radii.
+
+## 1. Colour tokens (exact, from Figma)
+| token | value | source |
+|---|---|---|
+| `--bg` page (milky off-white) | `#EDEEE9` | frame A fill `343:6` |
+| `--bg2` chat sheet / scrim | `#EFEFEF` | `345:213`, `350:259` |
+| `--sage` header pill + hero flood | `#C9D6BC` | `343:60`, `344:130` |
+| `--ink` body text | `#050505` | `344:97` |
+| `--serif-ink` display headline | `#1E0C00` | `344:125`, `345:215` |
+| `--icon` icon strokes | `#1F1F1F` | mic / bell / leaf exports |
+| `--input` composer pill | `#FFFAFA` | `344:74` |
+| `--ava` avatar placeholder | `#D9D9D9` | `344:92` |
+| `--c-margo` Margot bubble | `#BCCAD7` | `Ellipse 19` fill |
+| `--c-felix` Felix bubble | `#E3D2CA` | `Ellipse 20` fill |
+| `--c-me` user bubble | `#FFFFFF` | `Ellipse 21` fill |
+| timestamps | black @ 40% | `344:96` |
+| bubble hairline divider | black @ 10% | `350:235` |
+
+**Derived (not in Figma) — logged as required:**
+- `--c-gosha #E0D3B8` — the third character tone the brief asked for: warm
+  sand/ochre. Picked to sit between the blue-grey and the terracotta at the same
+  chroma/value so the three read as one family.
+- `--c-vera #CBD5C9` (soft sage-grey) and `--c-basil #D3D0DC` (muted
+  lavender-grey) — the garden has five plants, not three; same muted register.
+- `--sage-deep #6E845C` — `#C9D6BC` is a *surface*, unreadable as text or a 1px
+  active state. This darkened sibling carries accents (checkmarks, links,
+  slider fills, active ticks) on the restyled screens.
+- `--box #E1E2DB` — warm neutral replacing the old cold `#e4e4e4` fills.
+- Prototype-shell canvas `#2b2b2b → #262521`, so the dark frame around the phone
+  is warm-neutral instead of clashing blue-grey.
+- Frame A's page fill (`#EDEEE9`) and frame B's (`#EFEFEF`) differ by ~1%. Kept
+  both: A's value is the page, B's is the chat sheet — which is how the two
+  frames actually use them.
+
+## 2. Type
+- **Urbanist removed entirely**; the Google-Fonts `<link>`s are gone. All four
+  faces are local `@font-face` with relative paths (`fonts/…`); the Riccione
+  filename contains a space, referenced as `%20`.
+- **Riccione Serial Light — display headlines only.** Used on: the dashboard
+  headline in both states, and the three centred "moment" headlines (First
+  meeting / Alert / Thank-you) via a new `.display` class. **Fork:** those three
+  are the only non-dashboard titles that are a hero moment rather than UI
+  chrome; ordinary screen titles stay Circular.
+- **Circular Std** everywhere else — Book 400 body, Medium 500 for names,
+  labels, buttons, active states. Bold 700 is wired up but unused.
+- **Type scale LOCKED to the four sizes in the frames** — nothing else exists:
+  | token | px | Figma source |
+  |---|---|---|
+  | `--t-sm` | 13 | names + timestamps `344:95/96` (letter-spacing 0.52px) |
+  | `--t-md` | 16 | body, buttons, inputs, inline CTA `344:97` |
+  | `--t-lg` | 22 | collapsed display headline `344:125` |
+  | `--t-xl` | 44.7 | expanded display headline `345:215` |
+- **Off-scale sizes mapped (closest step), one line each:**
+  | was | now | note |
+  |---|---|---|
+  | 10, 11, 12 px (kickers, tiny meta, tile labels) | 13 | closest step |
+  | 14, 15 px (body copy, buttons, inputs) | 16 | closest *semantic* step — 16px is the Figma body size; 13 would have shrunk all body copy |
+  | 16 px (`h2`) | 16 | unchanged |
+  | 17, 18 px (screen titles, flow index) | 22 for titles, 16 for the flow index | **Fork:** literal-closest for an 18px title is 16px, which would flatten every screen to a single size. Titles take the next real step (22, Circular Medium); the shell's flow index is not app UI so it takes 16. |
+  | 19, 20 px (two onboarding h2s) | 22 | closest step; stays Circular — not display headlines |
+  | 21 px (old dashboard greeting), 36 px (gauge %) | — | deleted with the old dashboard |
+  | 32 / 40 px ASCII faces (`^‿^`, `O_O`) | unchanged | **Fork:** kaomoji are illustration built from characters, not type — sizing them off the text scale would shrink the plant's face to nothing. Explicitly exempt. |
+- Figma's frame A also contains a stale 18px **Playfair Display** headline
+  (`343:48`, "97% healthy") sitting behind the pill. Ignored as leftover: the
+  live headline `344:125` is Riccione, and 98% is the number in both frames.
+
+## 3. Shape
+- Header pill radius **36px** (`343:60`); composer pill **36.932 → 37px**
+  (`344:74`); white CTA pill **28px** (`345:216`); chat-sheet top corners
+  **36px** (`345:213`).
+- **Organic bubble.** The Figma bubbles are vector blobs, not rounded rects, so
+  they can't be copied literally. Measured off the paths: corner radii run to
+  roughly half the bubble height, deliberately unequal. Rendered as an elliptical
+  four-corner radius — `10px 56px 44px 64px / 10px 44px 60px 52px` — four
+  different large radii plus one tight corner, mirrored for user messages
+  (`--bub-me`). Reused for every chat-style bubble in the app (`.pdspeech` on
+  plant detail and create-character).
+- **Fork:** in Figma the *tight* corner is not the one nearest the avatar (the
+  blobs are near-symmetric pills). The brief explicitly asks for a tight corner
+  by the avatar, mirrored for the user — the brief wins; it also gives the
+  bubbles a direction the Figma vectors lack.
+- Cards lose their 1px borders and become white 24px surfaces; buttons become
+  full pills (white default, sage primary). Dividers are the Figma black-10%
+  hairline.
+
+## 4. Dashboard rebuild
+- The old **gauge + location groups + bordered chat pane are gone.** The
+  collapsed screen is: sage pill (serif headline left; leaf, bell, avatar right)
+  over the group chat, which is now the main and *only* content.
+- **One element morphs between the two states** (`.gsurface`: pill → full
+  bleed). The headline `left: 27px → 50%` + `translateX(-50%)`, `top: 23 → 121`,
+  `font-size: 22 → 44.7` all transition on the same 460ms
+  `cubic-bezier(.22,.9,.28,1)` ease-out, so the text scales with the container.
+  Date and the white "See your plants" pill fade in (280–300ms, delayed 120ms).
+- **Fork — how the green gets behind the chat sheet.** The naive version (green
+  at 100% height, chat above it) needs a z-index flip mid-animation, which
+  flashes. Instead the green surface animates to exactly the sheet's top edge
+  (434px) and a separate full-bleed sage underlay fades in beneath the chat, so
+  the sheet's rounded corners still show green. No stacking order ever changes.
+- **Fork — the status bar.** Figma floods green to the pixel row 0, but the
+  status bar is device chrome that lives outside the screen element. Used
+  `.device:has(.dash.open){background:var(--sage)}` so the flood reaches the top
+  edge; browsers without `:has()` just keep a milky status bar.
+- Expanded chat is pushed to 434px, gets the `#EFEFEF` sheet, `saturate(.42)`
+  and a top scrim, and is pinned to its newest message for the whole transition
+  (rAF loop) so it reads as *pushed down* rather than *scrolled away*. Tapping
+  the green **or** the dimmed chat collapses it.
+- Collapsed state has the same scrim, solid for the first 96px, so messages
+  dissolve under the header instead of colliding with it (Figma `350:261`).
+- **Inline CTA is plain text over a hairline** ("Check what happened"), never a
+  boxed button; it stops propagation so it navigates instead of collapsing.
+- Composer: elongated pill, **microphone replaces the send arrow**; Enter still
+  sends, and the mic is wired to the same handler so the prototype stays usable.
+- Timestamps added to `CHAT_INIT` (07:12 → 17:30) — the Figma bubbles show
+  `name · time`. Message *content* is unchanged.
+- Icons (leaf, bell, notification dot, mic) are the **exported Figma assets**,
+  inlined as SVG at their designed 24×24 boxes, leaf and bell at the designed 40%
+  opacity. **Fork:** the brief puts the notification dot on the plant icon;
+  in both Figma frames it is unambiguously on the **bell** (x=314 vs bell
+  297–321, and 331 vs 314–338 in frame B). Followed Figma — a notification dot
+  belongs to the bell anyway.
+- **Fork — the user avatar.** Figma uses a photo of a real person. Kept the
+  existing striped placeholder circle instead: this is a wireframe, and shipping
+  a stranger's face into the prototype is worse than an obvious placeholder.
+- **"See your plants" → `plantsList`**, the existing plants overview. That
+  screen already existed, so it was restyled only — grid and cards untouched.
+
+## 5. Housekeeping
+- Flow index kept working; restyled to warm-neutral text with the sage itself as
+  the active tint (readable on `#262521`), 16px per the locked scale.
+- Removed dead CSS with the old dashboard (`.hero`, `.gauge`, `.chatpane`,
+  `.mrow/.mbub/.composer`, `.utag/.ulink`, the `.pdspeech` tail triangles). Every
+  other class kept its name and structure so no other screen shifted.
+
+## Verification
+- Rendered in headless Chrome at device size, both dashboard states plus
+  plants list, plant detail, notifications, profile, alert, create-character and
+  pairing: fonts load locally, no Urbanist reference remains anywhere in the
+  file, no layout regressions on the restyled screens.
+- Collapsed and expanded states compared side by side against the two Figma
+  frame screenshots — headline, icon row, bubble colours, scrim, sheet, CTA and
+  composer all land in the designed positions.
