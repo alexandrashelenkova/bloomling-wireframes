@@ -199,17 +199,32 @@
   .adv:last-child{border-bottom:none}
   .adv .leaf{color:var(--sage-deep);font-size:var(--t-sm);line-height:1.5;flex:0 0 auto}
 
-  /* plant grid — one vertically scrolling grid, no paging. flex:0 0 auto keeps the
-     fixed-height rows from being squashed by the flex-column screen. */
-  .pgrid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:150px;gap:10px;
-    align-content:start;flex:0 0 auto}
-  .plantcard{border:none;border-radius:var(--r-card);padding:8px;
-    background:var(--card);cursor:pointer;display:flex;flex-direction:column;gap:6px;
-    min-height:150px;overflow:hidden}
-  .plantcard:active{background:#f4f4f1}
-  .plantcard .photo{position:relative;height:92px}
-  .plantcard b{font-size:var(--t-sm)}
-  /* compact, secondary "+ add plant" tile — sits above the grid, not a peer of plant cards */
+  /* ── PLANTS OVERVIEW — wallet-style stack of full-width character cards ──
+     Each card is 176px tall but pulled up 56px over the one above, so 120px of
+     every card shows and the last one stands at full height. Later cards paint
+     on top (z-index set inline), which is what makes them read as a stack.
+     flex:0 0 auto so the flex-column screen can't squash them. */
+  .pstack{display:flex;flex-direction:column;flex:0 0 auto;padding-bottom:6px}
+  /* only the top corners are round — every card's bottom is tucked under the next
+     one; the last card is the only one that needs a rounded bottom */
+  .pcard{position:relative;height:176px;margin-top:-56px;border-radius:26px 26px 0 0;
+    padding:18px 20px;cursor:pointer;color:var(--serif-ink);
+    box-shadow:0 -1px 10px rgba(30,12,0,.07);
+    transition:transform .18s var(--soft),filter .18s var(--soft)}
+  .pcard:first-child{margin-top:0}
+  .pcard:last-child{border-radius:26px}
+  .pcard:active{transform:scale(.985);filter:brightness(.97)}
+  /* the emotion face, same white-disc treatment the old photo cards used */
+  .pcard-face{width:28px;height:28px;border-radius:50%;background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:var(--t-sm);
+    color:var(--ink)}
+  .pcard-species{font-size:var(--t-sm);opacity:.5;margin-top:10px}
+  .pcard-name{font-size:var(--t-lg);font-weight:500;line-height:1.2;margin-top:2px}
+  /* centred on the VISIBLE band of the card, not on its full height */
+  .pcard-state{position:absolute;right:20px;top:60px;transform:translateY(-50%);
+    font-size:var(--t-sm);opacity:.55}
+
+  /* compact, secondary "+ add plant" tile — sits above the stack, not a peer of the plant cards */
   .addtile{border:1px dashed var(--line);border-radius:999px;background:transparent;
     color:var(--sage-deep);
     display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;
@@ -620,16 +635,16 @@ const { useState, useMemo, useEffect, useRef, createContext, useContext } = Reac
 /* ───────────────── EMOTION ENUM ───────────────── */
 // content, thirsty, overwatered, low-light, sleeping, greeting, cold, hot, urgent, neutral
 const EMO = {
-  content:      { face:"^‿^",  label:"All good",     tone:"ok"   },
-  thirsty:      { face:">_<",  label:"Thirsty",      tone:"warn" },
-  overwatered:  { face:"@_@",  label:"Overwatered",  tone:"warn" },
-  "low-light":  { face:"-_-",  label:"Needs light",  tone:"warn" },
-  sleeping:     { face:"-.-",  label:"Sleeping",     tone:""     },
-  greeting:     { face:"^o^",  label:"Hi there!",    tone:"ok"   },
-  cold:         { face:":<",   label:"Cold",         tone:"warn" },
-  hot:          { face:">~<",  label:"Too hot",      tone:"warn" },
-  urgent:       { face:"O_O",  label:"Urgent!",      tone:"warn" },
-  neutral:      { face:"._.",  label:"Okay",         tone:""     },
+  content:      { face:"^‿^",  label:"All good",     tone:"ok",   word:"happy"   },
+  thirsty:      { face:">_<",  label:"Thirsty",      tone:"warn", word:"thirsty" },
+  overwatered:  { face:"@_@",  label:"Overwatered",  tone:"warn", word:"soggy"   },
+  "low-light":  { face:"-_-",  label:"Needs light",  tone:"warn", word:"gloomy"  },
+  sleeping:     { face:"-.-",  label:"Sleeping",     tone:"",     word:"sleepy"  },
+  greeting:     { face:"^o^",  label:"Hi there!",    tone:"ok",   word:"chirpy"  },
+  cold:         { face:":<",   label:"Cold",         tone:"warn", word:"cold"    },
+  hot:          { face:">~<",  label:"Too hot",      tone:"warn", word:"too hot" },
+  urgent:       { face:"O_O",  label:"Urgent!",      tone:"warn", word:"urgent"  },
+  neutral:      { face:"._.",  label:"Okay",         tone:"",     word:"grumpy"  },
 };
 
 /* ───────────────── MOCK DATA ───────────────── */
@@ -1971,23 +1986,35 @@ function LangPick({params}){
   </div>;
 }
 
-/* Plants list — reached from the hero's leaf icon (and from Profile).
-   One vertically scrolling grid: every plant is on the same screen, no paging.
-   Tapping a plant opens its card. */
+/* Plants list — reached from the expanded hero's "See your plants" (and from
+   Profile). A wallet-style stack: every plant is a full-width coloured card in
+   its character colour, each one tucked over the bottom of the card above so
+   only its top band shows; the last card stands at full height. No photos —
+   the card is the plant. Tapping one opens its detail screen. */
 function PlantsList(){
   const nav = useNav();
   return <div className="screen">
-    <Top title="My plants" onBack={nav.back}/>
+    <div className="topbar">
+      <button className="back" onClick={nav.back}>‹ Back</button>
+      {/* the one display headline on this screen — same serif and size as the
+          dashboard's collapsed header pill */}
+      <h1 className="display" style={{fontWeight:400}}>My plants</h1>
+    </div>
     <div className="addtile" onClick={()=>nav.go("pair")}>
       <span className="plus">＋</span> Add plant
     </div>
-    <div className="pgrid">
-      {PLANTS.map(it=>(
-        <div className="plantcard" key={it.id} onClick={()=>nav.go("plant",{id:it.id})}>
-          <Photo label="PHOTO" badge={it.emotion} style={{height:92}}/>
-          <div><b>{it.name}</b><br/><small className="muted">{it.species}</small></div>
-        </div>
-      ))}
+    <div className="pstack">
+      {PLANTS.map((it,i)=>{
+        const e = EMO[it.emotion] || EMO.neutral;
+        return <div className="pcard" key={it.id} style={{zIndex:i+1,
+            background:"var(--c-"+it.id+")"}}
+          onClick={()=>nav.go("plant",{id:it.id})}>
+          <div className="pcard-face">{e.face}</div>
+          <div className="pcard-species">{it.species}</div>
+          <div className="pcard-name">{it.name.split(" ")[0]}</div>
+          <div className="pcard-state">{e.word}</div>
+        </div>;
+      })}
     </div>
   </div>;
 }

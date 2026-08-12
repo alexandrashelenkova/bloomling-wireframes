@@ -964,3 +964,85 @@ No other screen touched.
   no gradient at the top of the stream, gradient present once scrolled, chips
   attached to every seeded message, user avatar in header and chat, bubbles
   hugging their content, expanded chat blurred with the sheet edge crisp.
+
+---
+
+# Revision 17 — "My plants" rebuilt as a wallet-style card stack
+
+Scope: the plants overview only. The dashboard, plant detail and everything else
+are untouched; the only shared change is an additive `word` field on `EMO`.
+
+## 1. Layout
+- The 2-column photo grid is gone. Every plant is now a **full-width coloured
+  card, 176px tall, pulled up 56px over the card above** — so 120px of every card
+  shows (the brief's 110–130px band) and the last card stands at full height.
+- **Later cards paint on top** (`z-index` set inline, `i+1`). This is the fork in
+  reading "each next card tucks under the previous one": if the next card went
+  *behind*, the card above would cover its top and you'd see each card's
+  **bottom** — the opposite of "mostly the upper portion of every card is
+  visible", and the last card could not be the full-height one. Painting later
+  cards in front satisfies both of those sentences and is the wallet/stack look.
+- **Only the top corners are round (26px).** Every card's bottom is tucked under
+  the next one, so rounding it just leaked little notches of page background at
+  the sides; `:last-child` gets all four corners since it is the one card whose
+  bottom is visible.
+- `box-shadow:0 -1px 10px rgba(30,12,0,.07)` — an *upward* shadow onto the card
+  above, which is what actually sells the stack.
+- `flex:0 0 auto` on the stack so the flex-column screen can't squash it; the
+  five cards total 656px and scroll inside the screen as designed.
+- **Fork — cards keep the screen's 16px gutter** rather than bleeding to the
+  device edge. "Full-width" is read as full content width: it keeps the rhythm of
+  the "Add plant" pill above them and of every other screen.
+
+## 2. Card content
+- Emotion face top-left in a 28px white disc — the same white-disc treatment the
+  old photo cards used for their emotion badge, so the language carries over.
+- Species in `--t-sm` at 50% opacity, then the name at `--t-lg` (22px) Circular
+  **Medium** — category-over-merchant hierarchy from the reference. Serif is not
+  used here; the only display headline on this screen is the title.
+- **Fork — the name is the first word only** ("Margot", not "Margot the
+  Monstera"). The species already sits directly above it, so the full name would
+  repeat it; this also matches how the chat labels its speakers.
+- Status word on the right, centred on the **visible 120px band** rather than on
+  the card's full height — centring on the full height would push it into the
+  area hidden by the next card.
+- Colours are the established character palette, unchanged:
+  Felix `--c-felix #E3D2CA`, Margot `--c-margo #BCCAD7`, Gosha `--c-gosha
+  #E0D3B8`, and the two already-derived tones now get their first real use —
+  Vera `--c-vera #CBD5C9` (soft sage-grey), Basil `--c-basil #D3D0DC` (muted
+  lilac). Applied as `var(--c-<plant id>)`, so the ids and the tokens stay in
+  lockstep.
+- Text is `--serif-ink #1E0C00` on every card — one warm dark neutral, as asked,
+  rather than per-card contrast tuning.
+
+## 3. Status words
+- `EMO` gains a short lower-case `word` per emotion (additive — `label`, `face`
+  and `tone` are untouched, so `StatusPill` and every other consumer is
+  unaffected):
+  happy · thirsty · soggy · gloomy · sleepy · chirpy · cold · too hot · urgent ·
+  **grumpy**.
+- **Fork — `neutral` reads "grumpy"**, not "okay". Its only holder is Gosha the
+  cactus, its face is the deadpan `._.`, and the brief names "grumpy"
+  explicitly. Noted as data-dependent: a different plant carrying `neutral` would
+  inherit the word.
+
+## 4. Header and interaction
+- The screen builds its own header instead of using `Top`, so the title can be
+  Riccione: `.display` at `--t-lg` — **the same face and size as the dashboard's
+  collapsed header pill**. `font-weight:400` is set inline because `.topbar h1`
+  (specificity 0,1,1) would otherwise beat `.display` (0,1,0) and synthesise a
+  bold weight on a light serif.
+- Back control and the dashed full-width "Add plant" pill are unchanged.
+- Press feedback: `scale(.985)` + `brightness(.97)` over 180ms on the shared
+  `--soft` curve. Tapping still routes to `plant` with the same id.
+
+## 5. Housekeeping
+- Removed the now-dead `.pgrid` / `.plantcard` rules (they belonged to this
+  screen alone — `.pgrid6`, `.dots` and `.pgdot` are different components and
+  stay).
+
+## Verification
+- Rendered the screen in headless Chrome: five cards stacked with 120px bands,
+  square tucked bottoms, rounded last card, serif title, correct colour per
+  character, and the status words reading happy / thirsty / grumpy / happy /
+  happy. Dashboard re-rendered afterwards to confirm no shared-style regression.
