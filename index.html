@@ -45,6 +45,13 @@
     --c-vera:#CBD5C9;        /* DERIVED: soft sage-grey                   */
     --c-basil:#D3D0DC;       /* DERIVED: muted lavender-grey              */
     --c-me:#FFFFFF;          /* user messages          (Ellipse 21 fill) */
+    /* plants-overview card fills — two-stop gradients from the mockup (364:585),
+       each running from the character's tint into that pot's glow colour */
+    --g-felix:linear-gradient(126.35deg,#E7D1C9 38.007%,#E2F7CF 115.19%);
+    --g-margo:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
+    --g-gosha:linear-gradient(126.35deg,#D6D0BA 38.007%,#C3F5EE 115.19%);
+    --g-vera:linear-gradient(113.89deg,#C9D5C8 38.007%,#E7FCD6 115.19%);
+    --g-basil:linear-gradient(126.35deg,#D3D0DC 38.007%,#F0E6FA 115.19%);
 
     /* ── TYPE SCALE — LOCKED to the two Figma frames. Four sizes, no others. ── */
     --t-sm:13px;             /* names, timestamps, labels, meta   (344:95)  */
@@ -199,30 +206,50 @@
   .adv:last-child{border-bottom:none}
   .adv .leaf{color:var(--sage-deep);font-size:var(--t-sm);line-height:1.5;flex:0 0 auto}
 
-  /* ── PLANTS OVERVIEW — wallet-style stack of full-width character cards ──
-     Each card is 176px tall but pulled up 56px over the one above, so 120px of
-     every card shows and the last one stands at full height. Later cards paint
-     on top (z-index set inline), which is what makes them read as a stack.
-     flex:0 0 auto so the flex-column screen can't squash them. */
-  .pstack{display:flex;flex-direction:column;flex:0 0 auto;padding-bottom:6px}
-  /* only the top corners are round — every card's bottom is tucked under the next
-     one; the last card is the only one that needs a rounded bottom */
-  .pcard{position:relative;height:176px;margin-top:-56px;border-radius:26px 26px 0 0;
-    padding:18px 20px;cursor:pointer;color:var(--serif-ink);
-    box-shadow:0 -1px 10px rgba(30,12,0,.07);
+  /* ── PLANTS OVERVIEW — edge-to-edge card stack (Figma "concept2" 364:585) ──
+     Cards are 192px tall on a 140px step, so 140px of every card shows and the
+     last one stands taller. 40px top corners only — every bottom is tucked under
+     the next card. Later cards paint on top (z-index inline), which is what makes
+     the stack read as a stack. */
+  .plhead{display:flex;align-items:center;gap:5px;margin:13px -2px 0;flex:0 0 auto}
+  .plback{width:24px;height:24px;flex:0 0 auto;cursor:pointer;opacity:.4;
+    display:flex;align-items:center;justify-content:center}
+  .plback:active{opacity:.75}
+  .pltitle{flex:1;margin:0;font-family:'Riccione',Georgia,serif;font-weight:400;
+    color:var(--serif-ink);font-size:var(--t-xl);line-height:1.16;letter-spacing:0}
+  .pladd{flex:0 0 auto;background:#fff;border:none;border-radius:var(--r-btn);
+    padding:15px 24px;font-size:var(--t-md);color:var(--ink);cursor:pointer}
+  .pladd:active{transform:translateY(1px)}
+
+  /* full bleed, and the negative bottom cancels the screen's padding so the last
+     card runs off the bottom edge instead of ending on a strip of page */
+  .pstack{display:flex;flex-direction:column;flex:0 0 auto;margin:0 -16px -24px}
+  .plcard{position:relative;height:192px;margin-top:-52px;
+    border-radius:40px 40px 0 0;cursor:pointer;color:var(--serif-ink);
+    box-shadow:0 -4px 60px rgba(61,61,61,.2);
     transition:transform .18s var(--soft),filter .18s var(--soft)}
-  .pcard:first-child{margin-top:0}
-  .pcard:last-child{border-radius:26px}
-  .pcard:active{transform:scale(.985);filter:brightness(.97)}
-  /* the emotion face, same white-disc treatment the old photo cards used */
-  .pcard-face{width:28px;height:28px;border-radius:50%;background:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:var(--t-sm);
-    color:var(--ink)}
-  .pcard-species{font-size:var(--t-sm);opacity:.5;margin-top:10px}
-  .pcard-name{font-size:var(--t-lg);font-weight:500;line-height:1.2;margin-top:2px}
-  /* centred on the VISIBLE band of the card, not on its full height */
-  .pcard-state{position:absolute;right:20px;top:60px;transform:translateY(-50%);
-    font-size:var(--t-sm);opacity:.55}
+  .plcard:first-child{margin-top:0;box-shadow:none}
+  .plcard:last-child{height:250px}
+  .plcard:active{transform:scale(.99);filter:brightness(.98)}
+  /* status chip — thin dark outline, no fill */
+  .plchip{position:absolute;left:43px;top:14px;border:1px solid var(--ink);
+    border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
+    color:var(--ink);line-height:1.25}
+  .plspecies{position:absolute;left:43px;top:76px;font-size:var(--t-md);
+    color:var(--ink);opacity:.4;line-height:1.25}
+  /* a plant whose species IS its name (Basil) drops the duplicate label, so the
+     name moves up into the space the species would have used */
+  .plcard:not(:has(.plspecies)) .plname{top:76px}
+  .plname{position:absolute;left:43px;top:101px;font-family:'Riccione',Georgia,serif;
+    font-weight:400;font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink)}
+  /* the pot render. Its window crops the square source exactly as the mockup
+     does; the pot then spills past the card's visible band — and, for two of
+     them, past the screen edge. The window is hosted by the card BELOW so it
+     paints over that card's surface but under its chip/species/name. */
+  .plshot{position:absolute;overflow:hidden;pointer-events:none;z-index:1}
+  .plshot img{position:absolute;display:block;max-width:none;
+    filter:drop-shadow(0 10px 16px rgba(30,12,0,.16))}
+  .plchip,.plspecies,.plname{z-index:2}
 
   /* compact, secondary "+ add plant" tile — sits above the stack, not a peer of the plant cards */
   .addtile{border:1px dashed var(--line);border-radius:999px;background:transparent;
@@ -1986,33 +2013,62 @@ function LangPick({params}){
   </div>;
 }
 
+/* Pot renders (Figma assets frame 364:776), placed per the mockup 364:585.
+   Each window crops its square source; values are card-relative, anchored to the
+   card's RIGHT edge so they survive the 402→386 device width difference.
+     right/top/w/h → the crop window;  img → the square render's rendered size;
+     ix/iy        → where that square sits inside the window (negative = cropped) */
+const POT_STEP = 140;   // how far one card is offset from the next
+const SHOT = {
+  felix:{ src:"assets/pot-felix.webp",  right:-46, top:0,   w:258, h:218, img:258, ix:0,   iy:-40  },
+  margo:{ src:"assets/pot-margot.webp", right:0,   top:0,   w:265, h:172, img:363, ix:0,   iy:-144, tr:true },
+  gosha:{ src:"assets/pot-gosha.webp",  right:9,   top:-4,  w:140, h:187, img:309, ix:-88, iy:-80  },
+  vera: { src:"assets/pot-vera.webp",   right:-58, top:-55, w:282, h:282, img:282, ix:0,   iy:0    },
+};
+/* `hosted` shifts the window up by one card step: the pot belongs to the card
+   above, but lives in this one so the stacking comes out right. */
+function PotShot({who, hosted}){
+  const p = SHOT[who];
+  if(!p) return null;
+  return <div className="plshot" style={{right:p.right, top:(hosted?p.top-POT_STEP:p.top),
+      width:p.w, height:p.h, borderRadius:p.tr?"0 40px 0 0":0}}>
+    <img src={p.src} alt="" style={{width:p.img,height:p.img,left:p.ix,top:p.iy}}/>
+  </div>;
+}
+
 /* Plants list — reached from the expanded hero's "See your plants" (and from
-   Profile). A wallet-style stack: every plant is a full-width coloured card in
-   its character colour, each one tucked over the bottom of the card above so
-   only its top band shows; the last card stands at full height. No photos —
-   the card is the plant. Tapping one opens its detail screen. */
+   Profile). An edge-to-edge stack: every plant is a full-width card in its
+   character gradient, tucked over the bottom of the card above, with its pot
+   render breaking out of the card and spilling onto the one below. Tapping a
+   card opens that plant's detail screen. */
 function PlantsList(){
   const nav = useNav();
   return <div className="screen">
-    <div className="topbar">
-      <button className="back" onClick={nav.back}>‹ Back</button>
-      {/* the one display headline on this screen — same serif and size as the
-          dashboard's collapsed header pill */}
-      <h1 className="display" style={{fontWeight:400}}>My plants</h1>
+    <div className="plhead">
+      <span className="plback" onClick={nav.back} title="Back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 18L9 12L15 6" stroke="#000" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </span>
+      <h1 className="pltitle">My Plants</h1>
+      <button className="pladd" onClick={()=>nav.go("pair")}>Add</button>
     </div>
-    <div className="addtile" onClick={()=>nav.go("pair")}>
-      <span className="plus">＋</span> Add plant
-    </div>
+
     <div className="pstack">
       {PLANTS.map((it,i)=>{
         const e = EMO[it.emotion] || EMO.neutral;
-        return <div className="pcard" key={it.id} style={{zIndex:i+1,
-            background:"var(--c-"+it.id+")"}}
+        const above = PLANTS[i-1];                       // whose pot spills in here
+        const isLast = i === PLANTS.length-1;
+        return <div className="plcard" key={it.id}
+          style={{zIndex:i+1, background:"var(--g-"+it.id+")"}}
           onClick={()=>nav.go("plant",{id:it.id})}>
-          <div className="pcard-face">{e.face}</div>
-          <div className="pcard-species">{it.species}</div>
-          <div className="pcard-name">{it.name.split(" ")[0]}</div>
-          <div className="pcard-state">{e.word}</div>
+          {above && <PotShot who={above.id} hosted/>}
+          {isLast && <PotShot who={it.id}/>}
+          <div className="plchip">{e.word}</div>
+          {it.species !== it.name.split(" ")[0] &&
+            <div className="plspecies">{it.species}</div>}
+          <div className="plname">{it.name.split(" ")[0]}</div>
         </div>;
       })}
     </div>

@@ -1046,3 +1046,113 @@ are untouched; the only shared change is an additive `word` field on `EMO`.
   square tucked bottoms, rounded last card, serif title, correct colour per
   character, and the status words reading happy / thirsty / grumpy / happy /
   happy. Dashboard re-rendered afterwards to confirm no shared-style regression.
+
+---
+
+# Revision 18 — "My plants" redesigned to the mockup (Figma 364:585)
+
+Scope: this screen only. Nothing else touched; the additions to `:root` are new
+tokens, not edits to existing ones.
+
+## 0. Design source — Figma MCP (access OK, nothing approximated)
+- Mockup frame `364:585` ("concept2", 402×874) — layout, fills, type, radii.
+- Assets section `364:776` — the four pot renders, all 1024² transparent PNG.
+- Frame `364:585` also carries a leftover `#efefef` gradient scrim
+  (`364:658`, copied from the dashboard frame) that paints *behind* the cards
+  and is invisible. Ignored.
+
+## 1. Extracted values
+| element | value |
+|---|---|
+| title "My Plants" | Riccione 44.712px (`--t-xl`), `#1E0C00`, left edge x=43, top 69 |
+| chevron | 24×24, x=14, `M15 18L9 12L15 6` 2px stroke, **40% opacity** |
+| "Add" pill | white, radius 28, padding 15/24, 16px Circular `#050505`, x 310–388 |
+| card | x=5 w=392, **h=192 on a 140px step**, `radius 40px 40px 0 0` |
+| card shadow | `0 -4px 60px rgba(61,61,61,.2)` — on every card except the first |
+| last card | 319px tall |
+| status chip | 1px solid black, radius 24, padding `2px 10px 5px`, 16px Circular |
+| chip / species / name | card-relative top **14 / 76 / 101**, all at left 43 |
+| species | 16px Circular `#050505` at **40%** opacity |
+| name | Riccione **22px** (`--t-lg`) `#1E0C00` |
+- Card fills are **two-stop gradients**, not flat tints — each runs from the
+  character's colour into that pot's glow colour. Taken verbatim as `--g-*`:
+  | plant | gradient |
+  |---|---|
+  | Felix | `126.35deg, #E7D1C9 38.007%, #E2F7CF 115.19%` |
+  | Margot | `126.35deg, #B9CBD8 38.007%, #E39B84 115.19%` |
+  | Gosha | `126.35deg, #D6D0BA 38.007%, #C3F5EE 115.19%` |
+  | Vera | `113.89deg, #C9D5C8 38.007%, #E7FCD6 115.19%` |
+  | Basil | `126.35deg, #D3D0DC 38.007%, #F0E6FA 115.19%` — **derived**, same
+    construction from the existing `--c-basil` lilac into a pale lilac |
+  The base stops confirm the existing palette (Felix `#E7D1C9` vs `--c-felix
+  #E3D2CA`, Margot `#B9CBD8` vs `#BCCAD7`, Vera `#C9D5C8` vs `#CBD5C9`); Gosha's
+  moves furthest (`#D6D0BA` vs `#E0D3B8`). The mockup values win on this screen;
+  the flat `--c-*` tokens keep driving the chat bubbles.
+- All four type sizes are already in the locked scale — no new sizes.
+
+## 2. Pot renders
+- Exported the four to `assets/pot-{felix,margot,gosha,vera}.webp`, resized
+  1024² → 720² (2× the largest on-screen size, 363px) and encoded WebP q86:
+  **26–46 KB each vs 210–280 KB as optimised PNG**, with no banding in the glow.
+  Quantised PNG was the runner-up (36–45 KB) but risks posterising the gradients.
+- **Kept the full uncropped square.** Every placement in the mockup is expressed
+  as a crop window over the whole square render, so tight-cropping would have
+  invalidated all of that geometry.
+- Placement is per-plant, taken from the mockup, and anchored to the card's
+  **right** edge rather than its left so it survives the 402→386px device width:
+  | plant | window right/top/w/h | render size | offset in window |
+  |---|---|---|---|
+  | Felix | −46 / 0 / 258 / 218 | 258 | 0, −40 |
+  | Margot | 0 / 0 / 265 / 172 (top-right radius 40) | 363 | 0, −144 |
+  | Gosha | 9 / −4 / 140 / 187 | 309 | −88, −80 |
+  | Vera | −58 / −55 / 282 / 282 | 282 | 0, 0 |
+  Felix's and Vera's windows deliberately run past the screen edge, as in the
+  mockup; Margot's is clipped to the card's rounded top-right corner.
+- **Fork — stacking.** In the mockup each pot is painted *below* the next card,
+  so the next card slices it. The brief asks for the opposite: the pot must
+  render "above the next card's surface but below that card's own content". A
+  z-index can't reach out of its card's stacking context, so **each pot is
+  rendered inside the DOM of the card below it**, shifted up one 140px step
+  (`PotShot hosted`). Result: surface → overhanging pot → chip/species/name, in
+  exactly that order, with no z-index juggling. The last card hosts its own pot.
+  The pots never reach the card after next (max overhang 87px < the 140 step),
+  so nothing is clipped unintentionally.
+- Each pot ends at its render's own flat base, so the overhang reads as a whole
+  pot resting on the next card rather than a sliced one. Added
+  `drop-shadow(0 10px 16px rgba(30,12,0,.16))` so it visibly floats above that
+  card — without it the pots read as telescoped into one another.
+- **Basil has no render** (the mockup only draws four cards). His card keeps a
+  clean empty right side, as instructed. Vera's pot is hosted by Basil's card,
+  so it still gets its full breakout.
+
+## 3. Deviations from the mockup, and why
+- **Cards are edge-to-edge (0 margin), not the mockup's 5px inset** — the brief
+  asks for full-bleed, and 5px reads as a rendering artefact at this size. The
+  stack uses `margin:0 -16px -24px` to break out of the screen's padding; the
+  negative bottom lets the last card run off the device edge instead of ending
+  on a strip of page background.
+- **Last card is 250px, not 319px.** The mockup's last card holds Vera's pot;
+  ours holds Basil, who has no render, and 319px of empty lilac was dead space.
+- **Chip outline and text use `--ink` (#050505), not pure black** — the design
+  system's ink, visually identical at 1px.
+- **Basil's species label is suppressed**: his species *is* "Basil", and
+  printing "Basil / Basil" reads as a bug. `:has()` moves the name up into the
+  freed slot.
+- Name is still the first word only ("Margot", not "Margot the Monstera") —
+  the mockup shows exactly that.
+
+## 4. Removed / interaction
+- The full-width "+ Add plant" bar is gone, replaced by the compact white "Add"
+  pill in the header; it still routes to `pair`. The `.addtile` rule is now
+  unused but left in place — it is generic and cheap.
+- The emotion face disc is gone; the status word moved into the outlined chip.
+- Tap still opens `plant` with the same id. Press feedback softened to
+  `scale(.99)` + `brightness(.98)` — the previous `.985` was too much travel on
+  a card this large. Scrolling is unchanged.
+
+## Verification
+- Rendered in headless Chrome at device size, top and fully scrolled: header
+  (chevron · serif title · Add pill), five gradient cards on the 140px step,
+  chips/species/names at the mockup's offsets, four pots breaking out of their
+  cards with the last card bleeding off the bottom edge. Dashboard re-rendered
+  afterwards — no regression.
