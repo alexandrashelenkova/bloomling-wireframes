@@ -1228,3 +1228,88 @@ Scope: this screen only.
 - Rendered in headless Chrome: four cards, Vera's running to the bottom edge, no
   scroll, no rectangular artefact on Gosha, pots clear of the right edge and of
   each other's faces. Profile re-rendered — reads "4 plants ›", layout untouched.
+
+---
+
+# Revision 20 — "My plants": pots anchored by their base, growing upward
+
+Scope: pot placement on this screen. Nothing else touched.
+
+## 1. What the mockup actually measures (and why the old read was wrong)
+Measured each render's opaque geometry against the mockup's placement of it
+(`364:585`), rather than reading the crop boxes:
+
+| | pot-body width | pot right edge, from card edge | base, below card top | plant top, above card top |
+|---|---|---|---|---|
+| Felix | 124.0 | 21.0 | 193.8 | 13.5 |
+| Margot | 121.2 | 21.8 | 179.7 | **110.0** |
+| Gosha | 135.2 | 13.1 | 182.5 | 4.0 |
+| Vera | 126.7 | 19.7 | 200.6 | 27.2 |
+
+Two things fall out of this:
+- **The mockup's pot bodies are consistent** — 121–135px wide on a ~20px right
+  axis. The previous pass scaled each cutout to a fixed *total height*, so a
+  render that is mostly leaves (Margot: her monstera is 110px of foliage above
+  the card) came out with a small pot. That was the "Margot is tiny" bug: she was
+  being sized by her leaves, not by her pot.
+- **The mockup hangs the bases low** (180–200px below a card that is 192 tall)
+  and hides the overflow under the next card, while clipping each plant at its
+  own card's top. What reads as "the pot ends at the card boundary" is a *crop*,
+  not the pot's real base.
+
+## 2. The fix — anchor by the base, grow upward
+- Every pot is now scaled so its **body renders exactly 100px wide**, with the
+  body's right edge on one axis **24px in from the card edge**. Both come from
+  the same per-render measurement (`scale = 100 / pot_body_width_in_source`), so
+  the four are identical by construction rather than by eye.
+- The **base is the anchor: y=134**, six pixels above the 140px line where the
+  next card tucks over. The plant grows up from there, so:
+  | | rendered h | rises above its own card |
+  |---|---|---|
+  | Felix | 168 | 34px (into the header gap) |
+  | Margot | 239 | 105px into Felix's card |
+  | Gosha | 138 | 4px |
+  | Vera | 180 | 46px into Gosha's card |
+  Nothing hangs downward any more.
+- **Fork — 100px pot bodies, not the mockup's ~126px.** With the base moved up
+  ~60px from where the mockup puts it, the mockup's scale would send Margot's
+  monstera 167px above her card — past the header and over Felix entirely. 100px
+  keeps every plant inside one card's reach while holding the widths equal.
+- **Fork — Gosha barely pokes up (4px).** The cactus render is simply short
+  (619px of opaque height vs 824 for the others), so at a matched pot width it
+  does not reach. This is exactly the mockup's own value (4.0px), so it is left
+  alone rather than scaling him out of the shared width.
+- **Fork — Vera's base stays at 134 like everyone else.** That leaves her base
+  129px clear of the screen bottom ("comfortably above") *and* lets her aloe
+  reach into Gosha's card — both halves of the brief — where anchoring her near
+  her own card's bottom would have killed the upward overlap.
+- Assets re-exported at 2× each pot's new on-screen size (13–38 KB).
+
+## 3. Z-order — one flat context for the whole stack
+The requirement "a plant's leaves show over the card above but not over its text"
+plus "leaves pass behind the pot above" cannot be done with a z-index per card:
+a card with `z-index` becomes a stacking context and traps its pot inside it.
+So the stack is now flat:
+- `.plcard` carries **no z-index, no transform, no filter** — any of the three
+  would create a stacking context. Its gradient moved to an inner `.plsurface`,
+  which paints in DOM order, so each card still tucks over the one above it.
+- Pots and text get explicit **descending** z: pot `80 − 10i`, text `85 − 10i`.
+  Every one clears all surfaces (positive z beats the auto layer), while a lower
+  card's pot passes *under* the pot and text of the card above it. That is what
+  keeps Margot's leaves behind Felix's pot and off his name.
+- `.plhead` gets `z-index:100` so Felix's leaves pass behind the header.
+- **Press feedback is now darken-only** (`brightness(.965)` on `.plsurface`) —
+  the previous `scale()` on the card would have created a stacking context on
+  every tap and re-ordered the pots mid-press.
+
+## 4. Bug found while re-rendering
+Splitting the surface out dropped `.plcard:first-child{margin-top:0}`, so the
+first card kept the −52px pull and the whole stack rode up under the header,
+colliding with the title. Caught by probing live `getBoundingClientRect` values
+(card 1 sitting 52px above `.pstack`), restored.
+
+## Verification
+- Rendered in headless Chrome and measured: the four pot bodies align on one
+  right axis at equal width, every face is unobstructed, Margot's and Vera's
+  leaves read as passing behind the pot above them, no pot reaches any text, and
+  nothing overlaps downward.

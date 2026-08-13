@@ -223,14 +223,19 @@
   /* full bleed, and the negative bottom cancels the screen's padding so the last
      card runs off the bottom edge instead of ending on a strip of page */
   .pstack{display:flex;flex-direction:column;flex:1 0 auto;margin:0 -16px -24px}
+  /* NOTE: the card itself must not get a z-index, a transform or a filter — any
+     of those would make it a stacking context and trap the pot inside it. The
+     gradient lives on an inner surface so the press feedback has something to
+     act on. */
   .plcard{position:relative;flex:0 0 auto;height:192px;margin-top:-52px;
-    border-radius:40px 40px 0 0;cursor:pointer;color:var(--serif-ink);
-    box-shadow:0 -4px 60px rgba(61,61,61,.2);
-    transition:transform .18s var(--soft),filter .18s var(--soft)}
-  .plcard:first-child{margin-top:0;box-shadow:none}
+    cursor:pointer;color:var(--serif-ink)}
+  .plsurface{position:absolute;inset:0;border-radius:40px 40px 0 0;
+    box-shadow:0 -4px 60px rgba(61,61,61,.2);transition:filter .18s var(--soft)}
+  .plcard:first-child{margin-top:0}
+  .plcard:first-child .plsurface{box-shadow:none}
+  .plcard:active .plsurface{filter:brightness(.965)}
   /* the last card runs on to the bottom of the screen, as in the mockup */
   .plcard:last-child{flex:1 0 auto;height:250px}
-  .plcard:active{transform:scale(.99);filter:brightness(.98)}
   /* status chip — thin dark outline, no fill */
   .plchip{position:absolute;left:43px;top:14px;border:1px solid var(--ink);
     border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
@@ -247,8 +252,9 @@
      them, past the screen edge. The window is hosted by the card BELOW so it
      paints over that card's surface but under its chip/species/name. */
   .plshot{position:absolute;display:block;max-width:none;pointer-events:none;
-    z-index:1;filter:drop-shadow(0 10px 16px rgba(30,12,0,.16))}
-  .plchip,.plspecies,.plname{z-index:2}
+    filter:drop-shadow(0 8px 14px rgba(30,12,0,.14))}
+  /* the header sits above every pot, so Felix's leaves pass behind it */
+  .plhead{position:relative;z-index:100}
 
   /* compact, secondary "+ add plant" tile — sits above the stack, not a peer of the plant cards */
   .addtile{border:1px dashed var(--line);border-radius:999px;background:transparent;
@@ -2003,25 +2009,26 @@ function LangPick({params}){
   </div>;
 }
 
-/* Pot renders (Figma assets frame 364:776), exported as tight cutouts so the
-   POT is the box — placement is then one set of numbers for every card instead
-   of a per-card crop window. Widths are each cutout's own aspect at POT_H. */
-const POT_H = 165, POT_TOP = 16, POT_RIGHT = 22, POT_STEP = 140;
+/* Pot renders (Figma assets frame 364:776), exported as tight cutouts and scaled
+   so every POT BODY renders exactly 100px wide on one right-hand axis (24px in
+   from the card edge) — the mockup runs 121–135px on a ~21px axis, and sizing by
+   the pot rather than by the whole cutout is what keeps Margot, whose render is
+   mostly leaves, from coming out small.
+   Each pot is ANCHORED BY ITS BASE at y=134 — 6px above the 140px line where the
+   next card tucks over — and the plant grows UPWARD from there, so the leaves
+   reach into the card above and nothing hangs down. `w/h/right/top` are derived
+   from that anchor plus each cutout's own aspect and leaf overhang. */
 const SHOT = {
-  felix:{ src:"assets/pot-felix.webp",  w:103 },
-  margo:{ src:"assets/pot-margot.webp", w:113 },
-  gosha:{ src:"assets/pot-gosha.webp",  w:120 },
-  vera: { src:"assets/pot-vera.webp",   w:106 },
+  felix:{ src:"assets/pot-felix.webp",  w:105, h:168, right:22,  top:-34  },
+  margo:{ src:"assets/pot-margot.webp", w:163, h:239, right:-11, top:-105 },
+  gosha:{ src:"assets/pot-gosha.webp",  w:100, h:138, right:24,  top:-4   },
+  vera: { src:"assets/pot-vera.webp",   w:115, h:180, right:11,  top:-46  },
 };
-/* Sits 16px down its own card and 165px tall, so its bottom 41px (25% of the
-   pot) laps onto the card below — which is why it is RENDERED in that card:
-   inside it, it paints over the surface and under the chip/species/name.
-   `hosted` is what shifts it back up one card step. */
-function PotShot({who, hosted}){
+function PotShot({who, z}){
   const p = SHOT[who];
   if(!p) return null;
-  return <img className="plshot" src={p.src} alt="" style={{width:p.w, height:POT_H,
-    right:POT_RIGHT, top:(hosted ? POT_TOP-POT_STEP : POT_TOP)}}/>;
+  return <img className="plshot" src={p.src} alt=""
+    style={{width:p.w, height:p.h, right:p.right, top:p.top, zIndex:z}}/>;
 }
 
 /* Plants list — reached from the expanded hero's "See your plants" (and from
@@ -2046,17 +2053,20 @@ function PlantsList(){
     <div className="pstack">
       {PLANTS.map((it,i)=>{
         const e = EMO[it.emotion] || EMO.neutral;
-        const above = PLANTS[i-1];                       // whose pot spills in here
-        const isLast = i === PLANTS.length-1;
+        /* One flat stacking context for the whole stack: surfaces have no
+           z-index, so they simply paint in DOM order (each card tucking over the
+           one above it), while pots and text sit above ALL of them on explicit,
+           DESCENDING z — so a plant's leaves pass behind the pot and text of the
+           card above instead of covering them. */
+        const potZ = 80 - i*10, textZ = 85 - i*10;
         return <div className="plcard" key={it.id}
-          style={{zIndex:i+1, background:"var(--g-"+it.id+")"}}
           onClick={()=>nav.go("plant",{id:it.id})}>
-          {above && <PotShot who={above.id} hosted/>}
-          {isLast && <PotShot who={it.id}/>}
-          <div className="plchip">{e.word}</div>
+          <div className="plsurface" style={{background:"var(--g-"+it.id+")"}}/>
+          <PotShot who={it.id} z={potZ}/>
+          <div className="plchip" style={{zIndex:textZ}}>{e.word}</div>
           {it.species !== it.name.split(" ")[0] &&
-            <div className="plspecies">{it.species}</div>}
-          <div className="plname">{it.name.split(" ")[0]}</div>
+            <div className="plspecies" style={{zIndex:textZ}}>{it.species}</div>}
+          <div className="plname" style={{zIndex:textZ}}>{it.name.split(" ")[0]}</div>
         </div>;
       })}
     </div>
