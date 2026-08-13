@@ -1313,3 +1313,75 @@ colliding with the title. Caught by probing live `getBoundingClientRect` values
   right axis at equal width, every face is unobstructed, Margot's and Vera's
   leaves read as passing behind the pot above them, no pot reaches any text, and
   nothing overlaps downward.
+
+---
+
+# My Plants — pot clipping and spacing (Figma 364:1065)
+
+Fixes the pots spilling out of their cards and onto their neighbours, and
+re-derives every inset on the screen from the updated mockup node
+(`KLRJyy5g05eK4RgZ99zlqy` → `364:1065`, "concept2"). Nothing outside this
+screen was touched.
+
+## 1. The clipping rule
+- `.plcard` now carries `overflow:hidden` **plus** its own `border-radius`, so
+  each card clips its render to the card's real silhouette — including the 40px
+  top corners, not just a square box.
+- `.plcard:last-child{overflow:visible}` is the single exception: Vera's aloe
+  breaks out 55px above the card's top edge, exactly as the mockup shows.
+- **The radius and the shadow moved from `.plsurface` to `.plcard`.** An inner
+  element's outward `box-shadow` is eaten by the parent's `overflow:hidden`,
+  which would have flattened the whole stack; an element's *own* shadow is
+  painted outside its border box and survives its own overflow. The gradient
+  stays on `.plsurface` so the press-darken still has something to act on.
+- **All z-index on pots and text is gone.** The descending-z scheme existed only
+  to referee break-outs between cards. With nothing escaping, paint order is
+  plain DOM order: later cards tuck over earlier ones, and within a card the
+  chip/species/name follow the render and so sit above it.
+
+## 2. Placement — measured, not eyeballed
+Each pot is now a **window** (`.plwin`, `overflow:hidden`) holding the square
+1024px source at an offset, which is exactly how the mockup is built. Both boxes
+are read off the node and re-expressed against the card's **top-right** corner:
+
+| plant  | mockup frame        | window (right, top) | source inside window |
+|--------|---------------------|---------------------|----------------------|
+| Felix  | 185,135 · 258×218   | −46, 0              | 258 @ 0, −40         |
+| Margot | 132,275 · 265×172   | 0, 0                | 363 @ 0, −144        |
+| Gosha  | 248,411 · 140×187   | 9, −4               | 308 @ −88.2, −80.2   |
+| Vera   | 173,500 · 282×282   | −58, −55            | 282 @ 0, 0           |
+
+- **Anchoring on the right, not the left, is the one judgement call.** The
+  mockup frame is 402px wide; the device here is 386px. Right-anchoring keeps
+  every pot's distance from the card edge exact and dumps the 16px difference
+  into the empty gap between the text column and the pot, where it is invisible.
+  It also makes the break-outs land right: Felix's and Vera's renders are cut by
+  the device edge at the same pixel the mockup cuts them at, because the card
+  edge and the screen edge shift together.
+- **The pot assets were replaced with the mockup's own sources** (the four
+  1024px squares from the node, re-exported at 768px webp, same filenames). The
+  previous files were hand-trimmed cutouts with no known relationship to the
+  square frame, so the mockup's offsets could not have been applied to them
+  without guessing the trim. Vera's is a newer render than the one that was in
+  `assets/` — the node's image is the one now shipping.
+- The `drop-shadow` filter on the render is **removed**: the mockup has none,
+  and inside a clipping window it would have drawn a shadow along the crop edge.
+
+## 3. Insets re-checked against the node
+- Cards are **not** edge-to-edge: 5px each side (`.pstack` margin −16px → −11px,
+  which cancels 16px of screen padding down to 5). Card width follows.
+- Already correct, confirmed unchanged: 192px card height on a 140px step
+  (−52px overlap), 40px top corners, chip at 43/14 with `2px 10px 5px` padding
+  and a 24px radius, species at 43/76, name at 43/101, and all four gradients.
+- **Skipped:** node `364:1069`, a full-bleed `#efefef`→transparent rectangle
+  sitting behind the first card. It is an ambient wash that is invisible against
+  the `#edeee9` page and is not part of the clipping or spacing brief.
+
+## Verification
+Headless render plus a live `getBoundingClientRect` probe. Measured on the
+device: cards at L=5 R=5, tops 134.8 / 274.8 / 414.8 / 554.8 (mockup 135 / 275 /
+415 / 555), height 192, radius 40px, `overflow:hidden` on the first three and
+`visible` on the last; every window and inner source landing on the table above
+to the tenth of a pixel; chip 43/14, species 43/76, name 43/101 on all four
+cards. A zoom on the Felix–Margot seam shows Felix's pot cut flat at his card's
+bottom edge and Margot's leaves starting exactly at hers — no bleed either way.

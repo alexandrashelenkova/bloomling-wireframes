@@ -205,11 +205,11 @@
   .adv:last-child{border-bottom:none}
   .adv .leaf{color:var(--sage-deep);font-size:var(--t-sm);line-height:1.5;flex:0 0 auto}
 
-  /* ── PLANTS OVERVIEW — edge-to-edge card stack (Figma "concept2" 364:585) ──
+  /* ── PLANTS OVERVIEW — inset card stack (Figma "concept2" 364:1065) ──
      Cards are 192px tall on a 140px step, so 140px of every card shows and the
      last one stands taller. 40px top corners only — every bottom is tucked under
-     the next card. Later cards paint on top (z-index inline), which is what makes
-     the stack read as a stack. */
+     the next card. Cards paint in DOM order, which is what makes the stack read
+     as a stack: no z-index anywhere, because nothing needs to escape any more. */
   .plhead{display:flex;align-items:center;gap:5px;margin:13px -2px 0;flex:0 0 auto}
   .plback{width:24px;height:24px;flex:0 0 auto;cursor:pointer;opacity:.4;
     display:flex;align-items:center;justify-content:center}
@@ -220,22 +220,25 @@
     padding:15px 24px;font-size:var(--t-md);color:var(--ink);cursor:pointer}
   .pladd:active{transform:translateY(1px)}
 
-  /* full bleed, and the negative bottom cancels the screen's padding so the last
-     card runs off the bottom edge instead of ending on a strip of page */
-  .pstack{display:flex;flex-direction:column;flex:1 0 auto;margin:0 -16px -24px}
-  /* NOTE: the card itself must not get a z-index, a transform or a filter — any
-     of those would make it a stacking context and trap the pot inside it. The
-     gradient lives on an inner surface so the press feedback has something to
-     act on. */
+  /* the mockup insets the stack 5px from each side of the 402px frame, so the
+     -11px cancels 16px of screen padding down to 5. The negative bottom cancels
+     the screen's padding so the last card runs off the bottom edge instead of
+     ending on a strip of page. */
+  .pstack{display:flex;flex-direction:column;flex:1 0 auto;margin:0 -11px -24px}
+  /* The card clips its own contents: a pot may not spill onto its neighbours.
+     The radius and the shadow live on the CARD, not on the surface — an inner
+     element's outward shadow would be eaten by this same overflow, while an
+     element's own shadow is drawn outside its border box and survives. The
+     gradient stays on the surface so the press feedback has something to act on. */
   .plcard{position:relative;flex:0 0 auto;height:192px;margin-top:-52px;
-    cursor:pointer;color:var(--serif-ink)}
-  .plsurface{position:absolute;inset:0;border-radius:40px 40px 0 0;
-    box-shadow:0 -4px 60px rgba(61,61,61,.2);transition:filter .18s var(--soft)}
-  .plcard:first-child{margin-top:0}
-  .plcard:first-child .plsurface{box-shadow:none}
+    cursor:pointer;color:var(--serif-ink);overflow:hidden;
+    border-radius:40px 40px 0 0;box-shadow:0 -4px 60px rgba(61,61,61,.2)}
+  .plsurface{position:absolute;inset:0;transition:filter .18s var(--soft)}
+  .plcard:first-child{margin-top:0;box-shadow:none}
   .plcard:active .plsurface{filter:brightness(.965)}
-  /* the last card runs on to the bottom of the screen, as in the mockup */
-  .plcard:last-child{flex:1 0 auto;height:250px}
+  /* the last card runs on to the bottom of the screen, as in the mockup — and it
+     is the ONLY one that lets its plant break out past the card's top edge */
+  .plcard:last-child{flex:1 0 auto;height:250px;overflow:visible}
   /* status chip — thin dark outline, no fill */
   .plchip{position:absolute;left:43px;top:14px;border:1px solid var(--ink);
     border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
@@ -247,13 +250,14 @@
   .plcard:not(:has(.plspecies)) .plname{top:76px}
   .plname{position:absolute;left:43px;top:101px;font-family:'Riccione',Georgia,serif;
     font-weight:400;font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink)}
-  /* the pot render. Its window crops the square source exactly as the mockup
-     does; the pot then spills past the card's visible band — and, for two of
-     them, past the screen edge. The window is hosted by the card BELOW so it
-     paints over that card's surface but under its chip/species/name. */
-  .plshot{position:absolute;display:block;max-width:none;pointer-events:none;
-    filter:drop-shadow(0 8px 14px rgba(30,12,0,.14))}
-  /* the header sits above every pot, so Felix's leaves pass behind it */
+  /* the pot render: a WINDOW anchored on the card's right edge, holding a square
+     1024px source offset inside it. Window box + inner offset are lifted straight
+     off the mockup's image frames, so the crop matches per plant; the card's own
+     overflow then does the rest. Windows sit before the chip/species/name in the
+     DOM, so the text paints over the render without needing a z-index. */
+  .plwin{position:absolute;overflow:hidden;pointer-events:none}
+  .plwin img{position:absolute;display:block;max-width:none}
+  /* the header sits above every pot, so nothing can ride up over the title */
   .plhead{position:relative;z-index:100}
 
   /* compact, secondary "+ add plant" tile — sits above the stack, not a peer of the plant cards */
@@ -2009,26 +2013,39 @@ function LangPick({params}){
   </div>;
 }
 
-/* Pot renders (Figma assets frame 364:776), exported as tight cutouts and scaled
-   so every POT BODY renders exactly 100px wide on one right-hand axis (24px in
-   from the card edge) — the mockup runs 121–135px on a ~21px axis, and sizing by
-   the pot rather than by the whole cutout is what keeps Margot, whose render is
-   mostly leaves, from coming out small.
-   Each pot is ANCHORED BY ITS BASE at y=134 — 6px above the 140px line where the
-   next card tucks over — and the plant grows UPWARD from there, so the leaves
-   reach into the card above and nothing hangs down. `w/h/right/top` are derived
-   from that anchor plus each cutout's own aspect and leaf overhang. */
+/* Pot renders — the four square 1024px sources from the mockup (364:1073/1075/
+   1077/1097), re-exported at 768px. Nothing is measured by hand here: `win` is
+   each image frame's own box and `img` is the source's offset inside that frame,
+   both read off Figma node 364:1065 and re-expressed against the card's TOP-RIGHT
+   corner instead of the artboard's top-left. Anchoring on the right is what lets
+   the 402px mockup land unchanged in a 386px device — every pot keeps its exact
+   distance from the card edge, and the 16px difference is absorbed by the empty
+   gap between the text column and the pot.
+     mockup                     -> card-relative
+     felix  frame 185,135 258x218  win right -46, top   0   img 258 @   0,-40
+     margot frame 132,275 265x172  win right   0, top   0   img 363 @   0,-144
+     gosha  frame 248,411 140x187  win right   9, top  -4   img 308 @ -88,-80
+     vera   image 173,500 282x282  win right -58, top -55   img 282 @   0,0
+   Only Vera's overflows her card — see .plcard:last-child. */
 const SHOT = {
-  felix:{ src:"assets/pot-felix.webp",  w:105, h:168, right:22,  top:-34  },
-  margo:{ src:"assets/pot-margot.webp", w:163, h:239, right:-11, top:-105 },
-  gosha:{ src:"assets/pot-gosha.webp",  w:100, h:138, right:24,  top:-4   },
-  vera: { src:"assets/pot-vera.webp",   w:115, h:180, right:11,  top:-46  },
+  felix:{ src:"assets/pot-felix.webp",  win:{w:258,h:218,right:-46,top:  0},
+                                        img:{s:258,left:    0,top:-40  } },
+  margo:{ src:"assets/pot-margot.webp", win:{w:265,h:172,right:  0,top:  0},
+                                        img:{s:363,left:    0,top:-144 } },
+  gosha:{ src:"assets/pot-gosha.webp",  win:{w:140,h:187,right:  9,top: -4},
+                                        img:{s:308,left:-88.2,top:-80.2} },
+  vera: { src:"assets/pot-vera.webp",   win:{w:282,h:282,right:-58,top:-55},
+                                        img:{s:282,left:    0,top:  0  } },
 };
-function PotShot({who, z}){
+function PotShot({who}){
   const p = SHOT[who];
   if(!p) return null;
-  return <img className="plshot" src={p.src} alt=""
-    style={{width:p.w, height:p.h, right:p.right, top:p.top, zIndex:z}}/>;
+  const {win:w, img:i} = p;
+  return <span className="plwin"
+    style={{width:w.w, height:w.h, right:w.right, top:w.top}}>
+    <img src={p.src} alt=""
+      style={{width:i.s, height:i.s, left:i.left, top:i.top}}/>
+  </span>;
 }
 
 /* Plants list — reached from the expanded hero's "See your plants" (and from
@@ -2051,22 +2068,20 @@ function PlantsList(){
     </div>
 
     <div className="pstack">
-      {PLANTS.map((it,i)=>{
+      {PLANTS.map((it)=>{
         const e = EMO[it.emotion] || EMO.neutral;
-        /* One flat stacking context for the whole stack: surfaces have no
-           z-index, so they simply paint in DOM order (each card tucking over the
-           one above it), while pots and text sit above ALL of them on explicit,
-           DESCENDING z — so a plant's leaves pass behind the pot and text of the
-           card above instead of covering them. */
-        const potZ = 80 - i*10, textZ = 85 - i*10;
+        /* No z-index anywhere: every card clips its own render, so paint order
+           is simply DOM order — each card tucks over the one above it, and
+           within a card the chip/species/name follow the pot and so sit on top
+           of it. The last card is the one exception and it paints last anyway. */
         return <div className="plcard" key={it.id}
           onClick={()=>nav.go("plant",{id:it.id})}>
           <div className="plsurface" style={{background:"var(--g-"+it.id+")"}}/>
-          <PotShot who={it.id} z={potZ}/>
-          <div className="plchip" style={{zIndex:textZ}}>{e.word}</div>
+          <PotShot who={it.id}/>
+          <div className="plchip">{e.word}</div>
           {it.species !== it.name.split(" ")[0] &&
-            <div className="plspecies" style={{zIndex:textZ}}>{it.species}</div>}
-          <div className="plname" style={{zIndex:textZ}}>{it.name.split(" ")[0]}</div>
+            <div className="plspecies">{it.species}</div>}
+          <div className="plname">{it.name.split(" ")[0]}</div>
         </div>;
       })}
     </div>
