@@ -51,7 +51,6 @@
     --g-margo:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
     --g-gosha:linear-gradient(126.35deg,#D6D0BA 38.007%,#C3F5EE 115.19%);
     --g-vera:linear-gradient(113.89deg,#C9D5C8 38.007%,#E7FCD6 115.19%);
-    --g-basil:linear-gradient(126.35deg,#D3D0DC 38.007%,#F0E6FA 115.19%);
 
     /* ── TYPE SCALE — LOCKED to the two Figma frames. Four sizes, no others. ── */
     --t-sm:13px;             /* names, timestamps, labels, meta   (344:95)  */
@@ -223,13 +222,14 @@
 
   /* full bleed, and the negative bottom cancels the screen's padding so the last
      card runs off the bottom edge instead of ending on a strip of page */
-  .pstack{display:flex;flex-direction:column;flex:0 0 auto;margin:0 -16px -24px}
-  .plcard{position:relative;height:192px;margin-top:-52px;
+  .pstack{display:flex;flex-direction:column;flex:1 0 auto;margin:0 -16px -24px}
+  .plcard{position:relative;flex:0 0 auto;height:192px;margin-top:-52px;
     border-radius:40px 40px 0 0;cursor:pointer;color:var(--serif-ink);
     box-shadow:0 -4px 60px rgba(61,61,61,.2);
     transition:transform .18s var(--soft),filter .18s var(--soft)}
   .plcard:first-child{margin-top:0;box-shadow:none}
-  .plcard:last-child{height:250px}
+  /* the last card runs on to the bottom of the screen, as in the mockup */
+  .plcard:last-child{flex:1 0 auto;height:250px}
   .plcard:active{transform:scale(.99);filter:brightness(.98)}
   /* status chip — thin dark outline, no fill */
   .plchip{position:absolute;left:43px;top:14px;border:1px solid var(--ink);
@@ -246,9 +246,8 @@
      does; the pot then spills past the card's visible band — and, for two of
      them, past the screen edge. The window is hosted by the card BELOW so it
      paints over that card's surface but under its chip/species/name. */
-  .plshot{position:absolute;overflow:hidden;pointer-events:none;z-index:1}
-  .plshot img{position:absolute;display:block;max-width:none;
-    filter:drop-shadow(0 10px 16px rgba(30,12,0,.16))}
+  .plshot{position:absolute;display:block;max-width:none;pointer-events:none;
+    z-index:1;filter:drop-shadow(0 10px 16px rgba(30,12,0,.16))}
   .plchip,.plspecies,.plname{z-index:2}
 
   /* compact, secondary "+ add plant" tile — sits above the stack, not a peer of the plant cards */
@@ -711,15 +710,6 @@ const PLANTS = [
     checkin:"All is well. Breathe. We're okay, you and me.",
     reaction:"Kind of you. I feel calm and cared for. Thank you.",
     diaryNote:"Meditated. Grew a little. Same thing, really.",
-  },
-  {
-    id:"basil", name:"Basil", species:"Basil", persona:"Cheerful",
-    emotion:"content", growth:48, lastWatered:"Today, 06:00", light:"Good",
-    reservoir:71, autoOn:true, schedule:"Every 2 days", amount:"Medium",
-    bondLevel:2, bondPct:38, bondTitle:"Warming up",
-    checkin:"Hey hey! Loving this sunshine. What a great day to be a plant!",
-    reaction:"Woohoo! Thank you thank you! Best human ever!",
-    diaryNote:"Smelled amazing all day. Modest? Never heard of her.",
   },
 ];
 const plantById = (id) => PLANTS.find(p=>p.id===id) || PLANTS[0];
@@ -2013,27 +2003,25 @@ function LangPick({params}){
   </div>;
 }
 
-/* Pot renders (Figma assets frame 364:776), placed per the mockup 364:585.
-   Each window crops its square source; values are card-relative, anchored to the
-   card's RIGHT edge so they survive the 402→386 device width difference.
-     right/top/w/h → the crop window;  img → the square render's rendered size;
-     ix/iy        → where that square sits inside the window (negative = cropped) */
-const POT_STEP = 140;   // how far one card is offset from the next
+/* Pot renders (Figma assets frame 364:776), exported as tight cutouts so the
+   POT is the box — placement is then one set of numbers for every card instead
+   of a per-card crop window. Widths are each cutout's own aspect at POT_H. */
+const POT_H = 165, POT_TOP = 16, POT_RIGHT = 22, POT_STEP = 140;
 const SHOT = {
-  felix:{ src:"assets/pot-felix.webp",  right:-46, top:0,   w:258, h:218, img:258, ix:0,   iy:-40  },
-  margo:{ src:"assets/pot-margot.webp", right:0,   top:0,   w:265, h:172, img:363, ix:0,   iy:-144, tr:true },
-  gosha:{ src:"assets/pot-gosha.webp",  right:9,   top:-4,  w:140, h:187, img:309, ix:-88, iy:-80  },
-  vera: { src:"assets/pot-vera.webp",   right:-58, top:-55, w:282, h:282, img:282, ix:0,   iy:0    },
+  felix:{ src:"assets/pot-felix.webp",  w:103 },
+  margo:{ src:"assets/pot-margot.webp", w:113 },
+  gosha:{ src:"assets/pot-gosha.webp",  w:120 },
+  vera: { src:"assets/pot-vera.webp",   w:106 },
 };
-/* `hosted` shifts the window up by one card step: the pot belongs to the card
-   above, but lives in this one so the stacking comes out right. */
+/* Sits 16px down its own card and 165px tall, so its bottom 41px (25% of the
+   pot) laps onto the card below — which is why it is RENDERED in that card:
+   inside it, it paints over the surface and under the chip/species/name.
+   `hosted` is what shifts it back up one card step. */
 function PotShot({who, hosted}){
   const p = SHOT[who];
   if(!p) return null;
-  return <div className="plshot" style={{right:p.right, top:(hosted?p.top-POT_STEP:p.top),
-      width:p.w, height:p.h, borderRadius:p.tr?"0 40px 0 0":0}}>
-    <img src={p.src} alt="" style={{width:p.img,height:p.img,left:p.ix,top:p.iy}}/>
-  </div>;
+  return <img className="plshot" src={p.src} alt="" style={{width:p.w, height:POT_H,
+    right:POT_RIGHT, top:(hosted ? POT_TOP-POT_STEP : POT_TOP)}}/>;
 }
 
 /* Plants list — reached from the expanded hero's "See your plants" (and from

@@ -1156,3 +1156,75 @@ tokens, not edits to existing ones.
   chips/species/names at the mockup's offsets, four pots breaking out of their
   cards with the last card bleeding off the bottom edge. Dashboard re-rendered
   afterwards — no regression.
+
+---
+
+# Revision 19 — "My plants": four plants, sized pots, clean cutouts
+
+Scope: this screen only.
+
+## 1. Basil removed
+- **Fork — deleted from `PLANTS` rather than filtered out on this screen.** He has
+  no pot render, so he cannot appear here; leaving him in the data would make
+  Profile advertise a plant the list doesn't show. He appears in no other data
+  (`CHAT_INIT` and `NOTIFS` only reference Felix, Margot, Gosha), so the only
+  other effect is Profile's count, which derives from `PLANTS.length` and now
+  correctly reads "4 plants ›" — no layout change anywhere.
+- His `--g-basil` card gradient (created last revision purely for that card) is
+  removed; `--c-basil` stays in the bubble palette, harmless and ready if he
+  returns.
+- The last card (Vera) now takes `flex:1 0 auto`, so it grows to the bottom of
+  the screen as in the mockup instead of ending on a fixed height.
+
+## 2. Pot sizing — the real cause of the collisions
+- The previous pass placed each pot as the mockup does: a **crop window over the
+  full 1024² square**. Because the renders carry wide transparent margins, the
+  window is much bigger than the pot, and the geometry was impossible to reason
+  about — the pots ended up 178–282px tall and stacked into one another.
+- **Now every asset is a tight cutout**, so the pot *is* the box. Placement
+  collapses to one set of numbers for all four cards:
+  | | value |
+  |---|---|
+  | height | **165px** (86% of the 192px card) |
+  | top | **16px** from its own card's top |
+  | right | **22px** — a clear margin, the pot never touches the screen edge |
+  | width | each cutout's own aspect at that height: Felix 103 · Margot 113 · Gosha 120 · Vera 106 |
+- That puts the pot's bottom at 181px against a 140px card step: **41px, or 25%
+  of the pot, laps onto the card below** — inside the brief's 20–30%. Vera's card
+  is the tall last one, so hers sits entirely inside it.
+- Widths land at 103–120px against a 386px card — roughly the right third.
+- **Fork — the right margin is uniform 22px, not the mockup's values.** The
+  mockup is inconsistent there (Gosha 14px from the frame, Margot flush to the
+  card edge, Felix and Vera bleeding off-screen); the brief asks for a clear
+  margin, so one value is used for all four.
+- **Fork — pots still overlap each other by ~25px.** With a 140px step, a pot
+  that is both "roughly the card's height" and "overlapping 20–30% onto the next
+  card" mathematically must overlap the pot below by pot_height + top − 140.
+  Only leaf tips are involved; every **face** stays clear, which is the
+  constraint the brief actually sets. Sizing down from 178→165px shrank this from
+  38px to 25px.
+
+## 3. Gosha's rectangular backdrop — diagnosed
+- The source render's alpha bbox was the **entire 1024² frame**: a sub-25 alpha
+  wash of stray pixels reaching every edge (the other three bbox tightly around
+  their pot). Invisible on its own, but `drop-shadow` casts from *every*
+  non-transparent pixel, so it rendered a soft full-frame rectangle around the
+  pot. That was the "flat tinted box", not a baked background.
+- Fixed by zeroing alpha ≤ 24 before cropping — Gosha's bbox goes
+  `(0,0,1024,1024) → (294,265,743,884)`. The same clean-then-crop pass ran on all
+  four; the other three were already clean (their bboxes moved by ≤1px).
+- Re-exported as tight WebP with alpha at 2× display height (360px tall):
+  **18–26 KB each**, down from 26–46 KB, with more pixels on the actual pot.
+
+## 4. Stacking — unchanged and verified
+- Chain per card: surface → the previous card's pot (hosted here, shifted up one
+  140px step) → this card's own pot if it is the last → chip/species/name at
+  `z-index:2`. So each pot paints above its own card and above the next card's
+  surface, but under that card's text — the order the brief specifies.
+- Verified visually: every face is unobstructed, no pot reaches any card's text
+  zone (leftmost pot edge 244px vs text ending ~150px).
+
+## Verification
+- Rendered in headless Chrome: four cards, Vera's running to the bottom edge, no
+  scroll, no rectangular artefact on Gosha, pots clear of the right edge and of
+  each other's faces. Profile re-rendered — reads "4 plants ›", layout untouched.
