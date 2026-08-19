@@ -50,7 +50,10 @@
     --g-felix:linear-gradient(126.35deg,#E7D1C9 38.007%,#E2F7CF 115.19%);
     --g-margo:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
     --g-gosha:linear-gradient(126.35deg,#D6D0BA 38.007%,#C3F5EE 115.19%);
-    --g-vera:linear-gradient(113.89deg,#C9D5C8 38.007%,#E7FCD6 115.19%);
+    /* Vera's start stop was re-read off the current mockup (364:1078) — dusty
+       pink, not the sage-grey the earlier frame carried */
+    --g-vera:linear-gradient(113.89deg,#E7D1C9 38.007%,#E7FCD6 115.19%);
+    --g-vlad:linear-gradient(113.89deg,#B9CBD8 38.007%,#E7FCD6 115.19%);
 
     /* ── TYPE SCALE — LOCKED to the two Figma frames. Four sizes, no others. ── */
     --t-sm:13px;             /* names, timestamps, labels, meta   (344:95)  */
@@ -63,7 +66,10 @@
     --r-input:37px;          /* composer pill 36.932px (344:74)  */
     --r-btn:28px;            /* white pill button      (345:216) */
     --r-sheet:36px;          /* chat sheet top corners (345:213) */
-    --r-card:24px;           /* DERIVED: cards on restyled screens */
+    /* the canonical settings/data-card radius — every white card in the app,
+       lifted off the Plant Detail mockup (415:1433/1499/1512) */
+    --r-card:40px;
+    --r-sub:28px;            /* DERIVED: small cards nested inside a card */
 
     /* ── MOTION ── gentle ease-out-back for the hero (gets there fast, settles
        with a 2% overshoot); plain soft ease-out for everything reversing out. */
@@ -139,9 +145,32 @@
     letter-spacing:0}
 
   .card{background:var(--card);border:none;border-radius:var(--r-card);
-    padding:16px}
+    padding:20px 22px}
   .card.tap{cursor:pointer}
   .card.tap:active{background:#f4f4f1}
+
+  /* ── SETTINGS / DATA CARD — the canonical surface (Figma 415:1426) ─────────
+     White, 40px radius, no shadow, 24px inset. Titles and values are Riccione;
+     labels are Circular 16px at black 40%. This is the one card style for every
+     settings / data surface in the app — plant detail, profile, plant settings,
+     notifications. It sets surface + radius + type ROLES only; each screen keeps
+     its own layout and content. */
+  .scard{background:var(--card);border:none;border-radius:var(--r-card);padding:24px}
+  .scard-t{font-family:'Riccione',Georgia,serif;font-weight:400;font-size:var(--t-lg);
+    line-height:1.18;color:var(--serif-ink);margin:0}
+  .scard-l{font-size:var(--t-md);color:#050505;opacity:.4;line-height:1.25}
+  .scard-v{font-family:'Riccione',Georgia,serif;font-weight:400;font-size:var(--t-lg);
+    line-height:1.18;color:var(--serif-ink)}
+  .scard-v.xl{font-size:var(--t-xl);line-height:1.16}
+  /* rolled onto the existing settings screens: a card tagged .scard promotes its
+     row titles to the serif role and its captions to the 16px muted label role,
+     without touching the markup around them */
+  .card.scard b{font-family:'Riccione',Georgia,serif;font-weight:400;
+    font-size:var(--t-lg);line-height:1.2;color:var(--serif-ink)}
+  .card.scard small.muted{font-size:var(--t-md);color:rgba(5,5,5,.4)}
+  /* the bond / progress bar from the mockup: 8px, page-tint track, sage fill */
+  .sbar{height:8px;background:var(--bg);border-radius:40px;overflow:hidden}
+  .sbar > i{display:block;height:100%;background:var(--sage);border-radius:40px}
 
   /* placeholder boxes (photos / charts) */
   .ph{background:repeating-linear-gradient(45deg,#E4E5DE,#E4E5DE 8px,#DCDDD6 8px,#DCDDD6 16px);
@@ -179,9 +208,6 @@
     background:var(--card);display:flex;align-items:center;justify-content:center;
     font-size:17px;cursor:pointer;flex:0 0 auto;position:relative}
   .iconbtn:active{background:var(--box)}
-  .avatarbtn{width:38px;height:38px;border-radius:50%;border:none;
-    background:repeating-linear-gradient(45deg,#E4E5DE,#E4E5DE 6px,#DCDDD6 6px,#DCDDD6 12px);
-    cursor:pointer;flex:0 0 auto}
   .ndot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;
     background:var(--icon);border:2px solid var(--ava)}
 
@@ -236,18 +262,25 @@
   .plsurface{position:absolute;inset:0;transition:filter .18s var(--soft)}
   .plcard:first-child{margin-top:0;box-shadow:none}
   .plcard:active .plsurface{filter:brightness(.965)}
-  /* the last card runs on to the bottom of the screen, as in the mockup — and it
-     is the ONLY one that lets its plant break out past the card's top edge */
+  /* the last card (now Vlad) runs on to the bottom of the screen, as in the
+     mockup — and it is the ONLY one that lets its plant break out past the card's
+     top edge. Vera lost that privilege when Vlad was added below her, so her pot
+     is clipped to her own card like everyone else's. */
   .plcard:last-child{flex:1 0 auto;height:250px;overflow:visible}
-  /* status chip — thin dark outline, no fill */
-  .plchip{position:absolute;left:43px;top:14px;border:1px solid var(--ink);
+  /* mood chip — a soft filled pill, no outline. Figma (403:1345) fills it white
+     and drops the WHOLE chip to 40%, so the fill and the word wash back into the
+     card gradient together; that group opacity is the style, not two separate
+     alphas. */
+  .plchip{position:absolute;left:43px;top:14px;border:none;background:#fff;opacity:.4;
     border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
-    color:var(--ink);line-height:1.25}
-  .plspecies{position:absolute;left:43px;top:76px;font-size:var(--t-md);
+    color:#000;line-height:1.25}
+  /* species sits 80px down and the name 101px (Figma 364:1087 / 364:1093 against
+     a card top of 135) — a 21px step, tighter than the 25px it used to be */
+  .plspecies{position:absolute;left:43px;top:80px;font-size:var(--t-md);
     color:var(--ink);opacity:.4;line-height:1.25}
   /* a plant whose species IS its name (Basil) drops the duplicate label, so the
      name moves up into the space the species would have used */
-  .plcard:not(:has(.plspecies)) .plname{top:76px}
+  .plcard:not(:has(.plspecies)) .plname{top:80px}
   .plname{position:absolute;left:43px;top:101px;font-family:'Riccione',Georgia,serif;
     font-weight:400;font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink)}
   /* the pot render: a WINDOW anchored on the card's right edge, holding a square
@@ -271,28 +304,100 @@
   .pgdot{width:7px;height:7px;border-radius:50%;background:var(--line)}
   .pgdot.on{background:var(--sage-deep)}
 
-  /* ── PLANT DETAIL — immersive full-bleed photo + draggable bottom sheet ──
-     The photo is a fixed background: it never scrolls and never moves when the
-     sheet is dragged. Only the sheet translates; the dim layer fades over the
-     photo as it rises. */
-  .pd{flex:1 1 auto;position:relative;overflow:hidden}
-  .pdphoto{position:absolute;inset:0;border-radius:0;border:none;min-height:0}
-  .pddim{position:absolute;inset:0;background:#1E0C00;z-index:7;pointer-events:none}
-  .pdbar{position:absolute;top:10px;left:14px;right:14px;z-index:12;
-    display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  .pdname{background:var(--card);border:none;border-radius:999px;padding:8px 14px}
-  .pdname b{font-size:var(--t-md);display:block;line-height:1.2;font-weight:500}
-  .pdname small{color:var(--mut);font-size:var(--t-sm)}
-  .pdmenu{position:absolute;top:58px;right:14px;z-index:22;background:var(--card);
-    border:none;border-radius:var(--r-card);min-width:196px;overflow:hidden}
-  .pdmenu > div{padding:13px 16px;font-size:var(--t-md);cursor:pointer;
+  /* ══════════ PLANT DETAIL — rebuilt from Figma "concept2" 415:1426 ══════════
+     Nav bar → species + mood chip → speech blob → video stage carrying a
+     scrubbable timeline → settings-style info cards. Everything below the bubble
+     is full-bleed; the cards use the canonical .scard surface. */
+  .pdscreen{position:relative;gap:0}
+  .pdmenu{position:absolute;top:104px;right:2px;z-index:120;background:var(--card);
+    border:none;border-radius:var(--r-sub);min-width:214px;overflow:hidden;
+    box-shadow:0 10px 40px rgba(30,12,0,.14)}
+  .pdmenu > div{padding:14px 18px;font-size:var(--t-md);cursor:pointer;
     border-bottom:1px solid var(--line2)}
   .pdmenu > div:last-child{border-bottom:none}
   .pdmenu > div:active{background:var(--box)}
+  /* the ⋯ button sits opposite the chevron, on the title's baseline row */
+  .plmore{width:24px;height:24px;flex:0 0 auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .plmore:active{opacity:.5}
 
-  /* plant + pot inside the photo — proportions are driven by the timeline index */
-  .pdstack{position:absolute;left:0;right:0;z-index:6;display:flex;
-    flex-direction:column;align-items:center;gap:8px;padding:0 22px}
+  /* species (left, muted) + mood chip (right). Figma 415:1532 / 415:1487 */
+  .pdrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    margin:13px -2px 0;min-height:27px;flex:0 0 auto;position:relative;z-index:5}
+  .pdsp{font-size:var(--t-md);color:#050505;opacity:.4;line-height:1.25;padding-top:3px}
+  /* soft filled pill with a gentle glow in the plant's own emotion colour —
+     fill and drop-shadow are the SAME hex, exactly as the mockup builds it */
+  .moodchip{border:none;border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
+    color:#000;line-height:1.25;flex:0 0 auto}
+
+  /* speech blob — the mockup's Ellipse 18 path, painted by blobBg(). No quote
+     marks: the shape already says it is speech. */
+  .pdbubwrap{position:relative;margin:22px -16px 0;display:flex;justify-content:center;
+    flex:0 0 auto}
+  /* the soft top scrim the mockup floats behind the bubble (415:1430) */
+  .pdscrim{position:absolute;left:0;right:0;top:-16px;height:188px;border-radius:36px;
+    background:linear-gradient(180deg,#EFEFEF 0%,rgba(239,239,239,0) 78.061%);
+    pointer-events:none}
+  .pdbub{position:relative;width:277px;max-width:calc(100% - 32px);min-height:116px;
+    background-size:100% 100%;background-repeat:no-repeat;
+    padding:26px 29px;font-size:var(--t-md);line-height:1.28;text-align:center;
+    color:var(--ink);display:flex;align-items:center;justify-content:center}
+
+  /* ── VIDEO STAGE ──────────────────────────────────────────────────────────
+     Figma frames the pot render as a SQUARE source 1.4154× the frame width,
+     centred and nudged up 4.33%, inside a 402×551 window (415:1434). The same
+     ratios drive the stage, so swapping the poster for a real mp4 changes
+     nothing about the layout. */
+  .pdstageBox{position:relative;margin:0 -16px;aspect-ratio:402/551;overflow:hidden;
+    flex:0 0 auto}
+  .pdvid{position:absolute;left:50%;top:-4.33%;width:141.54%;aspect-ratio:1;
+    transform:translateX(-50%);object-fit:cover;display:block;border:0;
+    background:transparent;pointer-events:none}
+  /* the timeline is drawn in white over whatever frame is showing, so the stage
+     carries a gentle bottom scrim to guarantee it stays legible */
+  .pdstagescrim{position:absolute;left:0;right:0;bottom:0;height:150px;
+    background:linear-gradient(180deg,rgba(30,12,0,0) 0%,rgba(30,12,0,.22) 100%);
+    pointer-events:none}
+
+  /* ── TIMELINE SCRUB ───────────────────────────────────────────────────────
+     A rail across the stage: position maps linearly to video currentTime, with
+     the right end = "now" = the final frame. Dragging is pointer-based, so touch
+     and mouse are one code path; touch-action:none keeps a drag from scrolling
+     the screen underneath. */
+  .pdtimeline{position:absolute;left:0;right:0;bottom:9px;z-index:4;padding:0 20px;
+    touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .pdtimeline:active{cursor:grabbing}
+  .pdtllab{position:relative;height:20px;margin-bottom:10px}
+  .pdtllab span{position:absolute;white-space:nowrap;font-size:var(--t-md);
+    line-height:1.25;color:#fff;text-shadow:0 1px 8px rgba(30,12,0,.45)}
+  .pdtlrail{position:relative;height:10px}
+  .pdtltrack{position:absolute;left:0;right:0;top:4px;height:2px;border-radius:2px;
+    background:rgba(255,255,255,.42)}
+  .pdtlfill{position:absolute;left:0;top:4px;height:2px;border-radius:2px;background:#fff}
+  .pdtldot{position:absolute;top:0;width:10px;height:10px;margin-left:-5px;
+    border-radius:50%;background:rgba(255,255,255,.55)}
+  .pdtldot.on{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.20)}
+
+  /* ── INFO CARDS ───────────────────────────────────────────────────────────
+     The mockup insets them 5px from a 402px frame and stacks them on a 5px gap;
+     -11px cancels the screen's 16px padding down to that 5. */
+  .pdcards{display:flex;flex-direction:column;gap:5px;margin:5px -11px 0;
+    flex:0 0 auto}
+  .pdbondmeta{display:flex;align-items:center;gap:8px;margin:1px 0 14px}
+  .pdsep{width:4px;height:4px;border-radius:50%;background:#050505;opacity:.2;
+    flex:0 0 auto}
+  .pdstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+  .pdstat{position:relative;overflow:hidden;background:var(--card);
+    border-radius:var(--r-card);padding:24px 8px;text-align:center;min-height:125px}
+  .pdstat .scard-l{margin-bottom:5px;position:relative}
+  .pdstat .scard-v{position:relative}
+  /* reservoir level — the mockup's own wave path, stretched to the fill height */
+  .reswater{position:absolute;left:-9%;right:-9%;bottom:0;pointer-events:none;
+    background-repeat:no-repeat;background-size:100% 100%}
+  .pdauto{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+  /* the plant + pot placeholders and the blob bubble the CREATE-CHARACTER hero
+     and the plant-settings preview still build on */
   .pdplant{width:148px;border-radius:16px 16px 6px 6px;min-height:0}
   .pdpot{position:relative;border:none;border-radius:7px 7px 24px 24px;
     background:repeating-linear-gradient(45deg,#DCDDD6,#DCDDD6 8px,#D2D3CC 8px,#D2D3CC 16px);
@@ -302,39 +407,6 @@
   .pdspeech{position:relative;max-width:280px;background:var(--c-me);border:none;
     border-radius:var(--bub);padding:14px 16px;font-size:var(--t-md);line-height:1.3;
     text-align:center}
-  .pdstage{font-size:var(--t-sm);letter-spacing:.04em;font-weight:500;
-    color:var(--mut);background:var(--card);border:none;border-radius:999px;
-    padding:5px 12px}
-
-  /* TIMELINE — a snap strip of the universal growth milestones; the centred one
-     is the stage shown in the photo */
-  .pdtl{position:absolute;left:0;right:0;z-index:8}
-  .pdrail{height:1px;background:var(--line);margin:0 18px 6px}
-  .pdtlstrip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-    -webkit-overflow-scrolling:touch;padding:0 calc(50% - 58px)}
-  .pdtlstrip::-webkit-scrollbar{height:0;display:none}
-  .pdtick{flex:0 0 116px;width:116px;scroll-snap-align:center;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;gap:6px}
-  .pdtick small{font-size:var(--t-sm);color:var(--mut);white-space:nowrap}
-  .pdtick.on small{color:var(--sage-deep);font-weight:500}
-
-  /* BOTTOM SHEET — peeks "Your bond", drags up to reveal the rest */
-  .sheet{position:absolute;left:0;right:0;bottom:0;height:560px;z-index:14;
-    background:var(--bg);border:none;
-    border-top-left-radius:var(--r-sheet);border-top-right-radius:var(--r-sheet);
-    display:flex;flex-direction:column}
-  .sheetgrab{flex:0 0 auto;padding:9px 16px 12px;cursor:grab;touch-action:none;
-    user-select:none;-webkit-user-select:none}
-  .grabber{width:44px;height:5px;border-radius:999px;background:var(--line);
-    margin:0 auto 11px}
-  .sheetbody{flex:1 1 auto;overflow-y:auto;padding:0 16px 22px;
-    display:flex;flex-direction:column;gap:12px}
-  .sheetbody::-webkit-scrollbar{width:0}
-  .tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-  .tile{background:var(--card);border:none;border-radius:18px;
-    padding:12px 8px;text-align:center}
-  .tile small{display:block;color:var(--mut);font-size:var(--t-sm)}
-  .tile b{font-size:var(--t-sm);display:block;margin-top:3px;line-height:1.25}
 
   /* progress */
   .bar{height:12px;background:var(--box);border-radius:999px;overflow:hidden;
@@ -431,13 +503,13 @@
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
     transition:top .5s var(--spring),background .5s ease-out,border-radius .5s ease-out}
   .gscroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
-    padding:100px 14px 100px;border-radius:inherit;
-    filter:saturate(1) blur(0);transition:filter .34s var(--soft)}
+    padding:100px 14px 100px;border-radius:inherit}
   .gscroll::-webkit-scrollbar{width:0}
-  /* the conversation goes soft-focus behind the hero — blur on the CONTENT, not on
-     the sheet, so the sheet's edge and corners stay crisp */
-  .dash.open .gscroll{padding-top:26px;overflow-y:hidden;
-    filter:saturate(.45) blur(2.5px);transition:filter .46s var(--soft) .06s}
+  /* The conversation is NOT blurred or desaturated behind the hero. The only
+     thing over it is .gfade — the very same top scroll gradient the collapsed
+     state uses, at the same intensity. Expanding the hero must not make the chat
+     any harder to read than scrolling it does. */
+  .dash.open .gscroll{padding-top:26px;overflow-y:hidden}
   /* soft fade where the chat runs under the header / the sheet's top edge.
      Only present when something is actually scrolled up behind it (.on). */
   .gfade{position:absolute;left:0;right:0;top:0;height:244px;z-index:11;
@@ -445,8 +517,10 @@
     background:linear-gradient(180deg,var(--bg) 0,var(--bg) 96px,rgba(237,238,233,0) 244px);
     transition:top .38s var(--soft),background .38s ease-out,opacity .22s ease-out}
   .gfade.on{opacity:1}
-  .dash.open .gfade{top:434px;height:230px;
-    background:linear-gradient(180deg,var(--bg2) 0%,rgba(239,239,239,0) 78%);
+  /* identical geometry and stops to the collapsed gradient above — only the tint
+     changes, to the sheet's own surface, so there is no colour seam at its edge */
+  .dash.open .gfade{top:434px;height:244px;opacity:1;
+    background:linear-gradient(180deg,var(--bg2) 0,var(--bg2) 96px,rgba(239,239,239,0) 244px);
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
     transition:top .5s var(--spring),background .5s ease-out,opacity .22s ease-out}
 
@@ -460,6 +534,9 @@
   .gmava.art{background:transparent}
   .gmava.art img{position:absolute;display:block;max-width:none;pointer-events:none}
   .gmava.art img.round{border-radius:50%;object-fit:cover}
+  /* a plant's avatar taps through to its card */
+  .gmava.tap{cursor:pointer}
+  .gmava.tap:active{opacity:.7}
   /* silhouette comes from the stretched Figma path (see blobBg), not border-radius.
      width:auto so a short line makes a short bubble; the mockup's 269px is the cap. */
   .gbub{position:relative;width:auto;max-width:min(269px,calc(100% - 48px));
@@ -495,30 +572,17 @@
   .gcomposer input::placeholder{color:var(--ink);opacity:.5}
   .gmic{flex:0 0 auto;width:24px;height:24px;cursor:pointer}
 
-  /* auto-watering / reservoir controls (plant detail) */
+  /* segmented choice rows (watering schedule, quiet hours, message frequency) */
   .segrow{display:flex;gap:6px}
   .seg{flex:1;text-align:center;border:none;background:var(--card);
     border-radius:999px;padding:11px 8px;font-size:var(--t-sm);cursor:pointer;color:var(--ink)}
   .seg.on{background:var(--sage);color:var(--serif-ink);font-weight:500}
-  .resbar{height:14px;background:var(--box);border-radius:999px;overflow:hidden;
-    border:none}
-  .resbar > i{display:block;height:100%;background:var(--sage-deep)}
-  .resbar.low > i{background:#B08968}
-  /* inline text link inside a card (e.g. "Configure schedule") */
-  .tlink{color:var(--sage-deep);font-size:var(--t-sm);font-weight:500;cursor:pointer;
-    align-self:flex-start;padding:2px 0}
-  .tlink:active{opacity:.6}
-
-  /* bond hearts */
-  .hearts{font-size:var(--t-md);letter-spacing:2px}
-  .hearts .on{color:var(--sage-deep)}
-  .hearts .off{color:var(--line)}
 
   /* choice chips / options / toggle */
   .chip{border:none;background:var(--card);border-radius:999px;padding:13px;
     cursor:pointer;font-size:var(--t-md);flex:1;text-align:center}
   .chip.on{background:var(--sage);color:var(--serif-ink);font-weight:500}
-  .opt{border:none;border-radius:18px;padding:13px 14px;cursor:pointer;
+  .opt{border:none;border-radius:var(--r-sub);padding:15px 18px;cursor:pointer;
     background:var(--card)}
   .opt.on{background:var(--sage);color:var(--serif-ink)}
   .opt.on small{color:var(--serif-ink);opacity:.65}
@@ -529,12 +593,14 @@
   .field input{width:100%;border:none;border-radius:999px;padding:15px 18px;
     font-size:var(--t-md);background:var(--card);outline:none;color:var(--ink)}
   .field input::placeholder{color:var(--mut)}
-  .toggle{width:44px;height:26px;border-radius:999px;background:var(--box);
+  /* switch — the settings-card control from the mockup (415:1523/1524): a page-tint
+     track with a sage knob when on. One switch for every settings card in the app. */
+  .toggle{width:50px;height:28px;border-radius:40px;background:var(--bg);
     border:none;position:relative;cursor:pointer;flex:0 0 auto}
-  .toggle > i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
-    background:#fff;border:none;transition:left .12s}
-  .toggle.on{background:var(--sage-deep)}
-  .toggle.on > i{left:21px}
+  .toggle > i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+    background:#C6C7C0;border:none;
+    transition:left .14s var(--soft),background .14s var(--soft)}
+  .toggle.on > i{left:25px;background:var(--sage)}
 
   /* unobtrusive text action (log out) — deliberately not a button */
   .linkbtn{background:none;border:none;padding:6px;font-size:var(--t-sm);color:var(--mut);
@@ -565,7 +631,7 @@
 
   /* compact 3×2 personality preset grid */
   .pgrid6{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-  .ptile{border:none;border-radius:18px;background:var(--card);cursor:pointer;
+  .ptile{border:none;border-radius:var(--r-sub);background:var(--card);cursor:pointer;
     padding:11px 5px;text-align:center;min-height:58px;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:2px}
   .ptile:active{background:var(--box)}
@@ -668,19 +734,24 @@
 <script type="text/plain" id="app-src">
 const { useState, useMemo, useEffect, useRef, createContext, useContext } = React;
 
-/* ───────────────── EMOTION ENUM ───────────────── */
+/* ───────────────── EMOTION ENUM ─────────────────
+   `glow` is the mood chip's fill AND its drop-shadow on the plant detail screen —
+   one hex doing both jobs, exactly as the mockup builds it (415:1487). Only
+   `content` is a measured value; the rest are derived in the same bright-pastel
+   register, each pulling towards the colour that emotion already wears elsewhere
+   in the app (warm coral for thirst, cool teal for the grump, and so on). */
 // content, thirsty, overwatered, low-light, sleeping, greeting, cold, hot, urgent, neutral
 const EMO = {
-  content:      { face:"^‿^",  label:"All good",     tone:"ok",   word:"happy"   },
-  thirsty:      { face:">_<",  label:"Thirsty",      tone:"warn", word:"thirsty" },
-  overwatered:  { face:"@_@",  label:"Overwatered",  tone:"warn", word:"soggy"   },
-  "low-light":  { face:"-_-",  label:"Needs light",  tone:"warn", word:"gloomy"  },
-  sleeping:     { face:"-.-",  label:"Sleeping",     tone:"",     word:"sleepy"  },
-  greeting:     { face:"^o^",  label:"Hi there!",    tone:"ok",   word:"chirpy"  },
-  cold:         { face:":<",   label:"Cold",         tone:"warn", word:"cold"    },
-  hot:          { face:">~<",  label:"Too hot",      tone:"warn", word:"too hot" },
-  urgent:       { face:"O_O",  label:"Urgent!",      tone:"warn", word:"urgent"  },
-  neutral:      { face:"._.",  label:"Okay",         tone:"",     word:"grumpy"  },
+  content:      { face:"^‿^",  label:"All good",     tone:"ok",   word:"happy",   glow:"#CCF5B0" },
+  thirsty:      { face:">_<",  label:"Thirsty",      tone:"warn", word:"thirsty", glow:"#F5C9B0" },
+  overwatered:  { face:"@_@",  label:"Overwatered",  tone:"warn", word:"soggy",   glow:"#B0D9F5" },
+  "low-light":  { face:"-_-",  label:"Needs light",  tone:"warn", word:"gloomy",  glow:"#DCD6B4" },
+  sleeping:     { face:"-.-",  label:"Sleeping",     tone:"",     word:"sleepy",  glow:"#CDD2EA" },
+  greeting:     { face:"^o^",  label:"Hi there!",    tone:"ok",   word:"chirpy",  glow:"#CCF5B0" },
+  cold:         { face:":<",   label:"Cold",         tone:"warn", word:"cold",    glow:"#BFD6F5" },
+  hot:          { face:">~<",  label:"Too hot",      tone:"warn", word:"too hot", glow:"#F5BFB0" },
+  urgent:       { face:"O_O",  label:"Urgent!",      tone:"warn", word:"urgent",  glow:"#F5AEA4" },
+  neutral:      { face:"._.",  label:"Okay",         tone:"",     word:"grumpy",  glow:"#C3F5EE" },
 };
 
 /* ───────────────── MOCK DATA ───────────────── */
@@ -720,6 +791,15 @@ const PLANTS = [
     checkin:"All is well. Breathe. We're okay, you and me.",
     reaction:"Kind of you. I feel calm and cared for. Thank you.",
     diaryNote:"Meditated. Grew a little. Same thing, really.",
+  },
+  {
+    id:"vlad", name:"Vlad", species:"Bonsai", persona:"Calm",
+    emotion:"content", growth:88, lastWatered:"Today, 06:30", light:"Bright",
+    reservoir:71, autoOn:true, schedule:"Every 3 days", amount:"Low",
+    bondLevel:5, bondPct:84, bondTitle:"Old friends",
+    checkin:"Ninety years of patience, and still growing. Good morning to you.",
+    reaction:"Thank you. Slowly is how good things happen.",
+    diaryNote:"Held the same shape all day. That is the whole art.",
   },
 ];
 const plantById = (id) => PLANTS.find(p=>p.id===id) || PLANTS[0];
@@ -890,7 +970,7 @@ const SPECIES = [
 ];
 // placeholder identity — comes from sign-up / social login in the real app
 const USER_NAME = "Alexandra";
-const USER_AVATAR = "assets/avatar-user.jpg";
+const USER_AVATAR = "assets/avatar-user.png";   // Figma 364:1064, exported at 4×
 
 /* ───────────────── NAV ───────────────── */
 const Nav = createContext(null);
@@ -1082,6 +1162,23 @@ function IconMic(){
   </svg>;
 }
 
+/* Unified nav-bar glyphs — 24×24, 2px strokes, straight off the mockups
+   (chevron-left 364:1070 / 415:1431, more-horizontal 415:1472). Shared by every
+   screen that carries the serif nav bar. */
+function IconChevronLeft(){
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M15 18L9 12L15 6" stroke="#050505" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+function IconMore(){
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <g stroke="#050505" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+    </g>
+  </svg>;
+}
+
 /* Character-coded bubble fills. Margot + Felix are Figma values; the other three
    are derived in the same muted register (see DECISIONS.md). Literal hex, not the
    CSS vars — these are painted into an SVG data URI, which cannot read them. */
@@ -1107,6 +1204,9 @@ const BLOB = {
   them: { w:269.327, h:114, d:"M16 0L179.327 0C269.327 0 269.327 0 269.327 44L269.327 57C269.327 114 269.327 114 133.327 114L70 114C0 114 0 114 0 62L0 16C0 0 0 0 16 0Z" },
   alert:{ w:269.383, h:165.181, d:"M16 0L169.383 0C269.383 0 269.383 0 269.383 62L269.383 82.5C269.383 165.181 269.383 165.181 133.383 165.181L64 165.181C0 165.181 0 165.181 0 91.181L0 16C0 0 0 0 16 0Z" },
   me:   { w:268.673, h:70, d:"M268.673 16L268.673 42C268.673 70 268.673 70 148.673 70L70 70C0 70 0 70 0 35L0 24C0 0 0 0 90 0L252.673 0C268.673 0 268.673 0 268.673 16Z" },
+  /* the plant's own bubble on the detail screen (Ellipse 18, 415:1463) — the
+     same pebble construction, but symmetric: it points at nobody, it just floats */
+  speech:{ w:277, h:116, d:"M277 58C277 90.0325 277 116 138.5 116C0 116 0 90.0325 0 58C0 25.9675 7.29157 0 138.5 0C269.709 0 277 25.9675 277 58Z" },
 };
 function blobBg(kind, fill){
   const b = BLOB[kind];
@@ -1114,6 +1214,21 @@ function blobBg(kind, fill){
     + ' viewBox="0 0 ' + b.w + ' ' + b.h + '"><path d="' + b.d + '" fill="' + fill + '"/></svg>';
   return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
 }
+
+/* The reservoir card's water level (Figma 415:1518) — a wave-topped block at 50%,
+   fading from a cool blue at the surface to white at the bottom. Painted as a
+   stretched SVG so the fill height IS the reservoir percentage. */
+const WATER = (function(){
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"'
+    + ' viewBox="0 0 146 88.7017">'
+    + '<defs><linearGradient id="w" x1="73" y1="0" x2="73" y2="88.7017"'
+    + ' gradientUnits="userSpaceOnUse">'
+    + '<stop stop-color="#B9CBD8"/><stop offset="1" stop-color="white"/></linearGradient></defs>'
+    + '<path opacity="0.5" fill="url(#w)" d="M0 6.70168C0 6.70168 20.7455 1.15304 35 0.201717'
+    + 'C64.4353 -1.76275 81.5527 11.3118 111 9.53646C125.035 8.6903 146 0.201676 146 0.201676'
+    + 'V88.7017H0V6.70168Z"/></svg>';
+  return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+})();
 
 /* Illustrated pot characters (Figma node 360:555), composed at 4x from the source
    art + the frame's circle/band geometry. `w/h/l/t` place each one so its pot sits
@@ -1243,7 +1358,10 @@ function GardenChat({focus, open, onCollapse}){
           const shape = isMe ? "me" : (m.urgent ? "alert" : "them");
           return <div key={i} className={"grow-row "+(isMe?"me":"them")+(m.rx?" rx":"")}
             ref={i===hot ? target : null}>
-            <div className={"gmava"+(av?" art":"")}>
+            {/* a plant's avatar is the way from the chat into its card */}
+            <div className={"gmava"+(av?" art":"")+(isMe?"":" tap")}
+              title={isMe?null:("Open "+p.name.split(" ")[0]+"'s card")}
+              onClick={isMe?null:(ev=>{ev.stopPropagation();nav.go("plant",{id:m.who});})}>
               {av && <img src={av.src} alt="" className={av.round?"round":null}
                 style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
             </div>
@@ -1293,7 +1411,7 @@ function Notifications(){
         const urgent = n.kind==="urgent";
         // urgent → diagnosis flow; everything else → the chat, focused on that plant
         const open = ()=> urgent ? nav.go("alert") : nav.go("dashboard",{focus:p.id});
-        return <div key={n.id} className="card tap row" onClick={open}>
+        return <div key={n.id} className="card scard tap row" onClick={open}>
           <Photo w={48} h={48} label="PIC" badge={n.emo}/>
           <div className="grow">
             <div className="row" style={{gap:6}}>
@@ -1310,163 +1428,175 @@ function Notifications(){
   </div>;
 }
 
-/* ───────────────── PLANT DETAIL ───────────────── */
-function Hearts({level, max=5}){
-  return <span className="hearts">
-    {Array.from({length:max}).map((_,i)=>
-      <span key={i} className={i<level?"on":"off"}>{i<level?"♥":"♡"}</span>)}
-  </span>;
-}
+/* ═════════════════ PLANT DETAIL (Figma "concept2" 415:1426) ═════════════════
+   Top to bottom: the unified serif nav bar, a species + mood-chip row, the
+   plant's own speech blob, the VIDEO STAGE with a scrubbing timeline, then the
+   info cards in the canonical .scard style.
 
-/* ── PLANT DETAIL ── immersive: full-bleed photo + draggable "Your bond" sheet.
-   Sheet geometry. PEEK is what stays visible when collapsed (the bond header);
-   the sheet translates down by OFF ∈ [0, MAXOFF], so OFF=MAXOFF is collapsed. */
-const SHEET_H = 560, PEEK = 96, MAXOFF = SHEET_H - PEEK;
+   The stage is built VIDEO-FIRST. It is a real <video> whose poster is the pot
+   render, so the growth film can be dropped in as assets/plant-<id>.mp4 with no
+   code change at all: while the file is missing the poster simply stays up, and
+   the scrub still runs (it just has no duration to seek against). Timeline
+   position maps LINEARLY to currentTime, with the right end = "now" = the final
+   frame, so scrubbing left runs the growth backwards. */
+
+/* the milestone labels, lowercase as the mockup sets them */
+const TL = MILESTONES.map(m=>m.stage.toLowerCase());
 
 function PlantDetail({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
-  const last = MILESTONES.length-1;
+  const e = EMO[p.emotion] || EMO.neutral;
+  const last = TL.length - 1;
 
-  const [idx,setIdx]   = useState(last);   // timeline position (starts at "Now")
-  const [off,setOff]   = useState(MAXOFF); // sheet offset — starts collapsed
+  const [pos,setPos]   = useState(1);        // 0…1 along the timeline; 1 = "now"
   const [menu,setMenu] = useState(false);
   const [auto,setAuto] = useState(p.autoOn);
-  const strip = useRef(null);
-  const drag  = useRef(null);
 
-  const low = p.reservoir < 25;
-  const e   = EMO[p.emotion] || EMO.neutral;
-  const ms  = MILESTONES[idx];
-  const atNow = idx === last;
+  const vid  = useRef(null);
+  const rail = useRef(null);
+  const raf  = useRef(0);
+  const want = useRef(1);
 
-  // 0 = collapsed, 1 = fully open. Drives the dim and hides the timeline.
-  const t  = 1 - off/MAXOFF;
-  const tl = Math.max(0, 1 - t*3);         // timeline fades out as the sheet rises
-
-  /* TWO framings only — the camera does not zoom gradually.
-     NOW  → the plant and the pot as they are right now, emotion on the pot.
-     PAST → snap once to a zoomed-in framing: mostly plant, only the pot's top
-            RIM in shot. That framing is IDENTICAL at every past milestone; the
-            only thing that changes as you scrub is how big the PLANT is. */
-  const pastG  = last>1 ? idx/(last-1) : 0;             // 0…1 across the past only
-  const plantH = atNow ? 200 : Math.round(96 + pastG*200);
-  const plantW = atNow ? 148 : 208;
-  const potH   = atNow ? 150 : 26;                      // past: just the rim
-  const potW   = atNow ? 188 : 246;
-  const potRadius = atNow ? "7px 7px 24px 24px" : "8px 8px 0 0";
-
-  // open the strip on "Now"; swiping it left walks back through the milestones
-  useEffect(()=>{ const el=strip.current; if(el) el.scrollLeft = el.scrollWidth; },[]);
-
-  const onStripScroll = (ev)=>{
-    const el = ev.target, first = el.firstChild;
-    const pitch = first ? first.offsetWidth : 116;
-    setIdx(Math.max(0, Math.min(last, Math.round(el.scrollLeft/pitch))));
+  /* rAF-coalesced seek. A pointermove fires far more often than a video can
+     actually seek, so the handler only records where we want to be and one
+     animation frame later applies it once — that is what makes the scrub smooth
+     instead of stuttering behind the finger. */
+  const applySeek = ()=>{
+    raf.current = 0;
+    const v = vid.current; if(!v) return;
+    const d = v.duration;
+    if(!isFinite(d) || d <= 0) return;   // no mp4 in place yet — the poster stays
+    try{ v.currentTime = Math.max(0, Math.min(d, want.current * d)); }catch(err){}
   };
+  const seek = (frac)=>{
+    const f = Math.max(0, Math.min(1, frac));
+    want.current = f;
+    setPos(f);
+    if(!raf.current) raf.current = requestAnimationFrame(applySeek);
+  };
+  useEffect(()=>()=>{ if(raf.current) cancelAnimationFrame(raf.current); },[]);
+  // land on the last frame as soon as the film knows how long it is
+  const onMeta = ()=>{ want.current = 1; applySeek(); };
 
-  /* Sheet drag. Pointer events cover mouse + touch; the grab area sets
-     touch-action:none so dragging never scrolls anything behind it. */
+  const fracFrom = (ev)=>{
+    const el = rail.current; if(!el) return want.current;
+    const r = el.getBoundingClientRect();
+    return r.width ? (ev.clientX - r.left) / r.width : want.current;
+  };
+  const dragging = useRef(false);
   const down = (ev)=>{
+    dragging.current = true;
     ev.currentTarget.setPointerCapture(ev.pointerId);
-    drag.current = { y:ev.clientY, off, moved:0 };
+    seek(fracFrom(ev));
   };
-  const move = (ev)=>{
-    const d = drag.current; if(!d) return;
-    const dy = ev.clientY - d.y;
-    d.moved = Math.max(d.moved, Math.abs(dy));
-    setOff(Math.max(0, Math.min(MAXOFF, d.off + dy)));
-  };
-  const up = ()=>{
-    const d = drag.current; if(!d) return;
-    drag.current = null;
-    // a tap toggles; a real drag snaps to whichever end it is closer to
-    setOff(o => (d.moved < 6 ? (o > MAXOFF/2 ? 0 : MAXOFF)
-                             : (o < MAXOFF/2 ? 0 : MAXOFF)));
-  };
+  const move = (ev)=>{ if(dragging.current) seek(fracFrom(ev)); };
+  const up   = ()=>{ dragging.current = false; };
+  // a trackpad / wheel gesture over the timeline scrubs it too
+  const wheel = (ev)=> seek(want.current + (ev.deltaX || ev.deltaY)/1400);
 
-  return <div className="pd" onClick={()=>menu&&setMenu(false)}>
-    {/* 1 — the photo: fixed, full-bleed, never scrolls and never moves */}
-    <div className="ph pdphoto"/>
-    <div className="pddim" style={{opacity:(0.55*t).toFixed(3)}}/>
+  const idx = Math.round(pos*last);
+  /* The mockup shows two labels: the one you are standing on, and "now" as the
+     right-hand anchor. Everything between is a dot — six words will not fit on a
+     phone, and labelling only those two is what keeps the rail readable. */
+  const labelled = (i)=> i===idx || i===last;
+  const labelPos = (i)=> i===last ? {right:0} : i===0 ? {left:0}
+                       : {left:((i/last)*100)+"%", transform:"translateX(-50%)"};
 
-    {/* 2 — the plant + pot inside the photo */}
-    <div className="pdstack" style={{bottom:PEEK+74}}>
-      {atNow
-        ? <div className="pdspeech">“{p.checkin}”</div>
-        : <div className="pdstage">{ms.stage} · {ms.date}</div>}
-      <div className="ph pdplant" style={{height:plantH,width:plantW}}>[PLANT]</div>
-      <div className="pdpot" style={{width:potW,height:potH,borderRadius:potRadius}}>
-        {/* the emotion belongs to "now" — a past frame is a photo, not a mood */}
-        {atNow && <span style={{fontSize:32}}>{e.face}</span>}
-      </div>
+  return <div className="screen pdscreen" onClick={()=>menu&&setMenu(false)}>
+
+    {/* 1 — the unified nav bar: chevron · serif name · ⋯ */}
+    <div className="plhead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+      <h1 className="pltitle">{p.name.split(" ")[0]}</h1>
+      <span className="plmore" title="More"
+        onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
     </div>
 
-    {/* 3 — top bar: name + the ⋯ context menu */}
-    <div className="pdbar">
-      <button className="back" onClick={nav.back}>‹ Back</button>
-      <div className="pdname center"><b>{p.name}</b><small>{p.species} · {p.persona}</small></div>
-      <div className="iconbtn" title="More" onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}>⋯</div>
-    </div>
-    {/* one destination: everything about this plant lives on one settings screen */}
+    {/* everything about this plant lives behind the ⋯ */}
     {menu && <div className="pdmenu" onClick={ev=>ev.stopPropagation()}>
       <div onClick={()=>{setMenu(false);nav.go("plantSettings",{id:p.id});}}>
         Personality &amp; Settings</div>
+      <div onClick={()=>{setMenu(false);nav.go("waterConfig",{id:p.id});}}>
+        Watering schedule</div>
     </div>}
 
-    {/* 4 — the timeline: swipe it to change the plant shown in the photo */}
-    <div className="pdtl" style={{bottom:PEEK+6, opacity:tl.toFixed(2),
-      pointerEvents: tl<0.15 ? "none" : "auto"}}>
-      <div className="pdrail"/>
-      <div className="pdtlstrip" ref={strip} onScroll={onStripScroll}>
-        {MILESTONES.map((m,n)=>(
-          <div className={"pdtick"+(n===idx?" on":"")} key={m.stage}>
-            <span className={"pgdot"+(n===idx?" on":"")}/>
-            <small>{m.stage}</small>
-          </div>
-        ))}
+    {/* 2 — species left, mood chip right */}
+    <div className="pdrow">
+      <span className="pdsp">{p.species}</span>
+      <span className="moodchip" style={{background:e.glow,
+        filter:"drop-shadow(0 0 10px "+e.glow+")"}}>{e.word}</span>
+    </div>
+
+    {/* 3 — the plant's own words, in a white organic blob. No quote marks. */}
+    <div className="pdbubwrap">
+      <div className="pdscrim"/>
+      <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
+        {p.checkin}
       </div>
     </div>
 
-    {/* 5 — the bottom sheet */}
-    <div className="sheet" style={{transform:"translateY("+off+"px)"}}>
-      <div className="sheetgrab" onPointerDown={down} onPointerMove={move}
-        onPointerUp={up} onPointerCancel={up}>
-        <div className="grabber"/>
-        <div className="spread">
-          <div><b>Your bond</b><br/>
-            <small className="muted">Level {p.bondLevel} · {p.bondTitle}</small></div>
-          <Hearts level={p.bondLevel}/>
+    {/* 4 — the video stage. The poster is this plant's pot render, so the screen
+        is complete before the film exists; dropping assets/plant-<id>.mp4 in
+        makes it play with nothing else to change. */}
+    <div className="pdstageBox">
+      <video className="pdvid" ref={vid} muted playsInline preload="metadata"
+        onLoadedMetadata={onMeta}
+        poster={(SHOT[p.id] || SHOT.felix).src}
+        src={"assets/plant-"+p.id+".mp4"}/>
+      <div className="pdstagescrim"/>
+
+      {/* 5 — the scrub: drag or scroll it, position maps linearly to currentTime */}
+      <div className="pdtimeline" onPointerDown={down} onPointerMove={move}
+        onPointerUp={up} onPointerCancel={up} onWheel={wheel}>
+        <div className="pdtllab">
+          {TL.map((label,i)=> labelled(i) &&
+            <span key={label} style={labelPos(i)}>{label}</span>)}
+        </div>
+        <div className="pdtlrail" ref={rail}>
+          <div className="pdtltrack"/>
+          <div className="pdtlfill" style={{width:(pos*100).toFixed(2)+"%"}}/>
+          {TL.map((label,i)=>(
+            <span key={label} className={"pdtldot"+(i===idx?" on":"")}
+              style={{left:((i/last)*100)+"%"}}/>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* 6 — the info cards, all in the canonical settings-card style */}
+    <div className="pdcards">
+      <div className="scard">
+        <div className="scard-t">Your bond</div>
+        <div className="pdbondmeta">
+          <span className="scard-l">Level {p.bondLevel}</span>
+          <span className="pdsep"/>
+          <span className="scard-l">{p.bondTitle}</span>
+        </div>
+        <div className="sbar"><i style={{width:p.bondPct+"%"}}/></div>
+      </div>
+
+      <div className="pdstats">
+        <div className="pdstat">
+          <div className="scard-l">Last watering</div>
+          <div className="scard-v">{p.lastWatered}</div>
+        </div>
+        {/* the reservoir card fills itself to its own level */}
+        <div className="pdstat">
+          <span className="reswater"
+            style={{height:p.reservoir+"%", backgroundImage:WATER}}/>
+          <div className="scard-l">Reservoir</div>
+          <div className="scard-v xl">{p.reservoir}%</div>
+        </div>
+        <div className="pdstat">
+          <div className="scard-l">Light</div>
+          <div className="scard-v">{p.light}</div>
         </div>
       </div>
 
-      <div className="sheetbody">
-        <div className="col" style={{gap:6}}>
-          <div className="bar"><i style={{width:p.bondPct+"%"}}/></div>
-          <small className="muted">{p.bondPct}% to the next level — keep checking in to grow closer.</small>
-        </div>
-
-        <div className="tiles">
-          <div className="tile"><small>Last watering</small><b>{p.lastWatered}</b></div>
-          <div className="tile"><small>Reservoir</small><b>{p.reservoir}%</b></div>
-          <div className="tile"><small>Light</small><b>{p.light}</b></div>
-        </div>
-
-        {/* AUTO-WATERING — an in-app setting, so it needs a real tap. The schedule
-            lives behind a text link in this same card rather than its own row. */}
-        <div className="card col" style={{gap:10}}>
-          <div className="spread">
-            <b>Auto-watering</b>
-            <Toggle on={auto} onClick={()=>setAuto(!auto)}/>
-          </div>
-          <div className="spread" style={{marginTop:2}}>
-            <small className="muted">Reservoir {low?"running low":"level"}</small>
-            <b style={low?{color:"var(--accent)"}:null}>{p.reservoir}%</b>
-          </div>
-          <div className={"resbar"+(low?" low":"")}><i style={{width:p.reservoir+"%"}}/></div>
-          <a className="tlink" style={{opacity:auto?1:.5,pointerEvents:auto?"auto":"none"}}
-            onClick={()=>nav.go("waterConfig",{id:p.id})}>Configure schedule ›</a>
-        </div>
+      <div className="scard pdauto">
+        <div className="scard-t">Auto-watering</div>
+        <Toggle on={auto} onClick={()=>setAuto(a=>!a)}/>
       </div>
     </div>
   </div>;
@@ -1514,7 +1644,7 @@ function PlantSettings({params}){
   return <div className="screen">
     <Top title="Personality &amp; Settings" onBack={nav.back} kicker={p.name}/>
 
-    <div className="card row" style={{alignItems:"center"}}>
+    <div className="card scard row" style={{alignItems:"center"}}>
       <Photo round w={72} h={72} label="PHOTO" badge={p.emotion}/>
       <div className="grow"><b>{name}</b><br/><small className="muted">{p.species} · {p.persona}</small></div>
       <button className="btn sm">Change photo</button>
@@ -1527,7 +1657,7 @@ function PlantSettings({params}){
     <PersonalityPicker initial={p.persona}/>
 
     <div className="kicker">Active hours</div>
-    <div className="card col" style={{gap:10}}>
+    <div className="card scard col" style={{gap:12}}>
       <div className="spread">
         <div><b>Quiet hours</b><br/>
           <small className="muted">{first} stays silent during this window</small></div>
@@ -1539,7 +1669,7 @@ function PlantSettings({params}){
         ))}
       </div>
     </div>
-    <div className="card spread"><div><b>Messages from {first}</b><br/>
+    <div className="card scard spread"><div><b>Messages from {first}</b><br/>
       <small className="muted">Check-ins and reactions</small></div>
       <Toggle on={true} onClick={()=>{}}/></div>
 
@@ -1896,8 +2026,8 @@ function Diagnosis(){
   ];
   return <div className="screen">
     <Top title="What happened" onBack={nav.back} kicker="Felix · diagnosis"/>
-    <div className="card row"><Face emotion="overwatered"/><div className="grow"><b>Overwatered</b><br/><small className="muted">Soil moisture 92% — that's too much water</small></div></div>
-    <div className="card row"><Face emotion="cold"/><div className="grow"><b>Too cold</b><br/><small className="muted">14°C right next to the plant</small></div></div>
+    <div className="card scard row"><Face emotion="overwatered"/><div className="grow"><b>Overwatered</b><br/><small className="muted">Soil moisture 92% — that's too much water</small></div></div>
+    <div className="card scard row"><Face emotion="cold"/><div className="grow"><b>Too cold</b><br/><small className="muted">14°C right next to the plant</small></div></div>
 
     <div className="kicker">What to do</div>
     <div className="card">
@@ -1947,19 +2077,21 @@ function Profile(){
     <Top title="Profile" onBack={nav.back}/>
 
     {/* identity — the plant count is the way into the plants list */}
-    <div className="card row"><div className="avatarbtn" style={{width:52,height:52}}/>
+    <div className="card scard row">
+      <img className="gava" src={USER_AVATAR} alt=""
+        style={{width:52,height:52}}/>
       <div className="grow"><b>{USER_NAME}</b><br/>
         <small className="muted" style={{cursor:"pointer",textDecoration:"underline"}}
           onClick={()=>nav.go("plantsList")}>{PLANTS.length} plants ›</small></div></div>
 
     {/* CHAT SETTINGS — inline, two controls */}
     <div className="kicker" style={{marginTop:4}}>Chat settings</div>
-    <div className="card spread">
+    <div className="card scard spread">
       <div><b>Plants talk to each other</b><br/>
         <small className="muted">They comment on each other, not just you</small></div>
       <Toggle on={chatCross} onClick={()=>setChatCross(!chatCross)}/>
     </div>
-    <div className="card col" style={{gap:9}}>
+    <div className="card scard col" style={{gap:12}}>
       <b>Message frequency</b>
       <div className="segrow">
         {["Quiet","Moderate","Chatty"].map(f=>(
@@ -1970,7 +2102,7 @@ function Profile(){
 
     {/* LANGUAGE — inline rows showing the current value; tapping opens a list */}
     <div className="kicker" style={{marginTop:4}}>Language</div>
-    <div className="list card">
+    <div className="list card scard">
       <div className="li" style={{cursor:"pointer"}} onClick={()=>nav.go("langPick",{which:"ui"})}>
         <div className="grow"><b>Interface</b><br/><small className="muted">Buttons, menus and screens</small></div>
         <small className="muted">{uiLang}</small><span className="muted">›</span>
@@ -1998,7 +2130,7 @@ function LangPick({params}){
   return <div className="screen">
     <Top title={which==="ui" ? "Interface language" : "Conversation language"}
       onBack={nav.back} kicker="Language"/>
-    <div className="list card">
+    <div className="list card scard">
       {LANGS.map(l=>(
         <div key={l} className="li" style={{cursor:"pointer"}}
           onClick={()=>{ set(l); nav.back(); }}>
@@ -2013,20 +2145,24 @@ function LangPick({params}){
   </div>;
 }
 
-/* Pot renders — the four square 1024px sources from the mockup (364:1073/1075/
-   1077/1097), re-exported at 768px. Nothing is measured by hand here: `win` is
-   each image frame's own box and `img` is the source's offset inside that frame,
-   both read off Figma node 364:1065 and re-expressed against the card's TOP-RIGHT
-   corner instead of the artboard's top-left. Anchoring on the right is what lets
-   the 402px mockup land unchanged in a 386px device — every pot keeps its exact
-   distance from the card edge, and the 16px difference is absorbed by the empty
-   gap between the text column and the pot.
-     mockup                     -> card-relative
-     felix  frame 185,135 258x218  win right -46, top   0   img 258 @   0,-40
-     margot frame 132,275 265x172  win right   0, top   0   img 363 @   0,-144
-     gosha  frame 248,411 140x187  win right   9, top  -4   img 308 @ -88,-80
-     vera   image 173,500 282x282  win right -58, top -55   img 282 @   0,0
-   Only Vera's overflows her card — see .plcard:last-child. */
+/* Pot renders — the five square 1024px sources from the mockup (364:1073/1075/
+   1077/1097 and 415:1423), re-exported at 768px. Nothing is measured by hand
+   here: `win` is each image frame's own box and `img` is the source's offset
+   inside that frame, both read off Figma node 364:1065 and re-expressed against
+   the card's TOP-RIGHT corner instead of the artboard's top-left. Anchoring on
+   the right is what lets the 402px mockup land unchanged in a 386px device —
+   every pot keeps its exact distance from the card edge, and the 16px difference
+   is absorbed by the empty gap between the text column and the pot.
+     mockup (card top / card right edge)      -> card-relative
+     felix  frame 185,135 258x218  card 135/397   win right -46, top   0  img 258 @   0,-40
+     margot frame 132,275 265x172  card 275/397   win right   0, top   0  img 363 @   0,-144
+     gosha  frame 248,411 140x187  card 415/397   win right   9, top  -4  img 308 @ -88,-80
+     vera   frame 173,555 224x227  card 555/397   win right   0, top   0  img 282 @   0,-79
+     vlad   frame 184,651 267x267  card 695/397   win right -54, top -44  img 267 @   0,0
+   Vera's frame now starts exactly on her card's top-left, so her render is fully
+   clipped by the card like Felix/Margot/Gosha. Vlad is the one that breaks out —
+   his frame starts 44px ABOVE his card and runs 54px past its right edge, and he
+   is the last card, which is what .plcard:last-child{overflow:visible} unlocks. */
 const SHOT = {
   felix:{ src:"assets/pot-felix.webp",  win:{w:258,h:218,right:-46,top:  0},
                                         img:{s:258,left:    0,top:-40  } },
@@ -2034,8 +2170,10 @@ const SHOT = {
                                         img:{s:363,left:    0,top:-144 } },
   gosha:{ src:"assets/pot-gosha.webp",  win:{w:140,h:187,right:  9,top: -4},
                                         img:{s:308,left:-88.2,top:-80.2} },
-  vera: { src:"assets/pot-vera.webp",   win:{w:282,h:282,right:-58,top:-55},
-                                        img:{s:282,left:    0,top:  0  } },
+  vera: { src:"assets/pot-vera.webp",   win:{w:224,h:227,right:  0,top:  0},
+                                        img:{s:282,left: -0.1,top:-78.9} },
+  vlad: { src:"assets/pot-vlad.webp",   win:{w:267,h:267,right:-54,top:-44},
+                                        img:{s:267,left:    0,top:  0  } },
 };
 function PotShot({who}){
   const p = SHOT[who];
@@ -2057,12 +2195,7 @@ function PlantsList(){
   const nav = useNav();
   return <div className="screen">
     <div className="plhead">
-      <span className="plback" onClick={nav.back} title="Back">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M15 18L9 12L15 6" stroke="#000" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </span>
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
       <h1 className="pltitle">My Plants</h1>
       <button className="pladd" onClick={()=>nav.go("pair")}>Add</button>
     </div>

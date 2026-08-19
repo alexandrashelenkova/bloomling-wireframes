@@ -1385,3 +1385,275 @@ device: cards at L=5 R=5, tops 134.8 / 274.8 / 414.8 / 554.8 (mockup 135 / 275 /
 to the tenth of a pixel; chip 43/14, species 43/76, name 43/101 on all four
 cards. A zoom on the Felix–Margot seam shows Felix's pot cut flat at his card's
 bottom edge and Margot's leaves starting exactly at hers — no bleed either way.
+
+---
+
+# Revision 21 — user avatar · hero gradient · Vlad · Plant Detail rebuild · settings-card rollout
+
+Four work packages in one pass. Every number below was pulled through the Figma
+MCP from a named node; anything not in a node is marked **DERIVED** with the
+reason.
+
+## 0. Design sources
+
+| what | node | how it was read |
+|------|------|-----------------|
+| user avatar | `364:1064` (inside section `364:1042`) | `download_assets`, png @4× → 160×160 |
+| My Plants | `364:1065` | `get_design_context` + `get_metadata` |
+| Vlad's pot render | `415:1419` / `415:1423` (in section `364:1100`) | raw 1024px source off the node |
+| Plant Detail | `415:1426` | `get_design_context` + `get_metadata` |
+
+`364:1042` and `364:1100` are **sections**, not single assets — the first holds
+the three pot avatars plus the user avatar, the second holds all five pot
+renders. The specific child nodes above are the ones the brief actually meant.
+
+---
+
+## A. User avatar — replaced everywhere
+
+- `assets/avatar-user.jpg` **deleted**; `assets/avatar-user.png` added (the node
+  export at 4×, 160×160, alpha preserved — the crop is circular in Figma and the
+  PNG keeps that, where the old JPEG had a square matte).
+- One constant feeds every site: `USER_AVATAR`. It reaches the **collapsed and
+  expanded dashboard header** (`.gava` — one element, both states) and **user
+  chat messages** (`AVATAR.me`).
+- **Profile** was the one place that did *not* use it: the identity row drew a
+  striped `.avatarbtn` placeholder. That placeholder is now the real avatar and
+  the `.avatarbtn` rule is deleted — it had no other user.
+- Swept for others: no remaining reference to the old file, and no other avatar
+  affordance in the app.
+
+## B. Expanded hero — the chat gradient
+
+The expanded state used to put **two** things over the chat: a
+`saturate(.45) blur(2.5px)` filter on `.gscroll`, and a `.gfade` gradient with
+its own softer ramp (`#EFEFEF → 0` at 78%).
+
+- **The blur and the desaturation are both gone.** The brief removes the blur;
+  the saturation drop went with it, because the collapsed state has *no* filter
+  at all and the brief caps the dimming at "nothing stronger" than the collapsed
+  gradient. Leaving the desaturation in would have been a second, stronger
+  effect the collapsed state does not have.
+- `.gfade` in the open state now carries the collapsed state's **exact**
+  geometry and stops: `height:244px`, solid to `96px`, transparent at `244px` —
+  where it previously ran 230px tall on a percentage ramp.
+- **One deliberate difference:** the tint. Collapsed, the gradient is `--bg`
+  (`#EDEEE9`, the page); open, it is `--bg2` (`#EFEFEF`, the sheet the chat now
+  sits on). Same intensity and same character, but a gradient must start from
+  the surface underneath it or it draws a colour seam at the sheet's top edge.
+- `.dash.open .gfade` also forces `opacity:1`. The `.on` flag only fires when
+  the chat is scrolled, and the open state freezes the stream — the gradient
+  must not blink out just because the scroll position settled.
+
+## C. My Plants
+
+### C1. Vlad, and the break-out rule moving to him
+
+- Fifth plant: **Vlad**, species **"Bonsai"**. The mockup labels him "Aloe"
+  (`403:1263`) — a copy-paste from Vera's card. The brief says Bonsai, the render
+  is unmistakably a bonsai, so the brief wins. **Logged as an override.**
+- `assets/pot-vlad.webp` — the node's own 1024px square, re-exported at 768px
+  webp to match the other four.
+- Placement, read off the node and re-expressed against the card's top-right
+  corner (the convention `SHOT` already used):
+
+| plant | mockup frame | card top / right | window (right, top) | source inside window |
+|-------|--------------|------------------|---------------------|----------------------|
+| Vera  | 173,555 · 224×227 | 555 / 397 | 0, 0 | 282 @ −0.1, −78.9 |
+| Vlad  | 184,651 · 267×267 | 695 / 397 | −54, −44 | 267 @ 0, 0 |
+
+  Vera's frame now starts exactly on her card's top-left, so her render is fully
+  clipped like Felix/Margot/Gosha. Vlad's starts **44px above** his card and runs
+  **54px past** its right edge — he is the break-out. No CSS change was needed
+  for the hand-over: the rule was already `.plcard:last-child{overflow:visible}`,
+  and Vlad is now last. Vera simply stopped being the exception.
+- Card gradients from the node: Vlad `linear-gradient(113.89deg,#B9CBD8 38.007%,
+  #E7FCD6 115.19%)`. **Vera's changed too** — the current frame starts her at
+  `#E7D1C9` (dusty pink), not the `#C9D5C8` sage-grey an earlier frame carried.
+  Re-read and updated.
+- Vlad's card fills the remaining space to the screen bottom via the existing
+  `flex:1 0 auto` on the last card.
+
+### C2. Mood chips
+
+`403:1345` builds the chip as **white fill with the whole chip group at 40%
+opacity**, 24px radius, `2px 10px 5px` padding — not two separate alphas. That
+group opacity is the style: fill and word wash back into the card gradient
+together. Implemented literally (`background:#fff; opacity:.4`), replacing the
+1px `--ink` outline on a transparent chip.
+
+### C3. Species → name spacing
+
+Node says species at y=215 and name at y=236 against a card top of 135 → **80px
+and 101px** from the card top, a 21px step. The build had species at 76px, a
+25px step. Species moved down 4px; the name did not move. The
+`:not(:has(.plspecies))` fallback moved with it.
+
+---
+
+## D. Plant Detail — rebuilt
+
+The old screen (full-bleed striped placeholder, hearts bond panel, draggable
+bottom sheet, snap-strip timeline) is **gone**, along with its CSS: `.pd`,
+`.pdphoto`, `.pddim`, `.pdbar`, `.pdname`, `.pdstack`, `.pdstage`, `.pdtl`,
+`.pdrail`, `.pdtlstrip`, `.pdtick`, `.sheet*`, `.grabber`, `.tiles`, `.tile`,
+`.hearts`, `.resbar`, `.tlink`, and the `Hearts` component. Kept because other
+screens still build on them: `.pdspeech`, `.pdplant`, `.pdpot` (create-character
+hero and the plant-settings preview), `.pdmenu`.
+
+### D1. Layout, top to bottom
+
+1. **Nav bar** — the same unified header as My Plants: chevron `364:1070`,
+   plant name in Riccione at `--t-xl` (44.712px), `more-horizontal` `415:1472`
+   on the right. The chevron and ⋯ glyphs were pulled out into shared
+   `IconChevronLeft` / `IconMore` components, so My Plants and Plant Detail now
+   draw the identical mark.
+2. **Species + mood chip row** — species `#050505` @40% at 16px on the left;
+   the chip on the right is `415:1487`: fill and `drop-shadow(0 0 10px …)` in the
+   **same hex**, which is what produces the glow. Felix's is `#CCF5B0`.
+3. **Speech blob** — `415:1463`'s actual vector path, added to `BLOB` as
+   `speech` and painted by the existing `blobBg()`. Symmetric, white, no quote
+   marks (the old screen wrapped the line in `“ ”`; the shape says speech now).
+   The soft `#EFEFEF → transparent @78%` scrim behind it is `415:1430`.
+4. **Video stage** — see D2.
+5. **Timeline scrub** — see D3.
+6. **Info cards** — the canonical settings-card style, see D4.
+
+### D2. The video stage is built video-first
+
+`415:1434` frames the pot render as a **square source 1.4154× the frame width**,
+centred, nudged up 4.33%, inside a 402×551 window. Those exact ratios drive the
+stage, so the layout is independent of what is inside it.
+
+The element is a real `<video>` with `poster={that plant's pot render}` and
+`src="assets/plant-<id>.mp4"`. While no mp4 exists the poster simply stays up —
+a `<video>` keeps showing its poster when the media fails to load — so the
+screen is complete today and goes live the moment the file is dropped in, with
+**no code change**. Every plant gets its own filename, so they can arrive one at
+a time.
+
+- **DERIVED:** a gentle `rgba(30,12,0,0→.22)` scrim over the stage's bottom
+  150px. The mockup draws the timeline in pure white directly over the pot's
+  pale speckled base, where it is barely legible; over an arbitrary video frame
+  it could vanish entirely. The scrim is the smallest thing that guarantees the
+  white rail reads on any frame.
+
+### D3. Timeline scrubbing
+
+- Rail spans the stage; **"now" is the right end**, and the screen opens there.
+  (The mockup draws the rail stopping at x=201 with "now" mid-frame — that is a
+  half-drawn artboard, and the brief states "now at the right end". Brief wins.)
+- **Position maps linearly to `currentTime`**: `currentTime = frac × duration`,
+  so the rightmost pixel is the final frame and dragging left runs the growth
+  backwards. Verified against a stubbed 10s duration: 60% → 6.000s, 100% → 10s.
+- **Smoothing:** pointermove fires far faster than a video can seek, so the
+  handler only records the wanted fraction and a single `requestAnimationFrame`
+  applies it. One seek per frame, no queue.
+- Pointer events (one code path for touch and mouse) with
+  `setPointerCapture` + `touch-action:none`, so a drag never scrolls the page
+  under it. A wheel/trackpad gesture over the rail scrubs too.
+- **Labels — a judgement call.** The mockup shows two words, "thriving" and
+  "now", because it only draws two dots. The app has six milestones and six
+  words will not fit across a phone. Resolution: **all six dots are drawn, and
+  exactly two are labelled — the one you are standing on, and "now"**. That
+  reproduces the mockup's read at every scrub position (at "thriving" you get
+  precisely the mockup) and degrades to a single "now" at the right end.
+- Active dot: solid white with a soft white ring; the rest white @55%; the rail
+  fills white up to the handle.
+
+### D4. Info cards
+
+All measured off the node, all in the new `.scard` style:
+
+- **Your bond** — `415:1433`, 392×117 @40px radius, 24px inset. Title Riccione
+  22px; `Level 4 · Close friends` as 16px @40% either side of a 4px dot @20%;
+  progress track `#EDEEE9` / fill `#C9D6BC`, 8px tall, 40px radius. The fill
+  width is data-driven (`bondPct`) rather than the mockup's frozen 76.5%.
+- **Three stat cards** — 128×125 @40px radius on a 5px gap (mockup: 4px between
+  392px-wide edges; 5px matches the vertical rhythm and the 1px is invisible).
+  Label 16px @40% at 24px from the top, value centred below. Values are Riccione
+  at 22px, **except `64%` which the mockup sets at 44.712px** — kept, because
+  short values earn the display size and the mockup is explicit about it.
+- **Reservoir fill** — `415:1518` is a wave-topped block at 50% opacity with a
+  `#B9CBD8 → white` vertical gradient. Shipped as that exact path in a data-URI
+  SVG, stretched so **its height is the reservoir percentage**. In the mockup
+  the shape happens to sit at ~71% against a stated 64%; driving it from the
+  number is the honest reading of "a soft fill level indication inside".
+- **Auto-watering** — `415:1512`, 392×74, title Riccione 22px, switch on the
+  right.
+
+### D5. Navigation preserved (and one addition)
+
+- From **My Plants** — unchanged, `nav.go("plant",{id})`.
+- From **the chat** — there was no such path before; the brief asks for one.
+  A plant's avatar in the chat now opens that plant's card. Smallest possible
+  affordance, and it reads naturally next to the name.
+- `alertDone` → Felix's card, and the flow-index shortcut, both unchanged.
+- The old screen reached `waterConfig` through a "Configure schedule ›" text
+  link inside the auto-watering card. The new card is title + switch only, so
+  that link is gone — **`waterConfig` would have become unreachable**. It moved
+  into the ⋯ menu as "Watering schedule", next to "Personality & Settings".
+
+---
+
+## D2 (global). Settings-card style rollout
+
+The mockup's card style is now the app's canonical settings/data surface.
+
+- `--r-card` **24px → 40px** (from `415:1433/1499/1512`). This flows to `.card`,
+  `.pdmenu`, `.push`, `.camguide`.
+- `--r-sub` **28px** — **DERIVED**, for cards nested *inside* a card
+  (`.opt`, `.ptile`). The mockup's 40px is measured on a 125px-tall card; on a
+  58px preset tile it would round into a pill and lose the card read.
+- `.card` padding **16px → 20px 22px**. The mockup's inset is 24px, but `.card`
+  also carries dense 48px-photo rows across the add-plant flow; 22px lands close
+  to the mockup without forcing those rows to re-wrap. Cards explicitly tagged
+  `.scard` get the full 24px.
+- **Type roles**, applied via `.card.scard`: row titles (`b`) become Riccione
+  22px `#1E0C00`; captions (`small.muted`) become 16px black @40%. Tagged on
+  **Profile** (identity, both chat-settings cards, the language list),
+  **Plant Settings** (identity, active hours, messages), **Notifications** (all
+  three rows) and **Diagnosis** (both readouts). No markup around them moved —
+  the rollout changes surface, radius and type role only, as briefed.
+- **The switch was unified too.** `.toggle` was 44×26 with a `--sage-deep` track;
+  it is now the mockup's control (`415:1523/1524`): 50×28, 40px radius, `--bg`
+  track, 22px knob, `#C9D6BC` when on. One switch everywhere — Profile, plant
+  settings and the new auto-watering card all draw the same object.
+  **DERIVED:** the *off* knob is `#C6C7C0` — the mockup only ever draws the on
+  state, and `--box` on an `--bg` track has no contrast at all.
+
+### Emotion glow colours — DERIVED
+
+The mood chip's tint has to follow the plant's emotion, and the node only gives
+one value. `EMO.content = #CCF5B0` is measured; the other nine are derived in
+the same bright-pastel register, each pulling toward the colour that emotion
+already wears elsewhere in the app (warm coral for thirst, cool teal for the
+grump, and so on). Listed inline in the `EMO` table.
+
+---
+
+## Verification
+
+Headless Chrome over CDP against a local server. Boot clean, **zero console
+errors and zero exceptions** on every screen.
+
+- **A** — new avatar renders in the collapsed header, the expanded header, the
+  user's chat bubble and the Profile identity row; no reference to the old file
+  anywhere in the tree.
+- **B** — expanded state screenshotted: no blur, no desaturation, chat legible
+  under the same 96/244 ramp the collapsed state uses.
+- **C** — five cards, Vlad last and labelled "Bonsai", his bonsai breaking out
+  over Vera's card while Vera's aloe is cut flat at her own card edge; chips
+  soft-filled with no outline; species/name step measured at 21px.
+- **D** — the rebuilt screen matches the mockup top to bottom. Scrub driven
+  through synthetic pointer events: dragging to 42% moves the fill to 42%, lights
+  dot 2 of 6, and shows exactly "young plant" + "now"; against a stubbed 10s
+  duration, 60% → `currentTime` 6.000s and the right end → 10s (final frame).
+  Entered from My Plants, from a chat avatar (Margot, whose chip correctly glows
+  coral rather than green) and from the flow index. ⋯ menu reaches both
+  Personality & Settings and Watering schedule.
+- **D2** — Profile, Plant Settings and Notifications re-rendered on the new
+  surface with their layouts and content untouched.
+
+**Not shipped:** any `.mp4`. The stage is wired and waiting; dropping
+`assets/plant-felix.mp4` in is the whole integration.
