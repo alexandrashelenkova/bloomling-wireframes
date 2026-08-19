@@ -107,6 +107,9 @@
   .statusbar{flex:0 0 auto;height:48px;display:flex;align-items:center;
     justify-content:space-between;padding:0 26px;color:var(--ink);
     position:relative;z-index:40}
+  /* the plant detail runs its photo under the status bar, so the device chrome
+     goes white there — the only screen that needs it */
+  .device:has(.pdscreen) .statusbar{color:#fff}
   .sb-time{font-size:var(--t-sm);font-weight:500;letter-spacing:.02em}
   .sb-right{display:flex;align-items:center;gap:6px}
   .sb-right svg{display:block}
@@ -304,12 +307,72 @@
   .pgdot{width:7px;height:7px;border-radius:50%;background:var(--line)}
   .pgdot.on{background:var(--sage-deep)}
 
-  /* ══════════ PLANT DETAIL — rebuilt from Figma "concept2" 415:1426 ══════════
-     Nav bar → species + mood chip → speech blob → video stage carrying a
-     scrubbable timeline → settings-style info cards. Everything below the bubble
-     is full-bleed; the cards use the canonical .scard surface. */
-  .pdscreen{position:relative;gap:0}
-  .pdmenu{position:absolute;top:104px;right:2px;z-index:120;background:var(--card);
+  /* ══════════ PLANT DETAIL — full-bleed (Figma "concept2" 417:1537) ══════════
+     A 402×874 frame, i.e. a whole iPhone 16 Pro screen: the photo/video is the
+     BACKGROUND, edge to edge and behind the status bar, and everything else
+     floats on it. Two anchors are in play and they must not be confused:
+
+       · the nav bar, species row and bubble are TOP-anchored — their mockup y
+         lands on the device y unchanged (title 69, chip 132, bubble 161).
+       · the timeline and the cards are BOTTOM-anchored, because the mockup's
+         874px frame is 56px taller than this 818px device. Measured up from the
+         frame's bottom edge they are: labels 190, rail 159, bond card 134,
+         stat-card tops 12 — that last one is the "peeking" the brief asks for,
+         and it only survives if you anchor from the bottom.
+
+     The photo never scrolls. Everything else lives in one scroller that rides
+     over it, so the cards climb the photo to reveal the stats and the toggle. */
+  .pdscreen{flex:1 1 auto;position:relative;overflow:visible}
+
+  /* ── the fixed photo layer ────────────────────────────────────────────────
+     top:-48px reaches back up over the status bar, which is what makes the
+     bleed reach the actual top of the screen; .device's own overflow+radius
+     clip it back to the phone. */
+  .pdbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
+    background:var(--bg);z-index:0}
+  /* Figma stacks the SAME source twice (417:1585 over 418:1642): a blurred,
+     smaller copy as a backdrop and the sharp one on top. Today the sharp layer
+     is opaque and covers it completely — but the moment an mp4 whose aspect
+     differs from the frame drops in, the backdrop is what fills the gaps. It
+     costs nothing and it is in the mockup, so it ships. */
+  .pdbgblur{position:absolute;left:-5.22%;top:0;width:115.67%;height:101.37%;
+    object-fit:cover;filter:blur(5px);display:block;pointer-events:none}
+  /* the stage itself — a real <video>, postered by the still (see .pdvid) */
+  .pdvid{position:absolute;left:-22.89%;top:0;width:145.77%;height:100%;
+    object-fit:cover;display:block;border:0;background:transparent;
+    pointer-events:none}
+  /* 417:1587 — the top scrim that carries the white nav over a bright photo */
+  .pdscrimt{position:absolute;left:0;right:0;top:0;height:266px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,0) 103.57%)}
+  /* 417:1589 — the bottom scrim, drawn flipped in Figma: transparent down to
+     21.94%, then ramping to black at 20%. It runs 5px past the frame's bottom. */
+  .pdscrimb{position:absolute;left:0;right:0;bottom:-5px;height:271px;
+    pointer-events:none;
+    background:linear-gradient(180deg,rgba(0,0,0,0) 21.939%,rgba(0,0,0,.2) 100%)}
+
+  /* ── the scrolling layer ──────────────────────────────────────────────────
+     inset:0 gives it a definite height, which is what lets .pdspacer size
+     itself as a percentage and pin the lower block to the bottom edge. */
+  .pdscroll{position:absolute;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;
+    padding:8px 16px 0;display:flex;flex-direction:column}
+  .pdscroll::-webkit-scrollbar{width:0}
+  /* The top block is pinned to an exact 221px (device 56→277, i.e. the mockup's
+     bubble bottom) so the spacer below it is a single constant no matter how
+     many lines this plant's greeting runs to.
+     position:sticky is what makes "only the cards area scrolls" literally true:
+     the block holds its rest position for the whole scroll range, so the back
+     chevron never leaves and the white bubble never rides up under the white
+     title. top:0 resolves against the scroller's CONTENT box, which already
+     starts below its 8px padding — so this pins the block exactly where it
+     already sits and it never moves at all. The lower block tops out at device
+     410, well clear of this block's 277, so the two never collide. */
+  .pdtop{flex:0 0 auto;height:221px;display:flex;flex-direction:column;
+    position:sticky;top:0;z-index:2}
+  /* 411 = 221 (top block) + 190 (the labels' offset up from the bottom edge) */
+  .pdspacer{flex:0 0 auto;height:calc(100% - 411px);min-height:24px}
+  .pdlower{flex:0 0 auto}
+
+  .pdmenu{position:absolute;top:104px;right:14px;z-index:120;background:var(--card);
     border:none;border-radius:var(--r-sub);min-width:214px;overflow:hidden;
     box-shadow:0 10px 40px rgba(30,12,0,.14)}
   .pdmenu > div{padding:14px 18px;font-size:var(--t-md);cursor:pointer;
@@ -321,10 +384,19 @@
     display:flex;align-items:center;justify-content:center}
   .plmore:active{opacity:.5}
 
-  /* species (left, muted) + mood chip (right). Figma 415:1532 / 415:1487 */
+  /* the whole nav row now sits on the photo, so it is set in white (417:1538,
+     and both nav glyphs come back from Figma with stroke="white") */
+  .pdscreen .pltitle{color:#fff}
+  .pdscreen .plback,.pdscreen .plmore{opacity:1;color:#fff}
+
+  /* species (left) + mood chip (right). Figma 417:1580 / 417:1572. Over the
+     photo the species is plain white — the 40% black it wears on the light
+     screens would disappear here. The 29px indent lines it up under the title
+     rather than under the chevron (mockup x=43 against a 14px chevron). */
   .pdrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-    margin:13px -2px 0;min-height:27px;flex:0 0 auto;position:relative;z-index:5}
-  .pdsp{font-size:var(--t-md);color:#050505;opacity:.4;line-height:1.25;padding-top:3px}
+    margin:11px -2px 0;min-height:27px;flex:0 0 auto;position:relative;z-index:5}
+  .pdsp{margin-left:29px;font-size:var(--t-md);color:#fff;line-height:1.25;
+    padding-top:2px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
   /* soft filled pill with a gentle glow in the plant's own emotion colour —
      fill and drop-shadow are the SAME hex, exactly as the mockup builds it */
   .moodchip{border:none;border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
@@ -332,42 +404,25 @@
 
   /* speech blob — the mockup's Ellipse 18 path, painted by blobBg(). No quote
      marks: the shape already says it is speech. */
-  .pdbubwrap{position:relative;margin:22px -16px 0;display:flex;justify-content:center;
+  .pdbubwrap{position:relative;margin:2px -16px 0;display:flex;justify-content:center;
     flex:0 0 auto}
-  /* the soft top scrim the mockup floats behind the bubble (415:1430) */
-  .pdscrim{position:absolute;left:0;right:0;top:-16px;height:188px;border-radius:36px;
-    background:linear-gradient(180deg,#EFEFEF 0%,rgba(239,239,239,0) 78.061%);
-    pointer-events:none}
   .pdbub{position:relative;width:277px;max-width:calc(100% - 32px);min-height:116px;
     background-size:100% 100%;background-repeat:no-repeat;
     padding:26px 29px;font-size:var(--t-md);line-height:1.28;text-align:center;
     color:var(--ink);display:flex;align-items:center;justify-content:center}
 
-  /* ── VIDEO STAGE ──────────────────────────────────────────────────────────
-     Figma frames the pot render as a SQUARE source 1.4154× the frame width,
-     centred and nudged up 4.33%, inside a 402×551 window (415:1434). The same
-     ratios drive the stage, so swapping the poster for a real mp4 changes
-     nothing about the layout. */
-  .pdstageBox{position:relative;margin:0 -16px;aspect-ratio:402/551;overflow:hidden;
-    flex:0 0 auto}
-  .pdvid{position:absolute;left:50%;top:-4.33%;width:141.54%;aspect-ratio:1;
-    transform:translateX(-50%);object-fit:cover;display:block;border:0;
-    background:transparent;pointer-events:none}
-  /* the timeline is drawn in white over whatever frame is showing, so the stage
-     carries a gentle bottom scrim to guarantee it stays legible */
-  .pdstagescrim{position:absolute;left:0;right:0;bottom:0;height:150px;
-    background:linear-gradient(180deg,rgba(30,12,0,0) 0%,rgba(30,12,0,.22) 100%);
-    pointer-events:none}
-
   /* ── TIMELINE SCRUB ───────────────────────────────────────────────────────
-     A rail across the stage: position maps linearly to video currentTime, with
-     the right end = "now" = the final frame. Dragging is pointer-based, so touch
-     and mouse are one code path; touch-action:none keeps a drag from scrolling
-     the screen underneath. */
-  .pdtimeline{position:absolute;left:0;right:0;bottom:9px;z-index:4;padding:0 20px;
+     Now in the scrolling layer rather than pinned to a stage box, sitting 19px
+     above the bond card exactly as the mockup measures it (rail 715 → card 740),
+     so the relationship holds at every scroll position instead of only at rest.
+     Position maps linearly to video currentTime, the right end being "now".
+     Pointer events cover touch and mouse in one path; touch-action:none keeps a
+     scrub from scrolling the sheet under it. */
+  .pdtimeline{position:relative;margin:0 -16px;padding:0 20px;
     touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
   .pdtimeline:active{cursor:grabbing}
-  .pdtllab{position:relative;height:20px;margin-bottom:10px}
+  /* labels 684→704, dots 711→721: a 7px gap */
+  .pdtllab{position:relative;height:20px;margin-bottom:7px}
   .pdtllab span{position:absolute;white-space:nowrap;font-size:var(--t-md);
     line-height:1.25;color:#fff;text-shadow:0 1px 8px rgba(30,12,0,.45)}
   .pdtlrail{position:relative;height:10px}
@@ -380,8 +435,11 @@
 
   /* ── INFO CARDS ───────────────────────────────────────────────────────────
      The mockup insets them 5px from a 402px frame and stacks them on a 5px gap;
-     -11px cancels the screen's 16px padding down to that 5. */
-  .pdcards{display:flex;flex-direction:column;gap:5px;margin:5px -11px 0;
+     -11px cancels the screen's 16px padding down to that 5. The 19px top margin
+     is the mockup's own gap between the timeline dots (bottom 721) and the bond
+     card (740); the 24px bottom lets the auto-watering card clear the edge once
+     the sheet is scrolled all the way up. */
+  .pdcards{display:flex;flex-direction:column;gap:5px;margin:19px -11px 24px;
     flex:0 0 auto}
   .pdbondmeta{display:flex;align-items:center;gap:8px;margin:1px 0 14px}
   .pdsep{width:4px;height:4px;border-radius:50%;background:#050505;opacity:.2;
@@ -982,7 +1040,9 @@ function Brand(){ return <span className="brand">[APP NAME]</span>; }
 /* Device status bar — part of the phone chrome, constant on every screen.
    Solid-ink icons (time, cellular, wi-fi, battery); never wireframe-styled. */
 function StatusBar(){
-  const ink = "#050505";
+  /* currentColor, not a literal: the status bar inherits --ink everywhere, and
+     the full-bleed plant detail flips it to white with a single CSS rule */
+  const ink = "currentColor";
   return <div className="statusbar">
     <span className="sb-time">9:41</span>
     <span className="sb-right">
@@ -1165,15 +1225,17 @@ function IconMic(){
 /* Unified nav-bar glyphs — 24×24, 2px strokes, straight off the mockups
    (chevron-left 364:1070 / 415:1431, more-horizontal 415:1472). Shared by every
    screen that carries the serif nav bar. */
+/* both stroke in currentColor: ink on the light screens, white where the plant
+   detail lays them over its photo (Figma returns them as stroke="white" there) */
 function IconChevronLeft(){
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M15 18L9 12L15 6" stroke="#050505" strokeWidth="2"
+    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round"/>
   </svg>;
 }
 function IconMore(){
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <g stroke="#050505" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
     </g>
   </svg>;
@@ -1428,20 +1490,30 @@ function Notifications(){
   </div>;
 }
 
-/* ═════════════════ PLANT DETAIL (Figma "concept2" 415:1426) ═════════════════
-   Top to bottom: the unified serif nav bar, a species + mood-chip row, the
-   plant's own speech blob, the VIDEO STAGE with a scrubbing timeline, then the
-   info cards in the canonical .scard style.
+/* ═════════════════ PLANT DETAIL (Figma "concept2" 417:1537) ═════════════════
+   TWO LAYERS. The photo/video is a full-bleed background that never moves and
+   runs edge to edge, behind the status bar included. Everything else — nav bar,
+   species + mood chip, speech blob, timeline, info cards — lives in one scroller
+   that rides over it, so scrolling climbs the cards up the photo to reveal the
+   stats and the auto-watering toggle while the picture stays put.
 
-   The stage is built VIDEO-FIRST. It is a real <video> whose poster is the pot
-   render, so the growth film can be dropped in as assets/plant-<id>.mp4 with no
-   code change at all: while the file is missing the poster simply stays up, and
-   the scrub still runs (it just has no duration to seek against). Timeline
-   position maps LINEARLY to currentTime, with the right end = "now" = the final
-   frame, so scrubbing left runs the growth backwards. */
+   The stage is VIDEO-FIRST. It is a real <video> postered by the stage still, so
+   the growth film can be dropped in as assets/plant-<id>.mp4 with no code change
+   at all: while the file is missing the poster simply stays up, and the scrub
+   still runs (it just has no duration to seek against). Timeline position maps
+   LINEARLY to currentTime, with the right end = "now" = the final frame, so
+   scrubbing left runs the growth backwards. */
 
 /* the milestone labels, lowercase as the mockup sets them */
 const TL = MILESTONES.map(m=>m.stage.toLowerCase());
+
+/* The stage still (Figma 417:1537 → "image 68", 848×1264). It is a real
+   photograph of the pot on a windowsill, not a cutout, which is what lets it
+   run full-bleed. Felix is the sample the mockup was drawn for; the others
+   borrow his frame until their own still or film lands, so the swap is one
+   entry in this map. */
+const STAGE = { felix:"assets/stage-felix.webp" };
+const stageFor = (id)=> STAGE[id] || STAGE.felix;
 
 function PlantDetail({params}){
   const nav = useNav();
@@ -1492,8 +1564,12 @@ function PlantDetail({params}){
   };
   const move = (ev)=>{ if(dragging.current) seek(fracFrom(ev)); };
   const up   = ()=>{ dragging.current = false; };
-  // a trackpad / wheel gesture over the timeline scrubs it too
-  const wheel = (ev)=> seek(want.current + (ev.deltaX || ev.deltaY)/1400);
+  /* a horizontal trackpad gesture over the rail scrubs it; a vertical one is
+     left alone, because the sheet under the timeline is a scroller now and
+     hijacking its wheel would trap the page */
+  const wheel = (ev)=>{
+    if(Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) seek(want.current + ev.deltaX/1400);
+  };
 
   const idx = Math.round(pos*last);
   /* The mockup shows two labels: the one you are standing on, and "now" as the
@@ -1503,100 +1579,115 @@ function PlantDetail({params}){
   const labelPos = (i)=> i===last ? {right:0} : i===0 ? {left:0}
                        : {left:((i/last)*100)+"%", transform:"translateX(-50%)"};
 
-  return <div className="screen pdscreen" onClick={()=>menu&&setMenu(false)}>
+  return <div className="pdscreen" onClick={()=>menu&&setMenu(false)}>
 
-    {/* 1 — the unified nav bar: chevron · serif name · ⋯ */}
-    <div className="plhead">
-      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
-      <h1 className="pltitle">{p.name.split(" ")[0]}</h1>
-      <span className="plmore" title="More"
-        onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
-    </div>
-
-    {/* everything about this plant lives behind the ⋯ */}
-    {menu && <div className="pdmenu" onClick={ev=>ev.stopPropagation()}>
-      <div onClick={()=>{setMenu(false);nav.go("plantSettings",{id:p.id});}}>
-        Personality &amp; Settings</div>
-      <div onClick={()=>{setMenu(false);nav.go("waterConfig",{id:p.id});}}>
-        Watering schedule</div>
-    </div>}
-
-    {/* 2 — species left, mood chip right */}
-    <div className="pdrow">
-      <span className="pdsp">{p.species}</span>
-      <span className="moodchip" style={{background:e.glow,
-        filter:"drop-shadow(0 0 10px "+e.glow+")"}}>{e.word}</span>
-    </div>
-
-    {/* 3 — the plant's own words, in a white organic blob. No quote marks. */}
-    <div className="pdbubwrap">
-      <div className="pdscrim"/>
-      <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
-        {p.checkin}
-      </div>
-    </div>
-
-    {/* 4 — the video stage. The poster is this plant's pot render, so the screen
-        is complete before the film exists; dropping assets/plant-<id>.mp4 in
-        makes it play with nothing else to change. */}
-    <div className="pdstageBox">
+    {/* 1 — THE STAGE: a full-bleed photo/video background that never scrolls.
+        It reaches up behind the status bar, so the bleed starts at the true top
+        of the screen. Still video-first: the <video> is postered by the stage
+        still, so dropping assets/plant-<id>.mp4 in makes it play unchanged. */}
+    <div className="pdbg">
+      <img className="pdbgblur" src={stageFor(p.id)} alt="" aria-hidden="true"/>
       <video className="pdvid" ref={vid} muted playsInline preload="metadata"
         onLoadedMetadata={onMeta}
-        poster={(SHOT[p.id] || SHOT.felix).src}
+        poster={stageFor(p.id)}
         src={"assets/plant-"+p.id+".mp4"}/>
-      <div className="pdstagescrim"/>
-
-      {/* 5 — the scrub: drag or scroll it, position maps linearly to currentTime */}
-      <div className="pdtimeline" onPointerDown={down} onPointerMove={move}
-        onPointerUp={up} onPointerCancel={up} onWheel={wheel}>
-        <div className="pdtllab">
-          {TL.map((label,i)=> labelled(i) &&
-            <span key={label} style={labelPos(i)}>{label}</span>)}
-        </div>
-        <div className="pdtlrail" ref={rail}>
-          <div className="pdtltrack"/>
-          <div className="pdtlfill" style={{width:(pos*100).toFixed(2)+"%"}}/>
-          {TL.map((label,i)=>(
-            <span key={label} className={"pdtldot"+(i===idx?" on":"")}
-              style={{left:((i/last)*100)+"%"}}/>
-          ))}
-        </div>
-      </div>
+      <div className="pdscrimt"/>
+      <div className="pdscrimb"/>
     </div>
 
-    {/* 6 — the info cards, all in the canonical settings-card style */}
-    <div className="pdcards">
-      <div className="scard">
-        <div className="scard-t">Your bond</div>
-        <div className="pdbondmeta">
-          <span className="scard-l">Level {p.bondLevel}</span>
-          <span className="pdsep"/>
-          <span className="scard-l">{p.bondTitle}</span>
+    {/* 2 — everything else rides over the photo in one scroller */}
+    <div className="pdscroll">
+
+      {/* everything about this plant lives behind the ⋯ */}
+      {menu && <div className="pdmenu" onClick={ev=>ev.stopPropagation()}>
+        <div onClick={()=>{setMenu(false);nav.go("plantSettings",{id:p.id});}}>
+          Personality &amp; Settings</div>
+        <div onClick={()=>{setMenu(false);nav.go("waterConfig",{id:p.id});}}>
+          Watering schedule</div>
+      </div>}
+
+      {/* the top block — nav bar, species + mood chip, speech blob. Pinned to
+          221px so the spacer below it is one constant (see .pdtop). */}
+      <div className="pdtop">
+        <div className="plhead">
+          <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+          <h1 className="pltitle">{p.name.split(" ")[0]}</h1>
+          <span className="plmore" title="More"
+            onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
         </div>
-        <div className="sbar"><i style={{width:p.bondPct+"%"}}/></div>
+
+        <div className="pdrow">
+          <span className="pdsp">{p.species}</span>
+          <span className="moodchip" style={{background:e.glow,
+            filter:"drop-shadow(0 0 10px "+e.glow+")"}}>{e.word}</span>
+        </div>
+
+        {/* the plant's own words, in a white organic blob. No quote marks. */}
+        <div className="pdbubwrap">
+          <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
+            {p.checkin}
+          </div>
+        </div>
       </div>
 
-      <div className="pdstats">
-        <div className="pdstat">
-          <div className="scard-l">Last watering</div>
-          <div className="scard-v">{p.lastWatered}</div>
-        </div>
-        {/* the reservoir card fills itself to its own level */}
-        <div className="pdstat">
-          <span className="reswater"
-            style={{height:p.reservoir+"%", backgroundImage:WATER}}/>
-          <div className="scard-l">Reservoir</div>
-          <div className="scard-v xl">{p.reservoir}%</div>
-        </div>
-        <div className="pdstat">
-          <div className="scard-l">Light</div>
-          <div className="scard-v">{p.light}</div>
-        </div>
-      </div>
+      {/* open photo — this is what the lower block is pushed down by */}
+      <div className="pdspacer"/>
 
-      <div className="scard pdauto">
-        <div className="scard-t">Auto-watering</div>
-        <Toggle on={auto} onClick={()=>setAuto(a=>!a)}/>
+      <div className="pdlower">
+        {/* 3 — the scrub: drag it, position maps linearly to currentTime */}
+        <div className="pdtimeline" onPointerDown={down} onPointerMove={move}
+          onPointerUp={up} onPointerCancel={up} onWheel={wheel}>
+          <div className="pdtllab">
+            {TL.map((label,i)=> labelled(i) &&
+              <span key={label} style={labelPos(i)}>{label}</span>)}
+          </div>
+          <div className="pdtlrail" ref={rail}>
+            <div className="pdtltrack"/>
+            <div className="pdtlfill" style={{width:(pos*100).toFixed(2)+"%"}}/>
+            {TL.map((label,i)=>(
+              <span key={label} className={"pdtldot"+(i===idx?" on":"")}
+                style={{left:((i/last)*100)+"%"}}/>
+            ))}
+          </div>
+        </div>
+
+        {/* 4 — the info cards, all in the canonical settings-card style. The
+            bond card overlaps the bottom of the photo and the stat cards peek
+            12px above the screen edge, which is the scroll affordance. */}
+        <div className="pdcards">
+          <div className="scard">
+            <div className="scard-t">Your bond</div>
+            <div className="pdbondmeta">
+              <span className="scard-l">Level {p.bondLevel}</span>
+              <span className="pdsep"/>
+              <span className="scard-l">{p.bondTitle}</span>
+            </div>
+            <div className="sbar"><i style={{width:p.bondPct+"%"}}/></div>
+          </div>
+
+          <div className="pdstats">
+            <div className="pdstat">
+              <div className="scard-l">Last watering</div>
+              <div className="scard-v">{p.lastWatered}</div>
+            </div>
+            {/* the reservoir card fills itself to its own level */}
+            <div className="pdstat">
+              <span className="reswater"
+                style={{height:p.reservoir+"%", backgroundImage:WATER}}/>
+              <div className="scard-l">Reservoir</div>
+              <div className="scard-v xl">{p.reservoir}%</div>
+            </div>
+            <div className="pdstat">
+              <div className="scard-l">Light</div>
+              <div className="scard-v">{p.light}</div>
+            </div>
+          </div>
+
+          <div className="scard pdauto">
+            <div className="scard-t">Auto-watering</div>
+            <Toggle on={auto} onClick={()=>setAuto(a=>!a)}/>
+          </div>
+        </div>
       </div>
     </div>
   </div>;

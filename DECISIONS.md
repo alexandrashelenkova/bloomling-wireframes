@@ -1657,3 +1657,190 @@ errors and zero exceptions** on every screen.
 
 **Not shipped:** any `.mp4`. The stage is wired and waiting; dropping
 `assets/plant-felix.mp4` in is the whole integration.
+
+---
+
+# Revision 22 — Plant Detail: full-bleed stage, raised bottom interface
+
+Plant Detail only; no other screen's layout or content was touched.
+
+## 0. The mockup moved — and it is a different node
+
+The brief pointed at `415:1426`, but that node has itself changed since rev 21
+(the top scrim `415:1430` is gone, the pot frame is now 515×500 at −57,217, and
+the whole lower block sits 40px higher). The node that actually describes what
+the brief asks for is **`417:1537`**, reached from the placeholder link — a
+**402×874** frame, i.e. a whole iPhone 16 Pro logical screen, with the photo
+running the full height. Everything below is measured off `417:1537`; `415:1426`
+agrees with it on every shared value, so nothing is in conflict.
+
+## 1. The placeholder image
+
+`417:1537` → `image 68`, an 848×1264 photograph of the pot on a windowsill.
+Exported to `assets/stage-felix.webp` (cwebp q84, 67KB — the same treatment the
+pot renders get).
+
+It is a real photograph, not a cutout on transparency, which is the whole reason
+the layout could go full-bleed. The old poster was `pot-<id>.webp`, a square
+cutout that only ever worked inside a centred box.
+
+- **Video-first is unchanged.** The `<video>` still carries
+  `src="assets/plant-<id>.mp4"` and is postered by the still, so dropping the
+  film in is still the entire integration.
+- **One still, all plants.** `STAGE` is a map with Felix in it and
+  `stageFor(id)` falling back to him. Felix is the sample the mockup was drawn
+  for; the others borrow his frame until their own still or film lands, and the
+  swap is one line each. The alternative — leaving the other four on their square
+  pot cutouts — would have meant two different stage layouts in one screen.
+
+## 2. Full-bleed layout
+
+The screen is now **two layers**: a photo that never moves, and one scroller
+that rides over it.
+
+### The photo layer (`.pdbg`)
+
+- `top:-48px` reaches back up **behind the status bar**, so the bleed starts at
+  the true top of the screen rather than under the device chrome. `.device`'s own
+  `overflow:hidden` + 44px radius clip it back to the phone.
+- **The status bar goes white on this screen and only this screen.**
+  `StatusBar`'s glyphs were changed from a hard-coded `#050505` to
+  `currentColor` — a no-op everywhere, since every other screen inherits
+  `--ink` — and one rule, `.device:has(.pdscreen) .statusbar{color:#fff}`, flips
+  it. `IconChevronLeft` and `IconMore` got the same treatment; Figma returns both
+  glyphs as `stroke="white"` in this frame and as ink in `364:1065`, so
+  `currentColor` is the honest encoding of that.
+- **Two image layers, as Figma stacks them.** `417:1585` is the same source
+  blurred 5px at 465×886 (`left −5.22%`, `width 115.67%`, `height 101.37%`);
+  `418:1642` is the sharp one at 586×874 (`left −22.89%`, `width 145.77%`,
+  `height 100%`). Today the sharp layer is opaque and hides the blurred one
+  completely — but the moment an mp4 whose aspect differs from the frame drops
+  in, that backdrop is what fills the gaps. It costs nothing and it is in the
+  mockup, so it ships.
+- Framing check: the source is 848×1264 (0.6709) and the sharp box is 0.6705, so
+  Figma shows it uncropped. At 386×818 the box is 0.688, so `object-fit:cover`
+  trims ~10px top and bottom and nothing horizontally. The pot lands at 58.4% of
+  the screen width against the mockup's 58.5%.
+
+### The scrims — the brief said "check", and the mockup has two
+
+- **Top, `417:1587`:** `linear-gradient(180deg, rgba(0,0,0,.7) 0%,
+  rgba(0,0,0,0) 103.57%)`, 266px tall, full width. Not subtle at the very top —
+  70% black — but it fades fast, and it is what carries the white nav over a
+  bright window.
+- **Bottom, `417:1589`:** drawn flipped in Figma (`-scale-y-100` over a
+  `black → transparent @78.061%` ramp at 20% opacity), which unflips to
+  `rgba(0,0,0,0) 21.939% → rgba(0,0,0,.2) 100%`. 271px tall, running 5px past
+  the frame's bottom edge.
+- Both sit **behind** all content, exactly as the Figma layer order has them —
+  including behind the speech bubble, whose top the scrim therefore tints
+  slightly. That is the mockup.
+- **The derived scrim from rev 21 is gone.** Last revision invented a
+  `rgba(30,12,0,0→.22)` wash to keep the white timeline legible; the mockup's own
+  bottom scrim does that job, so a guess was replaced by a measurement.
+
+### Type over the photo
+
+Title, chevron, ⋯ , species and timeline labels are all white (`417:1538`,
+`417:1581`, `417:1555/1556`). The species lost its 40% black — at 40% over a
+photo it would have disappeared. Species and timeline labels carry a soft
+text-shadow, which the mockup does not have: **DERIVED**, and the reason is that
+the mockup only has to survive one photograph while this has to survive any
+video frame.
+
+**Fixed a rev-21 miss:** the species label was sitting at x=14, under the
+chevron. The mockup puts it at **43**, under the title. A 29px indent on `.pdsp`
+corrects it without moving the right-aligned mood chip.
+
+## 3. Bottom interface — raised
+
+### Two anchors, and why
+
+The mockup frame is **874** tall; this prototype's device is **818**. Mapping
+everything from the top would push the stat cards 44px above the bottom edge
+instead of the mockup's 12, and the "peeking" the brief asks for would read as a
+half-shown row. So:
+
+- **Top block** (nav, species + chip, bubble) is **top-anchored** — mockup y
+  lands on device y unchanged.
+- **Timeline and cards** are **bottom-anchored** — measured up from the frame's
+  bottom edge.
+
+| element | mockup y | up from frame bottom | device y |
+|---|---|---|---|
+| title | 69 | — | 69 |
+| chip / species | 132 / 134 | — | 132 / 134 |
+| bubble | 161 (h 116) | — | 161 |
+| timeline labels | 684 | **190** | 628 |
+| timeline rail | 715 | **159** | 659 |
+| "Your bond" card | 740 (h 117) | **134** | 684 |
+| stat cards | 862 (h 125) | **12** | 806 |
+| auto-watering | 992 (h 74) | — | 936 |
+
+The 56px difference is absorbed by the photo, which is the one element that
+does not care how tall the screen is.
+
+The spacer between the two blocks is one constant:
+`height: calc(100% - 411px)`, where 411 = 221 (the top block, pinned to an exact
+height so a longer greeting cannot drift the layout) + 190 (the labels' offset
+from the bottom). Everything else is the mockup's own internal gaps: labels→dots
+7px, dots→bond card 19px, card→card 5px.
+
+### The timeline scrolls with the cards
+
+The mockup fixes the rail **25px above the bond card** (rail 715, dots to 721,
+card 740). Making it a flow child of the scrolling block preserves that
+relationship at *every* scroll position; pinning it to the photo instead would
+have held it only at rest and then let the cards bury it. It keeps its own
+pointer capture and `touch-action:none`, so a scrub never scrolls the sheet.
+
+- **Wheel scrubbing narrowed to horizontal.** The sheet under the timeline is a
+  scroller now, so a vertical wheel over the rail must scroll the page rather
+  than scrub — otherwise the cursor lands on a 40px strip that traps the scroll.
+
+### Only the cards area scrolls
+
+`.pdtop` is `position:sticky; top:0`, which makes the brief's wording literally
+true: the nav bar, species row and bubble hold their rest position for the whole
+218px scroll range while the timeline and cards climb the photo.
+
+Without it, the back chevron scrolled away entirely and the white bubble rode up
+under the white title — both were visible in the first render. Sticky was the
+right tool over a fixed overlay because the scroller still covers the whole
+screen, so a wheel or a drag anywhere scrolls, and the chevron and ⋯ stay
+tappable inside it. `top:0` (not `8px`) because the offset resolves against the
+scroller's content box, which already starts below its 8px padding.
+
+The lower block tops out at device 410 against the top block's 277, so the two
+never collide and the sticky layer needs no scrim of its own.
+
+## 4. Held deliberately
+
+**The speech bubble stays centred.** The mockup puts it at x=17 in a 402 frame,
+i.e. noticeably left of centre. The previous brief specified "centered" in as
+many words and this one does not revisit the bubble, so the explicit instruction
+stands over the implicit geometry.
+
+## Verification
+
+Headless Chrome over CDP, zero console errors and zero exceptions.
+
+Measured on the device (386×818), against the targets in the table above:
+title top **69** / left **43**; chevron left **14**; chip + species row top
+**131.8** with species at left **43** and the chip's right edge at **372**
+(mockup 14 from the frame edge); bubble top **160.8**, height **116**; labels top
+**628** = **190** up from the bottom; rail **655/163**; bond card **684** = **134**
+up, width 376 at a 5px inset; stat cards **806** = **12** up — the peek. Photo
+layer measured at top **0**, height **818**: the full device, status bar included,
+with the bar's computed colour `rgb(255,255,255)` there and `rgb(5,5,5)` on My
+Plants.
+
+Scroll range **218px**. At full scroll the top block is unmoved (title still 69,
+bubble still 160.8) while the lower block has travelled to 410 / 466 and the
+auto-watering card sits 24px off the bottom edge. Scrub re-checked in the new
+layout: dragging to 33% moves the fill to 33%, lights dot 2 of 6 and shows
+"young plant" + "now". ⋯ menu reaches both destinations.
+
+No regression on the screens that share the changed components: My Plants renders
+its chevron at `rgb(5,5,5)` and its status bar unchanged; Notifications, Profile
+and the dashboard re-rendered clean.
