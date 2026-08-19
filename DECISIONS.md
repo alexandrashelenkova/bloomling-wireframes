@@ -1844,3 +1844,66 @@ layout: dragging to 33% moves the fill to 33%, lights dot 2 of 6 and shows
 No regression on the screens that share the changed components: My Plants renders
 its chevron at `rgb(5,5,5)` and its status bar unchanged; Notifications, Profile
 and the dashboard re-rendered clean.
+
+---
+
+# Revision 23 — expanded hero: the chat fade cut back to a top-edge veil
+
+One rule changed: `.dash.open .gfade`. Nothing else on the dashboard or any
+other screen was touched.
+
+## What was actually wrong
+
+Rev 21 removed the blur and gave the open state the collapsed gradient's *exact*
+stops — 96px solid, transparent at 244px. Identical intensity was the brief then,
+but it does not survive the move: collapsed, that gradient hangs off the top of a
+full-height scroll; open, it hangs off a sheet that is only 336px tall. The same
+244px covers most of it.
+
+Measured on the device before touching anything:
+
+| | device y |
+|---|---|
+| sheet top | 482 |
+| composer top | 730 → readable chat is **248px** |
+| alert bubble | **541 → 707** |
+| old fade | 482 → 726, solid to **578** |
+
+So the gradient was at **full opacity** where the alert bubble started, and still
+ramping across the whole of it and its CTA. That is the washout.
+
+## The change
+
+`height:244px → 52px`, stops `96px/244px → 14px/52px`.
+
+- **52px is set by the alert bubble, not by a percentage.** The brief asks for
+  roughly the top 20–25% *and* for the alert bubble and its CTA to read at full
+  clarity. Those two only agree if the ramp finishes before device 541: 52px ends
+  at 534, seven pixels clear. It is 21% of the 248px readable chat.
+  Where the two readings of "visible chat" disagreed — 20–25% of the whole 336px
+  sheet would be 67–84px, which lands *inside* the alert bubble — the explicit
+  "no dimming on the alert bubble" requirement won.
+- **Character kept, proportion softened.** Still an opaque cap then a ramp to
+  nothing, still tinted `--bg2` so the sheet's top edge has no seam, still no
+  blur. The cap is now 27% of the gradient against the collapsed 39% — shorter
+  *and* softer, as asked.
+- The 14px cap is kept rather than dropped to zero: the sheet's top corners are
+  36px, and a hairline of solid keeps the first message from appearing to touch
+  the rounded edge. It is invisible as a wash, since the sheet under it is the
+  same `--bg2`.
+- `height` was added to both `.gfade` transitions. The two states used to share
+  one height so it never animated; now that they differ, it has to travel with
+  `top` or the fade would snap mid-morph.
+
+**Unchanged:** the collapsed gradient (still 244px, `--bg`, 96/244), verified by
+computed style after collapsing again.
+
+## Verification
+
+Headless Chrome over CDP, no console errors.
+
+Open state: fade measured at 482 → 534, 52px. Computed alpha from its own stops
+is **0 at the alert bubble's top (541)** and **0 at its CTA (660)** — no dimming
+anywhere in the middle or bottom of the chat. Only the tail of the message above,
+clipped at the sheet edge, sits under the veil. Collapsed state re-measured at
+244px with `rgb(237,238,233)` to 96px — untouched.

@@ -573,14 +573,23 @@
   .gfade{position:absolute;left:0;right:0;top:0;height:244px;z-index:11;
     pointer-events:none;opacity:0;
     background:linear-gradient(180deg,var(--bg) 0,var(--bg) 96px,rgba(237,238,233,0) 244px);
-    transition:top .38s var(--soft),background .38s ease-out,opacity .22s ease-out}
+    transition:top .38s var(--soft),height .38s var(--soft),
+      background .38s ease-out,opacity .22s ease-out}
   .gfade.on{opacity:1}
-  /* identical geometry and stops to the collapsed gradient above — only the tint
-     changes, to the sheet's own surface, so there is no colour seam at its edge */
-  .dash.open .gfade{top:434px;height:244px;opacity:1;
-    background:linear-gradient(180deg,var(--bg2) 0,var(--bg2) 96px,rgba(239,239,239,0) 244px);
+  /* Same character as the collapsed gradient above — an opaque cap, then a ramp
+     to nothing, tinted to the sheet's own surface so its top edge has no seam —
+     but MUCH shorter, and proportionally less of it solid (27% against 39%).
+     The sheet opens at device 482 and the composer starts at 730, so the chat
+     that is actually readable is 248px; 52px veils its top fifth and is fully
+     transparent by device 534. That number is set by the alert bubble, which
+     begins at 541: it and its CTA have to read at full clarity, so the ramp has
+     to be finished before it. At 244px it was not — the gradient was still at
+     FULL opacity where that bubble started, which is what washed it out. */
+  .dash.open .gfade{top:434px;height:52px;opacity:1;
+    background:linear-gradient(180deg,var(--bg2) 0,var(--bg2) 14px,rgba(239,239,239,0) 52px);
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
-    transition:top .5s var(--spring),background .5s ease-out,opacity .22s ease-out}
+    transition:top .5s var(--spring),height .5s var(--spring),
+      background .5s ease-out,opacity .22s ease-out}
 
   /* message row — grey avatar circle + organic colour-coded bubble */
   .grow-row{display:flex;gap:5px;align-items:flex-start;margin-bottom:11px}
