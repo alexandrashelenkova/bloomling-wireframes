@@ -328,19 +328,39 @@
      top:-48px reaches back up over the status bar, which is what makes the
      bleed reach the actual top of the screen; .device's own overflow+radius
      clip it back to the phone. */
+  /* The films stop 95px short of the bottom edge in the default framing (see
+     .pdvid), so the layer under them is painted in the studio backdrop rather
+     than the app's --bg: sampled off the mp4's own bottom row, #D4D0C8 at the
+     left and #CDC9BD at the right. Only ever visible as a sliver at the very
+     end of the scroll, and there it reads as more floor, not as a band. */
   .pdbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
-    background:var(--bg);z-index:0}
-  /* Figma stacks the SAME source twice (417:1585 over 418:1642): a blurred,
-     smaller copy as a backdrop and the sharp one on top. Today the sharp layer
-     is opaque and covers it completely — but the moment an mp4 whose aspect
-     differs from the frame drops in, the backdrop is what fills the gaps. It
-     costs nothing and it is in the mockup, so it ships. */
-  .pdbgblur{position:absolute;left:-5.22%;top:0;width:115.67%;height:101.37%;
-    object-fit:cover;filter:blur(5px);display:block;pointer-events:none}
-  /* the stage itself — a real <video>, postered by the still (see .pdvid) */
-  .pdvid{position:absolute;left:-22.89%;top:0;width:145.77%;height:100%;
-    object-fit:cover;display:block;border:0;background:transparent;
-    pointer-events:none}
+    background:linear-gradient(90deg,#D4D0C8 0%,#CDC9BD 100%);z-index:0}
+
+  /* ── the two films ────────────────────────────────────────────────────────
+     Both are framed exactly as the mockup frames "still 1": x=-27, 457×995 on
+     a 402px frame, i.e. -6.716% / 113.681% of the device width. The sources are
+     976×2124 (ratio .45951) against that rect's .45930 — the rect IS the film
+     at scale, so height comes from the intrinsic aspect and nothing is cropped.
+     aspect-ratio states it up front so the box is right before metadata lands.
+
+     Vertical placement is the whole mechanic and it is TWO numbers off Figma:
+       ·  -184px  428:1782 "still 1" — the default framing, shifted up so the
+                  pot and its face fill the stage.
+       ·     0px  437:90   "still 1" — flush with the top of the screen, which
+                  is where the growth film plays.
+     Y is carried on `transform`, not `top`, so the glide between the two is a
+     compositor-only animation. A CSS transition of a FIXED duration is what
+     drives it: interrupt it half-way and it re-runs over the same 420ms from
+     wherever it stands, which is exactly what the reversal logic assumes. */
+  .pdvid{position:absolute;left:-6.716%;top:0;width:113.681%;
+    aspect-ratio:976 / 2124;display:block;border:0;background:transparent;
+    pointer-events:none;transform:translate3d(0,0,0);
+    -webkit-backface-visibility:hidden;backface-visibility:hidden}
+  .pdvid-still{will-change:transform;
+    transition:transform 420ms cubic-bezier(.33,.72,.26,1)}
+  /* the growth film is parked at 0 forever and only ever fades; it sits above
+     the still one in the stack, so a single opacity drives the cross-fade */
+  .pdvid-grow{opacity:0;will-change:opacity;transition:opacity 180ms linear}
   /* 417:1587 — the top scrim that carries the white nav over a bright photo */
   .pdscrimt{position:absolute;left:0;right:0;top:0;height:266px;pointer-events:none;
     background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,0) 103.57%)}
@@ -1506,27 +1526,41 @@ function Notifications(){
    that rides over it, so scrolling climbs the cards up the photo to reveal the
    stats and the auto-watering toggle while the picture stays put.
 
-   The stage is VIDEO-FIRST. It is a real <video> postered by the stage still, so
-   the growth film can be dropped in as assets/plant-<id>.mp4 with no code change
-   at all: while the file is missing the poster simply stays up, and the scrub
-   still runs (it just has no duration to seek against). Timeline position maps
-   LINEARLY to currentTime, with the right end = "now" = the final frame, so
-   scrubbing left runs the growth backwards. */
+   The stage is TWO REAL FILMS, not a poster (see FILM below). Timeline position
+   maps linearly onto the growth film's currentTime, the right end being "now",
+   and the swap between the two films is choreographed so that neither the cut
+   nor the reframing is ever visible. */
 
 /* the milestone labels, lowercase as the mockup sets them */
 const TL = MILESTONES.map(m=>m.stage.toLowerCase());
 
-/* The stage still (Figma 417:1537 → "image 68", 848×1264). It is a real
-   photograph of the pot on a windowsill, not a cutout, which is what lets it
-   run full-bleed. Felix is the sample the mockup was drawn for; the others
-   borrow his frame until their own still or film lands, so the swap is one
-   entry in this map. */
-const STAGE = { felix:"assets/stage-felix.webp" };
-const stageFor = (id)=> STAGE[id] || STAGE.felix;
+/* ── THE TWO FILMS (Figma 437:93) ────────────────────────────────────────────
+   still-vlad.mp4   the "now" state — a gentle idle loop of the grown plant,
+                    running at the -184px framing. 976×2124, 5.04s.
+   growth-vlad.mp4  the growth timeline, same size and length.
+
+   The direction matters and the FILE, not the brief, settles it: growth-vlad's
+   frame 0 is the fully grown bonsai (0.51/255 mean pixel difference from
+   still-vlad's frame 0 — the same image), and its LAST frame is the seedling.
+   The file is authored grown → sprout. So "now" is t=0 and scrubbing back in
+   time runs FORWARD through the file: t = (1 - pos) * duration. Written the
+   other way round it would grow as you scrubbed into the past, which is the one
+   thing that must not happen.
+
+   Vlad's films play for every plant. This screen is the prototype's sample
+   plant detail whichever card opened it, and there is exactly one plant with
+   footage; the map is the seam where per-plant films would land. */
+const FILM = { still:"assets/video/still-vlad.mp4",
+               growth:"assets/video/growth-vlad.mp4" };
+
+/* the two stage framings, straight off the mockup's own "still 1" rects */
+const PD_Y     = { still:-184, growth:0 };   // 428:1782 / 437:90
+const PD_SLIDE = 420;   // the -184 ⇄ 0 glide; must match .pdvid-still's transition
+const PD_FADE  = 180;   // the cross-fade that covers the swap
 
 function PlantDetail({params}){
   const nav = useNav();
-  const p = plantById((params&&params.id)||"felix");
+  const p = plantById((params&&params.id)||"vlad");
   const e = EMO[p.emotion] || EMO.neutral;
   const last = TL.length - 1;
 
@@ -1534,31 +1568,138 @@ function PlantDetail({params}){
   const [menu,setMenu] = useState(false);
   const [auto,setAuto] = useState(p.autoOn);
 
-  const vid  = useRef(null);
-  const rail = useRef(null);
-  const raf  = useRef(0);
-  const want = useRef(1);
+  /* ── THE STAGE ────────────────────────────────────────────────────────────
+     Two films stacked in one box. `sy` is the still film's Y, handed to a CSS
+     transition; `gOn` fades the growth film in over it. Nothing else about the
+     stage is React state — the scrub itself runs on refs and rAF, because it
+     has to keep up with a finger. */
+  const [sy,setSy]   = useState(PD_Y.still);
+  const [gOn,setGOn] = useState(false);
 
-  /* rAF-coalesced seek. A pointermove fires far more often than a video can
-     actually seek, so the handler only records where we want to be and one
-     animation frame later applies it once — that is what makes the scrub smooth
-     instead of stuttering behind the finger. */
-  const applySeek = ()=>{
-    raf.current = 0;
-    const v = vid.current; if(!v) return;
-    const d = v.duration;
-    if(!isFinite(d) || d <= 0) return;   // no mp4 in place yet — the poster stays
-    try{ v.currentTime = Math.max(0, Math.min(d, want.current * d)); }catch(err){}
+  const stillV = useRef(null);
+  const growV  = useRef(null);
+  const rail   = useRef(null);
+  const raf    = useRef(0);
+  const timers = useRef([]);
+  const dur    = useRef(0);    // growth film's usable duration
+  const want   = useRef(1);    // where the finger is, 0…1 (1 = now)
+  const shown  = useRef(1);    // where the film is, eased toward `want`
+  /* still → down → growth → fadeOut → up → still. `down` and `up` are the
+     -184 ⇄ 0 glides, `fadeOut` is the cross-fade home. A ref, not state: the
+     visible consequences are all in `sy`/`gOn` and re-rendering on every step
+     of the machine would only fight the scrub. */
+  const phase  = useRef("still");
+
+  const after = (ms,fn)=>{ timers.current.push(setTimeout(fn,ms)); };
+  const stopTimers = ()=>{ timers.current.forEach(clearTimeout); timers.current = []; };
+
+  /* ── going back in time ───────────────────────────────────────────────────
+     Order is everything. Glide the still film from -184 down to 0 FIRST, and
+     only once it has landed cross-fade the growth film in on top of it: both
+     films are at 0 at that moment and growth's t=0 is, pixel for pixel, the
+     still film's image, so there is nothing left to flash or jump. */
+  const toGrowth = ()=>{
+    const ph = phase.current;
+    if(ph === "growth" || ph === "down") return;
+    stopTimers();
+    if(ph === "fadeOut"){          // caught inside the cross-fade — just turn round
+      phase.current = "growth"; setGOn(true);
+      after(PD_FADE, ()=>{ const v = stillV.current; if(v) v.pause(); });
+      kick(); return;
+    }
+    // from "still", or from "up" with the film part-way back up: same glide,
+    // and the transition takes its full 420ms from wherever it stands
+    phase.current = "down";
+    setSy(PD_Y.growth);
+    after(PD_SLIDE, ()=>{
+      const g = growV.current;
+      if(g){ try{ g.pause(); g.currentTime = 0; }catch(err){} }
+      phase.current = "growth";
+      setGOn(true);
+      after(PD_FADE, ()=>{ const v = stillV.current; if(v) v.pause(); });
+      kick();
+    });
   };
+
+  /* ── and coming home ──────────────────────────────────────────────────────
+     The same three beats in reverse: the growth film has to have reached its
+     "now" frame before it fades, and the still film only starts climbing back
+     to -184 once it is the only thing on screen. */
+  const toStill = ()=>{
+    const ph = phase.current;
+    if(ph === "still" || ph === "fadeOut" || ph === "up") return;
+    stopTimers();
+    if(ph === "down"){             // never got as far as the swap — just climb back
+      phase.current = "up";
+      setSy(PD_Y.still);
+      after(PD_SLIDE, ()=>{ phase.current = "still"; });
+      return;
+    }
+    phase.current = "fadeOut";
+    const v = stillV.current;
+    if(v){ const q = v.play(); if(q && q.catch) q.catch(()=>{}); }
+    setGOn(false);
+    after(PD_FADE, ()=>{
+      phase.current = "up";
+      setSy(PD_Y.still);
+      after(PD_SLIDE, ()=>{ phase.current = "still"; });
+    });
+  };
+
+  /* ── the scrub ────────────────────────────────────────────────────────────
+     A pointermove fires far more often than a video can seek, so the handler
+     only records where the finger is and one animation frame later the film is
+     eased a fraction of the way there. The easing is not decoration: it is what
+     lets `pos` answer the finger instantly while the film glides, and what lets
+     the film sit at "now" through the whole hand-over and then rewind into
+     place afterwards instead of jump-cutting to wherever the finger got to.
+
+     `shown` is deliberately frozen unless the growth film is actually on
+     screen. That is the guarantee that the cross-fade always happens with both
+     films showing the same frame. */
+  const tick = ()=>{
+    raf.current = 0;
+    if(phase.current !== "growth") return;
+    const g = growV.current, d = dur.current;
+    const diff = want.current - shown.current;
+    shown.current = Math.abs(diff) > 0.0006 ? shown.current + diff*0.22 : want.current;
+    if(g && d > 0){
+      const t = (1 - shown.current) * d;      // now = t 0; back in time = forward
+      if(Math.abs(g.currentTime - t) > 0.003){ try{ g.currentTime = t; }catch(err){} }
+    }
+    if(want.current >= 0.9994 && shown.current >= 0.9994){ shown.current = 1; toStill(); return; }
+    if(shown.current !== want.current) raf.current = requestAnimationFrame(tick);
+  };
+  const kick = ()=>{ if(!raf.current) raf.current = requestAnimationFrame(tick); };
+
   const seek = (frac)=>{
     const f = Math.max(0, Math.min(1, frac));
     want.current = f;
     setPos(f);
-    if(!raf.current) raf.current = requestAnimationFrame(applySeek);
+    /* leaving "now" is what starts the whole sequence — a bare tap ON now does
+       not, because nothing has been scrubbed yet */
+    if(f < 0.9994) toGrowth();
+    else if(phase.current === "down") toStill();
+    kick();
   };
-  useEffect(()=>()=>{ if(raf.current) cancelAnimationFrame(raf.current); },[]);
-  // land on the last frame as soon as the film knows how long it is
-  const onMeta = ()=>{ want.current = 1; applySeek(); };
+
+  // the growth film never plays; it is seeked. Park it on its "now" frame and
+  // keep the last 40ms back, because seeking to the exact tail is unreliable.
+  const onGrowMeta = ()=>{
+    const g = growV.current; if(!g) return;
+    const d = g.duration;
+    dur.current = (isFinite(d) && d > 0) ? Math.max(0, d - 0.04) : 0;
+    try{ g.pause(); g.currentTime = 0; }catch(err){}
+  };
+
+  useEffect(()=>{
+    // muted is set imperatively as well as declaratively: it is the condition
+    // for autoplay, and it has to be true before play() is called
+    const v = stillV.current, g = growV.current;
+    if(g) g.muted = true;
+    if(v){ v.muted = true; const q = v.play(); if(q && q.catch) q.catch(()=>{}); }
+    return ()=>{ stopTimers(); if(raf.current) cancelAnimationFrame(raf.current); };
+  },[]);
 
   const fracFrom = (ev)=>{
     const el = rail.current; if(!el) return want.current;
@@ -1590,16 +1731,17 @@ function PlantDetail({params}){
 
   return <div className="pdscreen" onClick={()=>menu&&setMenu(false)}>
 
-    {/* 1 — THE STAGE: a full-bleed photo/video background that never scrolls.
-        It reaches up behind the status bar, so the bleed starts at the true top
-        of the screen. Still video-first: the <video> is postered by the stage
-        still, so dropping assets/plant-<id>.mp4 in makes it play unchanged. */}
+    {/* 1 — THE STAGE: a full-bleed film background that never scrolls. It
+        reaches up behind the status bar, so the bleed starts at the true top of
+        the screen. Two films live here: the idle loop, which carries the Y
+        animation, and the growth film above it, which only ever fades. */}
     <div className="pdbg">
-      <img className="pdbgblur" src={stageFor(p.id)} alt="" aria-hidden="true"/>
-      <video className="pdvid" ref={vid} muted playsInline preload="metadata"
-        onLoadedMetadata={onMeta}
-        poster={stageFor(p.id)}
-        src={"assets/plant-"+p.id+".mp4"}/>
+      <video className="pdvid pdvid-still" ref={stillV} src={FILM.still}
+        muted loop autoPlay playsInline preload="auto"
+        style={{transform:"translate3d(0,"+sy+"px,0)"}}/>
+      <video className="pdvid pdvid-grow" ref={growV} src={FILM.growth}
+        muted playsInline preload="auto" onLoadedMetadata={onGrowMeta}
+        style={{opacity:gOn?1:0}}/>
       <div className="pdscrimt"/>
       <div className="pdscrimb"/>
     </div>
@@ -2341,7 +2483,7 @@ const FLOWS = [
   { label:"Add new plant",      path:[["pair"]] },
   { label:"Dashboard",          path:[["dashboard"]] },   // = hero + Windowsill chat
   { label:"Notifications",      path:[["notifs"]] },
-  { label:"Plant card",         path:[["plant",{id:"felix"}]] },
+  { label:"Plant card",         path:[["plant",{id:"vlad"}]] },   // Vlad: the films are his
   { label:"Alert simulation",   path:[["alert"]] },
   { label:"Profile & settings", path:[["profile"]] },
 ];

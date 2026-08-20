@@ -1907,3 +1907,161 @@ is **0 at the alert bubble's top (541)** and **0 at its CTA (660)** — no dimmi
 anywhere in the middle or bottom of the chat. Only the tail of the message above,
 clipped at the sheet edge, sits under the veil. Collapsed state re-measured at
 244px with `rgb(237,238,233)` to 96px — untouched.
+
+---
+
+# Revision 24 — Plant Detail: the real films and the scroll transition
+
+Scope was the Plant Detail stage only. No other screen was touched. The one
+change outside `PlantDetail` is the flow-index shortcut label "Plant card",
+which now opens Vlad instead of Felix — see below.
+
+## What replaced what
+
+The stage was a single `<video>` pointed at `assets/plant-<id>.mp4`, a file that
+never existed, so in practice it was a poster: `assets/stage-felix.webp`, blurred
+once as a backdrop and printed sharp on top. All of that is gone — `STAGE`,
+`stageFor`, `.pdbgblur` and the `poster` attribute with it. In its place two real
+films that actually play:
+
+| | file | role |
+|---|---|---|
+| still | `assets/video/still-vlad.mp4` | the "now" state, looping, muted, autoplay |
+| growth | `assets/video/growth-vlad.mp4` | the timeline, never played — seeked |
+
+Both are 976×2124, 5.042s. Both `muted playsInline preload="auto"`, no controls.
+
+## The direction of the growth film — the file overrode the brief
+
+The brief said to start the growth film on its **last** frame and run toward the
+first as the scrub goes back in time. The file is authored the other way round.
+Decoded and compared frame by frame:
+
+| | growth-vlad frame 0 | growth-vlad last frame |
+|---|---|---|
+| | fully grown bonsai | seedling |
+
+and growth frame 0 against still-vlad frame 0 is a **0.51/255 mean pixel
+difference** — the same image. The file runs grown → sprout.
+
+**Decision: "now" maps to `t = 0`, and scrubbing back in time runs *forward*
+through the file — `t = (1 - pos) * duration`.** Rationale: the brief's *intent*
+is unambiguous (right = now = grown, left = earlier = smaller) and it is the
+intent that has to be true on screen; taking the frame index literally would have
+made the plant *grow* as you scrubbed into the past, which is the one outcome
+the brief rules out. Logged here because it is a deliberate contradiction of a
+written instruction.
+
+The happy side effect: because growth's t=0 *is* the still film's image, the
+cross-fade between them has nothing to hide.
+
+## Vertical positioning — read off the mockup, not guessed
+
+Figma node `437:93` holds the two frames side by side. Both contain a rect named
+`still 1`, and those rects are the film:
+
+| frame | rect | x | **y** | w × h |
+|---|---|---|---|---|
+| `428:1782` default | `437:88` | -27 | **-184** | 457 × 995 |
+| `437:8` growth | `437:90` | -27 | **0** | 457 × 995 |
+
+457 × 995 is ratio .45930; the sources are 976 × 2124, ratio .45951. The rect
+**is** the film at scale — nothing is cropped, and `object-fit:cover` was
+dropped along with the old `left:-22.89%; width:145.77%`.
+
+- Horizontal is proportional: `-27/402 = -6.716%`, `457/402 = 113.681%` of the
+  device width, so it survives the 402px mockup → 386px device difference.
+- Vertical is **literal px**, -184 and 0, following this screen's existing
+  convention that mockup y lands on device y unchanged (the same rule that pins
+  the title at 69 and the bubble at 161). Measured in the browser: 438.8 × 954.9
+  at left -25.9, top -184 / 0.
+- `aspect-ratio:976/2124` is declared so the box is correct before metadata
+  lands and the first paint cannot flash a wrong height.
+- Y rides on `transform`, not `top` — compositor-only.
+
+## The transition
+
+A five-state machine held in a ref (`still → down → growth → fadeOut → up →
+still`); only `sy` (the still film's Y) and `gOn` (the growth film's opacity) are
+React state, because re-rendering on every beat would only fight the scrub.
+
+**Going back:** glide the still film -184 → 0 over **420ms** `cubic-bezier(.33,
+.72,.26,1)`, and only once it has landed cross-fade the growth film in over
+**180ms**. Both films sit at 0 at the swap and are showing the same frame, so
+there is nothing to flash or jump. Then the still film pauses.
+
+**Coming home:** the same three beats reversed — the growth film has to reach
+its "now" frame first, then it fades out over 180ms, and only then does the
+still film climb back to -184 and resume looping.
+
+Decisions inside that:
+
+- **`shown` is frozen at "now" until the growth film is actually on screen.**
+  The scrub keeps two numbers: `want` (where the finger is, which drives the rail
+  instantly) and `shown` (where the film is, eased toward `want` at 0.22/frame in
+  a rAF loop). Freezing `shown` during the slide is what *guarantees* the
+  cross-fade happens with both films on the same frame however far the finger
+  has already travelled — and it means the growth film visibly rewinds into
+  position after the swap instead of jump-cutting. That reads better than the
+  alternative and it is why the hand-over cannot be caught out by a fast drag.
+- **420ms as a fixed-duration CSS transition, and the swap on a matching
+  timer.** A CSS transition interrupted half-way re-runs over its full duration
+  from wherever it stands, so the timer is exact even on a reversal — no
+  `transitionend` bookkeeping needed.
+- **Leaving "now" starts the sequence; a bare tap *on* "now" does not.** The
+  trigger is `pos < 0.9994`, not pointerdown. Rationale: the brief says "starts
+  scrubbing back from now", and touching the rail without moving is not that.
+- **Reversal is handled at every beat.** Turn round during the slide down and
+  the growth film is never shown at all — the still film just climbs back. Turn
+  round inside the return cross-fade and the growth film fades straight back in
+  at 0, no positional jump, because the still film has not started climbing yet.
+- **rAF-coalesced seeking, ~3ms dead-band.** A pointermove fires far more often
+  than a video can seek. Also the last 40ms of duration is held back, because
+  seeking to the exact tail is unreliable across browsers.
+- `preload="auto"` on both: ~9.4MB on entering the screen. Accepted — instant
+  scrubbing is the point of the screen and this is a prototype, not a shipping
+  app.
+
+## Vlad's films everywhere, and the shortcut now opens Vlad
+
+There is footage for exactly one plant. `FILM` is a flat pair of paths, not a
+per-plant map, so this screen plays Vlad whichever card opened it — as the brief
+allows for the prototype. The map is the seam where per-plant films would land.
+
+The consequence was that the flow index's "Plant card" opened **Felix**, so the
+screen read "Felix / Ficus" over Vlad's bonsai. **The shortcut and the screen's
+own no-id fallback now point at `vlad`.** Rationale: Vlad is Bonsai, which is
+what the mockup and the footage both show; leaving it on Felix would have made
+the one screen this revision is about contradict itself. Nothing about Felix or
+any other screen changed — only which id this shortcut passes.
+
+## The strip under the film
+
+At the -184 framing the film ends 95px short of the bottom edge. Below it,
+`.pdbg` used to paint `--bg` (#EDEEE9), which would have shown as a band at the
+very end of the scroll. It now paints
+`linear-gradient(90deg,#D4D0C8,#CDC9BD)` — sampled off the mp4's own bottom row,
+left and right — so the sliver reads as more studio floor rather than as app
+chrome. Verified at `scrollTop 217/218`: no visible seam.
+
+## Verification
+
+Headless Chrome over CDP, driven with real `Input.dispatchMouseEvent` so the
+pointer-capture path is exercised. **No console errors, no exceptions.**
+
+| step | still film | growth film |
+|---|---|---|
+| on load | top -184, playing | top 0, opacity 0, t 0 |
+| pos 0.55 | top 0, paused | opacity 1, **t 2.251** (= (1-0.55)×5.002) |
+| pos 0.02 | top 0, paused | **t 4.902** (= (1-0.02)×5.002) |
+| back at now | top -184, playing | opacity 0, t ≈ 0 |
+
+Edge cases, all clean: bail out mid-slide (still reversed from -39.7 → -157.6 →
+-184, growth never shown); turn round inside the return cross-fade (recovered to
+growth at t 3.50 for pos 0.30); tap exactly on "now" (nothing moves); scroll to
+the bottom at the default framing (films unmoved).
+
+One note for anyone testing locally: **python's `http.server` does not support
+HTTP Range requests**, and without them Chrome silently refuses to seek the mp4 —
+`currentTime` is written and reads back 0. The scrub looks broken and is not.
+Serve with something that answers `206`, as Vercel does.
