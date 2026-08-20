@@ -2065,3 +2065,17 @@ One note for anyone testing locally: **python's `http.server` does not support
 HTTP Range requests**, and without them Chrome silently refuses to seek the mp4 —
 `currentTime` is written and reads back 0. The scrub looks broken and is not.
 Serve with something that answers `206`, as Vercel does.
+
+## Shipped
+
+Commit `18ce159` → `origin/main`. Vercel production deployment
+`dpl_BTqdwsNYKdBREC9RL1pdnHXxYbLV`, aliased to
+**https://bloomling-wireframes.vercel.app** — unchanged URL, `bloomling-wireframes.vercel.app`.
+
+Re-verified against the live site, not just locally: `accept-ranges: bytes` and
+`206` on both mp4s, no console errors, films at -184 / 0 measured at 438.8 ×
+954.9, growth **t 2.251 at pos 0.55** and **t 4.902 at pos 0.02**, and a clean
+return to the looping still film at -184.
+
+The CLI needed `--scope wannabe-course`; without it the newest CLI answers
+"Not authorized" even though `vercel whoami` succeeds.
