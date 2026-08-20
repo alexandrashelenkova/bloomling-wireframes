@@ -2251,3 +2251,21 @@ Headless Chrome over CDP, real `Input.dispatchMouseEvent`. **No exceptions**
 Rev 24 regression re-run and intact: default −184 / growth hidden; pos 0.50 →
 both films at 0 with growth at **t 2.50**; home → −184, growth hidden.
 
+## Shipped
+
+Commit `676f49f` → `origin/main`, Vercel production, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site: all four items measure identically to local —
+scrims 0, header at 43/69 in `#1E0C00`, chip 14-from-right at 72.4×33, the edge
+labels stepping `.6/1` correctly at every thumb position, and `blurTop` tracking
+`cardsTop − 72` while strength runs 0.00 → 0.50 → 1.00 with the header and film
+frozen at 69 and −184 throughout.
+
+One testing note: the first production run reported the growth film at `t 0`
+mid-scrub. That was a cold CDN fetch, not a regression — the state machine had
+run correctly (both films at 0, growth faded in) but the mp4 was not yet
+buffered enough to seek. Waiting for `readyState 4` **and** `buffered.end > 4.9`
+before scrubbing gives `t 2.50` at pos 0.50 and `t 4.90` at pos 0.02, exactly as
+locally. Worth knowing alongside the rev 24 note about Range requests: with
+video, an unbuffered film fails the same way a non-seekable one does.
