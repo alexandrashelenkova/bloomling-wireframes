@@ -2079,3 +2079,175 @@ return to the looping still film at -184.
 
 The CLI needed `--scope wannabe-course`; without it the newest CLI answers
 "Not authorized" even though `vercel whoami` succeeds.
+
+---
+
+# Revision 25 — Plant Detail: interface polish
+
+Scope was the Plant Detail screen. No other screen was touched. Reference is
+Figma `428:1782`, which has been **redrawn** since rev 24 — the old label nodes
+(`428:1799` / `428:1800`) no longer exist and several values changed.
+
+## 1 — Header and mood chip
+
+The top gradient is gone, and with it the reason the nav was ever white. The
+mockup now sets the whole row in ink over the bright film, and every value it
+asks for was already this file's default:
+
+| element | mockup (428:1782) | how it lands |
+|---|---|---|
+| chevron `428:1784` | black, **opacity .4** | `.plback`'s own rest state |
+| title `428:1783` | `#1E0C00`, Riccione Light **44.712px** | `--serif-ink` at `--t-xl` (44.7px) |
+| ⋯ `428:1809` | black, **opacity .4** | had to be added — see below |
+| species `428:1825` | `#050505` at **40%**, Circular Book 16px | `--ink` + `opacity:.4` |
+| chip `428:1816` | `#CCF5B0`, glow `0 0 15px` same hex, radius 24, **pad 5/14/8**, 16px black, 73×33 | `.moodchip` |
+
+So the change is mostly **deletion**: `.pdscrimt`, `.pdscreen .pltitle{color:#fff}`
+and `.pdscreen .plback,.pdscreen .plmore{opacity:1;color:#fff}` all came out and
+the light-screen styles simply apply.
+
+Three things did not fall out for free:
+
+- **`.plmore` never carried an opacity.** `.plback` has `opacity:.4` in the
+  shared rule but `.plmore` only ever had an `:active` state — the deleted
+  override had been supplying its resting value. Set to `.4` on `.pdhead .plmore`
+  rather than on the shared rule, so My Plants keeps its own appearance.
+- **The chip grew 27px → 33px and the mockup moved the row up to meet it.**
+  Title 69 + 52 = 121 is exactly the chip's top, so `.pdrow`'s `margin-top`
+  went 11px → 0. The species sits 5px lower again (mockup 126), which is now
+  `.pdsp`'s `padding-top`.
+- **The speech blob had to be re-derived** because the row above it moved.
+  `.pdbubwrap` margin-top 2px → 7px puts its top on the mockup's 161.
+
+Measured after the change: title 43/69 `#1E0C00`; chevron x14 black op .4; ⋯ 14
+from the right edge, op .4; species x43 `#050505` op .4; chip 14 from the right,
+y 120.8, 72.4×33, `#CCF5B0`, pad `5px 14px 8px`, `drop-shadow(... 0 0 15px)`.
+
+The chevron sits at y 82.9 against the mockup's 85. It is centred on the title
+row; the mockup nudges it 2px below centre. 2px, left as centred.
+
+## 2 — Timeline edge fade
+
+Both ends are now **always drawn**. That is the point of the treatment: "seed"
+and "now" are permanent anchors that state the range, and their opacity says
+whether you are standing on one. The stop you are actually on is still drawn
+when it is neither end, so the middle of the rail stays legible.
+
+**The fade level is a flat opacity, not a gradient.** The brief said "soft
+gradient dissolve", but the file is unambiguous: `441:576` ("now", thumb on it)
+is white at full opacity and `441:577` ("sprout", thumb away) is the same white
+at `opacity-60`. The brief also said to match the mockup exactly, and at 16px a
+masked dissolve would read as a visibly different effect. The mockup won.
+
+`transition:opacity 180ms ease` on the span makes it live — the value changes
+as `idx` crosses a stop mid-drag, and the edge labels are never unmounted so the
+transition always has something to animate. The old `text-shadow` came off with
+the scrim; the mockup's labels carry none.
+
+Verified by driving the thumb: at now `[seed .6, now 1]`; mid-rail
+`[seed .6, established 1, now .6]`; at seed `[seed 1, now .6]`; and back.
+
+**Observed but deliberately not done:** the mockup has also redrawn the rail
+itself — four 10px dots plus a distinct 16px thumb (`441:578`–`441:583`), where
+the code still has six equal dots. That is a different change from the edge
+fade, it would alter what MILESTONES means, and it was not in the four numbered
+items. Left for a future pass.
+
+## 3 — Progressive blur under the cards
+
+**The mockup shows no blur, and that is the finding that shaped the
+implementation.** Aligning `428:1782`'s film against the raw mp4 frame in the
+film's own coordinates (x -27, y -184, 457×995) and comparing sharpness band by
+band gives ratios of **0.93 / 0.98 / 0.99** — the mockup's film is not blurred
+anywhere. It is drawn *at rest*, which is precisely the moment before the cards
+"scroll up and overlap the video".
+
+So the blur is a **scroll state**, and it has two independent axes:
+
+- **Position** tracks the cards live: `.pdblur`'s `top` is written every scroll
+  frame as the cards' measured top edge minus `PD_BLUR_LEAD`.
+- **Strength** ramps with scroll progress, from nothing at rest to full at the
+  bottom. That is the only reading that satisfies the brief and the mockup at
+  once, and it makes the effect something you watch arrive rather than a static
+  soft-focus.
+
+Four stacked `backdrop-filter` layers, each masked in over its own band, radii
+6 / 10 / 18 / 34px at offsets 0 / 30 / 120 / 250 with ramps 80 / 90 / 140 / 170.
+Sibling backdrop-filters compose, so the radii add as `√Σr²` and four discrete
+steps read as one curve: **≈7px at the cards' own edge, ≈16px 200px under,
+≈37px 400px under.**
+
+Decisions inside that:
+
+- **It lives in `.pdbg`, under the films, not in the scroller.** The backdrop it
+  samples is then unambiguously the film — and the timeline text, which rides in
+  `.pdscroll` above it, stays perfectly sharp while the film behind it softens.
+  Confirmed in the A/B render.
+- **`PD_BLUR_LEAD = 72px`,** i.e. the ramp starts above the cards rather than at
+  them. The cards are opaque `#FFF`: a ramp beginning exactly at their edge
+  would be both invisible *and* a discontinuity on the boundary, which is the
+  one thing "no hard blur edge" rules out. 72px puts the first layer ~90% on
+  where the cards arrive.
+- **Opacity goes on each layer, never on the wrapper.** An element with
+  `opacity < 1` forms a Backdrop Root for its descendants, so fading the parent
+  would have left the children with an empty backdrop and blurred nothing. On
+  the filtered element itself it is exactly the cross-fade wanted.
+- The first tuning (2/4/9/18 at lead 56) measured real but was too weak to read
+  — an A/B render at full scroll showed almost no difference. Retuned upward
+  until the pot rim and soil visibly dissolve into the card stack.
+
+Verified: `blurTop` is `cardsTop − 72` at every scroll position (612/684,
+502/574, 395/467) and strength runs 0.00 → 0.50 → 1.00.
+
+## 4 — Scroll bounce restricted to the cards
+
+The header was a `position:sticky` block **inside** the scroller. Sticky holds a
+rest position only within the scroll range, and a rubber-band overscroll is
+outside it — which is exactly why the whole interface travelled with the bounce.
+No amount of tuning fixes that; the header has to leave the scroller.
+
+`.pdhead` is now its own absolutely-positioned layer in `.pdscreen`, holding the
+nav row, the species + chip row, the speech blob and the ⋯ menu. `.pdscroll`
+carries only the spacer and the timeline + cards.
+
+- 8px/16px on `.pdhead` reproduce the scroller's own padding, so nothing moved.
+- `pointer-events:none` on the layer (re-enabled on the chevron, the ⋯ and the
+  menu) hands the empty header area back to the scroller underneath, so a drag
+  anywhere on the film still scrolls the cards.
+- `.pdspacer` went from `calc(100% - 411px)` to `calc(100% - 190px)`: the 221px
+  the header used to occupy came straight back out of the spacer, so total
+  content height and the scroll range (218px) are unchanged.
+- `overscroll-behavior-y:contain` keeps the bounce from chaining out to the page.
+- The menu is now static too, which it was not before.
+
+**The timeline stays with the cards** rather than with the header. It is not
+named in the brief's "must not move" list, it has sat 19px above the bond card
+at every scroll position since the layout was built, and separating them would
+break that relationship.
+
+Measured at rest, at half scroll and at full scroll: title 69, species 120.8,
+chip 120.8, blob 160.8, chevron 82.9, film −184 — **identical at all three**.
+
+## Also changed
+
+`.pdbg`'s under-film fill. Rev 24 sampled the mp4's bottom row by hand and used
+a horizontal `#D4D0C8 → #CDC9BD`. The mockup now states it: `Rectangle 60`
+(`441:683`) is a **vertical** `#C8C8BC → #EDEEE9` over 88px, starting at the
+film's own bottom edge (y 810; the film ends at 811) and resolving into `--bg`.
+Re-expressed against this box: 94.25% → 104.58%. Taking the stated value over a
+sampled guess, in the exact area §3 is about.
+
+`.pdscrimb` was removed as well. The brief only named the top gradient, but the
+mockup has no bottom scrim either and the pixels prove it: at x=2, y=780 the
+mockup reads `(212,208,200)` — **identical** to the film's own bottom-left
+colour, where a 20% black wash would have given ~`(170,166,160)`. It existed to
+make white cards read against the film; the progressive blur now does that job.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`. **No exceptions**
+(the one console error is the pre-existing missing favicon).
+
+Rev 24 regression re-run and intact: default −184 / growth hidden; pos 0.50 →
+both films at 0 with growth at **t 2.50**; home → −184, growth hidden.
+

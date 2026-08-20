@@ -328,13 +328,15 @@
      top:-48px reaches back up over the status bar, which is what makes the
      bleed reach the actual top of the screen; .device's own overflow+radius
      clip it back to the phone. */
-  /* The films stop 95px short of the bottom edge in the default framing (see
-     .pdvid), so the layer under them is painted in the studio backdrop rather
-     than the app's --bg: sampled off the mp4's own bottom row, #D4D0C8 at the
-     left and #CDC9BD at the right. Only ever visible as a sliver at the very
-     end of the scroll, and there it reads as more floor, not as a band. */
+  /* The films stop short of the bottom edge in the default framing (see .pdvid),
+     and the mockup now says exactly what goes under them: `Rectangle 60`
+     (441:683) is a VERTICAL resolve, #C8C8BC at the film's own bottom edge
+     running to #EDEEE9 — the app's --bg — over 88px. That replaces rev 24's
+     sampled horizontal guess. The film's bottom lands at 94.25% of this box
+     (-184px + 386 × 1.13681 × 2124/976 = 771 of 818) and the 88px ramp scales
+     to 84.5px, i.e. 10.33%, so it finishes just past the bottom edge. */
   .pdbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
-    background:linear-gradient(90deg,#D4D0C8 0%,#CDC9BD 100%);z-index:0}
+    background:linear-gradient(180deg,#C8C8BC 94.25%,#EDEEE9 104.58%);z-index:0}
 
   /* ── the two films ────────────────────────────────────────────────────────
      Both are framed exactly as the mockup frames "still 1": x=-27, 457×995 on
@@ -361,35 +363,87 @@
   /* the growth film is parked at 0 forever and only ever fades; it sits above
      the still one in the stack, so a single opacity drives the cross-fade */
   .pdvid-grow{opacity:0;will-change:opacity;transition:opacity 180ms linear}
-  /* 417:1587 — the top scrim that carries the white nav over a bright photo */
-  .pdscrimt{position:absolute;left:0;right:0;top:0;height:266px;pointer-events:none;
-    background:linear-gradient(180deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,0) 103.57%)}
-  /* 417:1589 — the bottom scrim, drawn flipped in Figma: transparent down to
-     21.94%, then ramping to black at 20%. It runs 5px past the frame's bottom. */
-  .pdscrimb{position:absolute;left:0;right:0;bottom:-5px;height:271px;
-    pointer-events:none;
-    background:linear-gradient(180deg,rgba(0,0,0,0) 21.939%,rgba(0,0,0,.2) 100%)}
+  /* ── PROGRESSIVE BLUR UNDER THE CARDS ─────────────────────────────────────
+     Four stacked backdrop-filters, each masked in over its own band, so the
+     blur RAMPS instead of starting at an edge. Sibling backdrop-filters
+     compose — layer 2 blurs what layer 1 already blurred — which is what turns
+     four discrete radii into one continuous curve.
+
+     It lives inside .pdbg, under the films, NOT in the scroller. Two reasons:
+     the backdrop it samples is then unambiguously the film and nothing else
+     (the timeline text rides in .pdscroll above it and is never touched), and
+     its Y can be driven straight from the cards' measured position, which is
+     what "tracks the cards live during scroll" asks for.
+
+     `top` is written by syncBlur() on every scroll frame: the cards' own top
+     edge minus PD_BLUR_LEAD. The lead is why there is no hard edge — the ramp
+     has already started, gently, before the first card arrives. */
+  .pdblur{position:absolute;left:0;right:0;bottom:0;pointer-events:none}
+  /* Opacity lives on each LAYER, never on the wrapper. An element with
+     opacity < 1 forms a Backdrop Root for its descendants, so fading the parent
+     would leave the children with an empty backdrop and blur nothing at all.
+     On the element that carries the backdrop-filter itself it is exactly the
+     cross-fade we want: the filtered result composited over the raw backdrop. */
+  .pdblur > i{position:absolute;left:0;right:0;bottom:0;display:block;opacity:0}
+  /* Mask ramps are measured from .pdblur's top, i.e. from PD_BLUR_LEAD above
+     the cards' own edge, so the ramp is already under way before the first card
+     arrives — that is what removes the hard edge. Radii compound as
+     sqrt(a²+b²…) because each layer blurs what the one before it left. */
+  .pdblur > i:nth-child(1){top:0;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 80px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 80px)}
+  .pdblur > i:nth-child(2){top:30px;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 90px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 90px)}
+  .pdblur > i:nth-child(3){top:120px;
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 140px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 140px)}
+  .pdblur > i:nth-child(4){top:250px;
+    -webkit-backdrop-filter:blur(34px);backdrop-filter:blur(34px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 170px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 170px)}
+  /* Effective radius (they compound as √Σr²) measured from the cards' own top
+     edge, which sits PD_BLUR_LEAD into the ramp:
+        at the edge  ≈  7px   — present, still soft
+        200px under  ≈ 16px
+        400px under  ≈ 37px */
+
+  /* ── the static header layer ──────────────────────────────────────────────
+     The nav row, species + mood chip and the speech blob used to be a
+     position:sticky block INSIDE the scroller. Sticky holds a rest position
+     only within the scroll range — a rubber-band overscroll is outside it, so
+     the whole header travelled with the bounce. Lifting it out of the scroller
+     entirely is the only way to make it truly immovable, and it is why the
+     bounce now belongs to the cards alone.
+     8px/16px reproduce the scroller's own padding so nothing shifts, and
+     pointer-events:none hands the empty header area back to the scroller
+     underneath, so a drag anywhere on the film still scrolls the cards. */
+  .pdhead{position:absolute;left:0;right:0;top:0;z-index:2;padding:8px 16px 0;
+    display:flex;flex-direction:column;pointer-events:none}
+  .pdhead .plback,.pdhead .plmore,.pdhead .pdmenu{pointer-events:auto}
+  /* .plback carries opacity .4 by default but .plmore never did — it only ever
+     appeared on light screens where it was already dark enough. 428:1809 comes
+     back black at .4 like the chevron, so it is set here rather than on the
+     shared rule, which the other screens use unchanged. */
+  .pdhead .plmore{opacity:.4}
+  .pdhead .plmore:active{opacity:.75}
 
   /* ── the scrolling layer ──────────────────────────────────────────────────
      inset:0 gives it a definite height, which is what lets .pdspacer size
-     itself as a percentage and pin the lower block to the bottom edge. */
+     itself as a percentage and pin the lower block to the bottom edge.
+     overscroll-behavior keeps the rubber-band from chaining out to the page. */
   .pdscroll{position:absolute;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
     padding:8px 16px 0;display:flex;flex-direction:column}
   .pdscroll::-webkit-scrollbar{width:0}
-  /* The top block is pinned to an exact 221px (device 56→277, i.e. the mockup's
-     bubble bottom) so the spacer below it is a single constant no matter how
-     many lines this plant's greeting runs to.
-     position:sticky is what makes "only the cards area scrolls" literally true:
-     the block holds its rest position for the whole scroll range, so the back
-     chevron never leaves and the white bubble never rides up under the white
-     title. top:0 resolves against the scroller's CONTENT box, which already
-     starts below its 8px padding — so this pins the block exactly where it
-     already sits and it never moves at all. The lower block tops out at device
-     410, well clear of this block's 277, so the two never collide. */
-  .pdtop{flex:0 0 auto;height:221px;display:flex;flex-direction:column;
-    position:sticky;top:0;z-index:2}
-  /* 411 = 221 (top block) + 190 (the labels' offset up from the bottom edge) */
-  .pdspacer{flex:0 0 auto;height:calc(100% - 411px);min-height:24px}
+  /* 190 is the labels' offset up from the bottom edge, and with the header gone
+     from this box it is the whole of the constant: the lower block still opens
+     at device 628. Total content height is unchanged (the 221px the header took
+     came straight back out of the spacer), so the scroll range is the same. */
+  .pdspacer{flex:0 0 auto;height:calc(100% - 190px);min-height:24px}
   .pdlower{flex:0 0 auto}
 
   .pdmenu{position:absolute;top:104px;right:14px;z-index:120;background:var(--card);
@@ -404,27 +458,37 @@
     display:flex;align-items:center;justify-content:center}
   .plmore:active{opacity:.5}
 
-  /* the whole nav row now sits on the photo, so it is set in white (417:1538,
-     and both nav glyphs come back from Figma with stroke="white") */
-  .pdscreen .pltitle{color:#fff}
-  .pdscreen .plback,.pdscreen .plmore{opacity:1;color:#fff}
+  /* The nav is no longer white-on-a-scrim. With the top gradient gone (428:1782
+     has none) the mockup sets the whole row in ink over the bright film, and
+     every value it uses is already this file's default — title #1E0C00 is
+     --serif-ink at --t-xl 44.7px against the mockup's 44.712, and both glyphs
+     come back from Figma as black at opacity .4, which is .plback's own rest
+     state. So the light-screen styles simply apply and there is nothing to
+     override here any more. */
 
-  /* species (left) + mood chip (right). Figma 417:1580 / 417:1572. Over the
-     photo the species is plain white — the 40% black it wears on the light
-     screens would disappear here. The 29px indent lines it up under the title
-     rather than under the chevron (mockup x=43 against a 14px chevron). */
+  /* species (left) + mood chip (right), 428:1824 / 428:1816. The species is
+     #050505 at 40% — the same treatment as the light screens, now that the
+     background is bright. The 29px indent lines it up under the title rather
+     than under the chevron (mockup x=43 against a 14px chevron), and the 5px
+     top offset is the mockup's own gap between the chip top (121) and the
+     species baseline box (126). */
+  /* margin-top 0: the mockup butts this row straight onto the title's box —
+     title 69+52 = 121 is exactly the chip's top. The old 11px belonged to the
+     old 27px chip; the chip is 33 now and the row moved up with it. */
   .pdrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-    margin:11px -2px 0;min-height:27px;flex:0 0 auto;position:relative;z-index:5}
-  .pdsp{margin-left:29px;font-size:var(--t-md);color:#fff;line-height:1.25;
-    padding-top:2px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
-  /* soft filled pill with a gentle glow in the plant's own emotion colour —
-     fill and drop-shadow are the SAME hex, exactly as the mockup builds it */
-  .moodchip{border:none;border-radius:24px;padding:2px 10px 5px;font-size:var(--t-md);
+    margin:0 -2px;min-height:33px;flex:0 0 auto;position:relative;z-index:5}
+  .pdsp{margin-left:29px;font-size:var(--t-md);color:var(--ink);opacity:.4;
+    line-height:1.25;padding-top:5px}
+  /* 428:1816 — a 73×33 pill: 16px text in a 14px side padding, 5 over and 8
+     under, radius 24, and a 15px glow in the SAME hex as the fill */
+  .moodchip{border:none;border-radius:24px;padding:5px 14px 8px;font-size:var(--t-md);
     color:#000;line-height:1.25;flex:0 0 auto}
 
   /* speech blob — the mockup's Ellipse 18 path, painted by blobBg(). No quote
      marks: the shape already says it is speech. */
-  .pdbubwrap{position:relative;margin:2px -16px 0;display:flex;justify-content:center;
+  /* 7px puts the blob's top on the mockup's 161 (121 + the 33px chip + 7). It
+     had to be re-derived anyway once the row above it moved. */
+  .pdbubwrap{position:relative;margin:7px -16px 0;display:flex;justify-content:center;
     flex:0 0 auto}
   .pdbub{position:relative;width:277px;max-width:calc(100% - 32px);min-height:116px;
     background-size:100% 100%;background-repeat:no-repeat;
@@ -441,10 +505,17 @@
   .pdtimeline{position:relative;margin:0 -16px;padding:0 20px;
     touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
   .pdtimeline:active{cursor:grabbing}
-  /* labels 684→704, dots 711→721: a 7px gap */
+  /* labels 684→704, dots 711→721: a 7px gap.
+     The two END labels are always drawn, and the mockup states the fade
+     exactly: "now" with the thumb on it is white at FULL opacity (441:576),
+     "sprout" with the thumb away from it is the same white at .6 (441:577).
+     A flat opacity, not a gradient — that is what the file says, and a masked
+     dissolve would read as a different effect at 16px. The transition is what
+     makes it live: the value changes as `idx` crosses a stop mid-scrub. */
   .pdtllab{position:relative;height:20px;margin-bottom:7px}
   .pdtllab span{position:absolute;white-space:nowrap;font-size:var(--t-md);
-    line-height:1.25;color:#fff;text-shadow:0 1px 8px rgba(30,12,0,.45)}
+    line-height:1.25;color:#fff;opacity:1;transition:opacity 180ms ease}
+  .pdtllab span.dim{opacity:.6}
   .pdtlrail{position:relative;height:10px}
   .pdtltrack{position:absolute;left:0;right:0;top:4px;height:2px;border-radius:2px;
     background:rgba(255,255,255,.42)}
@@ -1558,6 +1629,20 @@ const PD_Y     = { still:-184, growth:0 };   // 428:1782 / 437:90
 const PD_SLIDE = 420;   // the -184 ⇄ 0 glide; must match .pdvid-still's transition
 const PD_FADE  = 180;   // the cross-fade that covers the swap
 
+/* The blur is a SCROLL STATE, and the mockup is what settles that. Aligning
+   428:1782's film against the raw mp4 frame band by band gives sharpness ratios
+   of 0.93 / 0.98 / 0.99 — the mockup's film is not blurred anywhere. It is
+   drawn at rest, which is exactly the moment before the cards "scroll up and
+   overlap the video". So strength ramps with scroll progress from nothing at
+   rest to full at the bottom, while POSITION tracks the cards independently.
+   That is the only reading that satisfies the brief and the mockup at once.
+
+   PD_BLUR_LEAD is how far above the cards' own top edge the ramp begins. The
+   cards are opaque #FFF, so a ramp starting exactly at their edge would be both
+   invisible and a discontinuity on the boundary — the one thing "no hard blur
+   edge" rules out. 72px lands the first layer ~70% on where the cards arrive. */
+const PD_BLUR_LEAD = 72;
+
 function PlantDetail({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"vlad");
@@ -1701,6 +1786,34 @@ function PlantDetail({params}){
     return ()=>{ stopTimers(); if(raf.current) cancelAnimationFrame(raf.current); };
   },[]);
 
+  /* ── the blur follows the cards ───────────────────────────────────────────
+     .pdblur lives in .pdbg and the cards live in .pdscroll, so nothing but a
+     measurement connects them. One read of the cards' top edge per scroll frame
+     is enough, and rAF-coalescing it means a fast flick writes one style per
+     frame rather than one per scroll event. */
+  const bgEl  = useRef(null);
+  const blurEl= useRef(null);
+  const cards = useRef(null);
+  const braf  = useRef(0);
+  const scroller = useRef(null);
+  const syncBlur = ()=>{
+    braf.current = 0;
+    const b = blurEl.current, c = cards.current, g = bgEl.current, s = scroller.current;
+    if(!b || !c || !g || !s) return;
+    // position: follow the cards
+    const y = c.getBoundingClientRect().top - g.getBoundingClientRect().top;
+    b.style.top = (y - PD_BLUR_LEAD) + "px";
+    // strength: nothing at rest, full at the bottom of the scroll
+    const range = s.scrollHeight - s.clientHeight;
+    const prog = range > 0 ? Math.max(0, Math.min(1, s.scrollTop / range)) : 0;
+    for(let i = 0; i < b.children.length; i++) b.children[i].style.opacity = prog;
+  };
+  const onScroll = ()=>{ if(!braf.current) braf.current = requestAnimationFrame(syncBlur); };
+  useEffect(()=>{
+    syncBlur();                       // land it before the first paint the user sees
+    return ()=>{ if(braf.current) cancelAnimationFrame(braf.current); };
+  },[]);
+
   const fracFrom = (ev)=>{
     const el = rail.current; if(!el) return want.current;
     const r = el.getBoundingClientRect();
@@ -1722,10 +1835,14 @@ function PlantDetail({params}){
   };
 
   const idx = Math.round(pos*last);
-  /* The mockup shows two labels: the one you are standing on, and "now" as the
-     right-hand anchor. Everything between is a dot — six words will not fit on a
-     phone, and labelling only those two is what keeps the rail readable. */
-  const labelled = (i)=> i===idx || i===last;
+  /* Which words are on the rail. BOTH ends are always drawn — that is the whole
+     point of the mockup's fade: "sprout" and "now" are permanent anchors that
+     tell you the range, and their opacity tells you whether you are standing on
+     one. The stop you are actually on is drawn too when it is neither end, so
+     the middle of the rail is still legible; six words at once would not fit on
+     a phone, which is why everything else stays a dot. */
+  const labelled = (i)=> i===0 || i===last || i===idx;
+  const dimmed   = (i)=> (i===0 || i===last) && i!==idx;
   const labelPos = (i)=> i===last ? {right:0} : i===0 ? {left:0}
                        : {left:((i/last)*100)+"%", transform:"translateX(-50%)"};
 
@@ -1735,19 +1852,22 @@ function PlantDetail({params}){
         reaches up behind the status bar, so the bleed starts at the true top of
         the screen. Two films live here: the idle loop, which carries the Y
         animation, and the growth film above it, which only ever fades. */}
-    <div className="pdbg">
+    <div className="pdbg" ref={bgEl}>
       <video className="pdvid pdvid-still" ref={stillV} src={FILM.still}
         muted loop autoPlay playsInline preload="auto"
         style={{transform:"translate3d(0,"+sy+"px,0)"}}/>
       <video className="pdvid pdvid-grow" ref={growV} src={FILM.growth}
         muted playsInline preload="auto" onLoadedMetadata={onGrowMeta}
         style={{opacity:gOn?1:0}}/>
-      <div className="pdscrimt"/>
-      <div className="pdscrimb"/>
+      {/* four masked backdrop-filters that ramp into one another; syncBlur()
+          writes the top edge from the cards' measured position */}
+      <div className="pdblur" ref={blurEl} aria-hidden="true">
+        <i/><i/><i/><i/>
+      </div>
     </div>
 
-    {/* 2 — everything else rides over the photo in one scroller */}
-    <div className="pdscroll">
+    {/* 2 — the header: outside the scroller, so it cannot move or bounce */}
+    <div className="pdhead">
 
       {/* everything about this plant lives behind the ⋯ */}
       {menu && <div className="pdmenu" onClick={ev=>ev.stopPropagation()}>
@@ -1757,29 +1877,29 @@ function PlantDetail({params}){
           Watering schedule</div>
       </div>}
 
-      {/* the top block — nav bar, species + mood chip, speech blob. Pinned to
-          221px so the spacer below it is one constant (see .pdtop). */}
-      <div className="pdtop">
-        <div className="plhead">
-          <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
-          <h1 className="pltitle">{p.name.split(" ")[0]}</h1>
-          <span className="plmore" title="More"
-            onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
-        </div>
+      <div className="plhead">
+        <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+        <h1 className="pltitle">{p.name.split(" ")[0]}</h1>
+        <span className="plmore" title="More"
+          onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
+      </div>
 
-        <div className="pdrow">
-          <span className="pdsp">{p.species}</span>
-          <span className="moodchip" style={{background:e.glow,
-            filter:"drop-shadow(0 0 10px "+e.glow+")"}}>{e.word}</span>
-        </div>
+      <div className="pdrow">
+        <span className="pdsp">{p.species}</span>
+        <span className="moodchip" style={{background:e.glow,
+          filter:"drop-shadow(0 0 15px "+e.glow+")"}}>{e.word}</span>
+      </div>
 
-        {/* the plant's own words, in a white organic blob. No quote marks. */}
-        <div className="pdbubwrap">
-          <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
-            {p.checkin}
-          </div>
+      {/* the plant's own words, in a white organic blob. No quote marks. */}
+      <div className="pdbubwrap">
+        <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
+          {p.checkin}
         </div>
       </div>
+    </div>
+
+    {/* 3 — the scroller now carries the timeline and the cards, nothing else */}
+    <div className="pdscroll" ref={scroller} onScroll={onScroll}>
 
       {/* open photo — this is what the lower block is pushed down by */}
       <div className="pdspacer"/>
@@ -1790,7 +1910,8 @@ function PlantDetail({params}){
           onPointerUp={up} onPointerCancel={up} onWheel={wheel}>
           <div className="pdtllab">
             {TL.map((label,i)=> labelled(i) &&
-              <span key={label} style={labelPos(i)}>{label}</span>)}
+              <span key={label} className={dimmed(i)?"dim":""}
+                style={labelPos(i)}>{label}</span>)}
           </div>
           <div className="pdtlrail" ref={rail}>
             <div className="pdtltrack"/>
@@ -1805,7 +1926,7 @@ function PlantDetail({params}){
         {/* 4 — the info cards, all in the canonical settings-card style. The
             bond card overlaps the bottom of the photo and the stat cards peek
             12px above the screen edge, which is the scroll affordance. */}
-        <div className="pdcards">
+        <div className="pdcards" ref={cards}>
           <div className="scard">
             <div className="scard-t">Your bond</div>
             <div className="pdbondmeta">
