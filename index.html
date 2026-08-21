@@ -627,6 +627,196 @@
     border-radius:var(--bub);padding:14px 16px;font-size:var(--t-md);line-height:1.3;
     text-align:center}
 
+  /* ══════════ PERSONALITY & SETTINGS — full-bleed (Figma 446:93) ══════════
+     A 402×818 frame in the mockup against this file's 386×818 device, so every
+     VERTICAL number below is the mockup's own, unchanged, and only widths are
+     re-expressed as percentages.
+
+     Three layers, same construction as Plant Detail: a pinned nav that never
+     moves, a scrim under it that only exists once there is content to hide, and
+     one scroller carrying everything else — the video stage first, then the
+     settings. The video is IN the scroller, not behind it: the brief has it
+     scrolling away under the header, which is the opposite of the detail
+     screen's fixed film. */
+  /* overflow is VISIBLE, not hidden: the scroller and the scrim both reach 48px
+     back up over the status bar so that the mockup's y=0 is the real top of the
+     screen, and .device's own overflow+radius is what clips them again. */
+  .psscreen{flex:1 1 auto;position:relative;overflow:visible}
+
+  /* ── the pinned nav ───────────────────────────────────────────────────────
+     Identical geometry to Plant Detail's header (chevron 14/85, title 43/69),
+     except that the title is TWO lines here — 438:98 breaks it "Personality &"
+     / "Settings" and the 44.712px/1.16 face gives exactly the mockup's 104px
+     box. align-items:center would then centre the chevron against both lines;
+     the mockup keeps it on the first, so the row aligns to the top and the
+     chevron takes the same 14px nudge that centring gave it on one line. */
+  .pshead{position:absolute;left:0;right:0;top:0;z-index:3;padding:8px 16px 0;
+    pointer-events:none}
+  .pshead .plhead{align-items:flex-start}
+  .pshead .plback{pointer-events:auto;margin-top:14px}
+  /* the title wraps on its own; nowrap would push it off the screen */
+  .pshead .pltitle{white-space:normal}
+
+  /* ── the scrim under the nav ──────────────────────────────────────────────
+     441:566: `#EDEEE9 → transparent` over 120px, sitting at y 176 — i.e. solid
+     page colour behind the title itself and a 120px dissolve under it, 296px in
+     total. It is NOT in the rest state (the video runs to the top of the screen
+     behind the title, 440:330), so its opacity is a scroll state: it arrives as
+     the video's own gradient leaves the header band and is solid by the time
+     settings alone are underneath. */
+  .psscrim{position:absolute;left:0;right:0;top:-48px;height:296px;z-index:2;
+    pointer-events:none;opacity:0;
+    background:linear-gradient(180deg,var(--bg) 0,var(--bg) 59.46%,
+      rgba(237,238,233,0) 100%)}
+
+  /* ── the scroller ─────────────────────────────────────────────────────────
+     5px of padding, because the mockup insets every card 5px from a 402px frame
+     (Frame 60 at x=5, cards 392 wide inside it). The stage and its gradient
+     cancel that back out to run full-bleed. */
+  .psscroll{position:absolute;left:0;right:0;top:-48px;bottom:0;z-index:1;
+    overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding:0 5px}
+  .psscroll::-webkit-scrollbar{width:0}
+
+  /* ── the video stage ──────────────────────────────────────────────────────
+     662px tall: the mockup's own film bottom edge at rest, which is also where
+     the gradient starts. The film is settings-vlad.mp4, 1340×1544 (0.86788).
+
+     The film is anchored by its BOTTOM — that edge is the seam with the
+     gradient and it must never move — and its SIZE is written by syncVid() on
+     every scroll frame, because the two reference states say the film shrinks
+     as well as scrolls. See PS_ZOOM for the rule and the arithmetic. */
+  .psstage{position:relative;height:662px;margin:0 -5px;overflow:hidden}
+  .psvid{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+    display:block;border:0;pointer-events:none;
+    aspect-ratio:1340 / 1544;background:transparent}
+  /* 441:421 — the same vertical resolve the detail screen uses, from the film's
+     own bottom row into the page: #C8C8BC → --bg over 88px, no hard edge. */
+  .psfade{height:88px;margin:0 -5px;flex:0 0 auto;
+    background:linear-gradient(180deg,#C8C8BC 0,#EDEEE9 100%)}
+
+  /* ── the plant's reaction bubble (438:175/176) ────────────────────────────
+     193×89 at 11px from the right edge, top 163 — the same pebble as the detail
+     screen's blob, drawn smaller, so it is the same object in both places. 12px
+     type is the mockup's and it has to be: the smallest step of the locked
+     scale would not fit this sentence in an 89px blob.
+     It rides in the pinned layer, not in the stage, because 441:425 still has
+     it at 163 with the page scrolled — and it fades on the same 230ms curve as
+     the detail screen's, off one class, so the two read as one behaviour. */
+  /* 163 on the mockup, less the 48px status bar this box already starts under */
+  .psbub{position:absolute;top:115px;right:11px;width:193px;max-width:calc(100% - 32px);
+    min-height:89px;z-index:4;pointer-events:none;
+    background-size:100% 100%;background-repeat:no-repeat;
+    padding:16px 22px;font-size:12px;line-height:1.25;text-align:center;
+    color:var(--ink);display:flex;align-items:center;justify-content:center;
+    transform-origin:50% 0;
+    transition:opacity 230ms ease-out,transform 230ms ease-out}
+  .psbub.off{opacity:0;transform:translateY(-8px) scale(.96)}
+
+  /* ── the settings themselves ──────────────────────────────────────────────
+     -154px is the mockup's own overlap: Frame 60 opens at 596 while the stage
+     and its gradient run to 750, so the "Personality" header sits ON the video
+     and the chip row rides the gradient. 72px at the foot is the frame's own
+     tail under the last card (1674 → 1746). */
+  .pscontent{position:relative;margin-top:-154px;padding-bottom:72px}
+  /* sections are 40px apart (Frame 59 → 51 → 52 at 0 / 423 / 787) and each
+     header clears its first card by 14px (52 → 66) */
+  .pssec{margin-top:40px}
+  .pssec:first-child{margin-top:0}
+  .pssech{margin:0 0 14px 24px;font-family:'Riccione',Georgia,serif;font-weight:400;
+    color:var(--serif-ink);font-size:var(--t-xl);line-height:1.16;letter-spacing:0}
+
+  /* ── preset chips (440:356) ───────────────────────────────────────────────
+     74px pills on 24px of padding and a 5px gap, serif 22px, white until
+     chosen and --sage when. The row is wider than the screen (774 against 402)
+     and scrolls sideways; the negative margin lets it bleed to both edges while
+     the first chip still lines up with the cards. */
+  .pschips{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;
+    margin:0 -5px;padding:0 5px;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch}
+  .pschips::-webkit-scrollbar{height:0}
+  .pschip{flex:0 0 auto;height:74px;padding:0 24px;border-radius:40px;
+    background:var(--card);color:var(--serif-ink);cursor:pointer;
+    font-family:'Riccione',Georgia,serif;font-weight:400;font-size:var(--t-lg);
+    line-height:1.18;display:flex;align-items:center;white-space:nowrap;
+    transition:background 160ms ease-out}
+  .pschip.on{background:var(--sage)}
+
+  /* ── the three sliders (440:337) ──────────────────────────────────────────
+     A 229px card on .scard's own 24px padding: label row 20, then 5, then the
+     22px thumb band, and 20 between rows. 344px of track is 392 less the two
+     paddings. */
+  .pscard{background:var(--card);border-radius:var(--r-card);padding:24px}
+  .psrow{margin-top:20px}
+  .psrow:first-child{margin-top:0}
+  .pslab{display:flex;align-items:center;justify-content:space-between;
+    height:20px;font-size:var(--t-md);line-height:1.25;color:var(--ink)}
+  .pslab span{opacity:.4}
+  /* A native range, so the drag, the keyboard and the a11y come free. The track
+     is painted as the input's own background (8px, --bg, --sage up to the
+     value) and the thumb is the mockup's 22px --sage circle. */
+  .psrange{-webkit-appearance:none;appearance:none;display:block;width:100%;
+    height:22px;margin:5px 0 0;background:transparent;cursor:pointer}
+  .psrange::-webkit-slider-runnable-track{height:8px;border-radius:40px;
+    background:linear-gradient(to right,var(--sage) var(--v,0%),var(--bg) var(--v,0%))}
+  .psrange::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:22px;height:22px;border-radius:50%;background:var(--sage);border:none;
+    margin-top:-7px}
+  .psrange::-moz-range-track{height:8px;border-radius:40px;background:var(--bg)}
+  .psrange::-moz-range-progress{height:8px;border-radius:40px;background:var(--sage)}
+  .psrange::-moz-range-thumb{width:22px;height:22px;border-radius:50%;
+    background:var(--sage);border:none}
+
+  /* ── name / species rows (440:380) and the voice chips (440:373) ──────────
+     74px cards, serif 22px at 24px in, the pencil 24px at 24px from the right.
+     The voice chips are a 3-up grid of 100px pills on a 4px gap — 128·3 + 4·2
+     is the mockup's own 392. */
+  .psfield{height:74px;padding:0 24px;background:var(--card);
+    border-radius:var(--r-card);display:flex;align-items:center;gap:12px;
+    margin-top:5px;cursor:text}
+  .pssec .psfield:first-of-type{margin-top:0}
+  .psfield b,.psfield input{flex:1 1 auto;min-width:0;
+    font-family:'Riccione',Georgia,serif;font-weight:400;font-size:var(--t-lg);
+    line-height:1.18;color:var(--serif-ink)}
+  .psfield input{border:none;background:transparent;padding:0;outline:none;
+    -webkit-appearance:none;appearance:none}
+  .psedit{flex:0 0 auto;width:24px;height:24px;opacity:.4;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .psedit:active{opacity:.75}
+  .psvoice{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:5px}
+  .psvopt{height:100px;border-radius:40px;background:var(--card);cursor:pointer;
+    color:var(--serif-ink);font-family:'Riccione',Georgia,serif;font-weight:400;
+    font-size:var(--t-lg);line-height:1.18;text-align:center;
+    display:flex;align-items:center;justify-content:center;padding:0 15px;
+    transition:background 160ms ease-out}
+  .psvopt.on{background:var(--sage)}
+
+  /* ── activity (439:187 / 446:102) ─────────────────────────────────────────
+     One 74px row with a toggle, then the quiet-hours card — the Auto-watering
+     card's exact pattern: title + toggle, a muted line, a hairline, then the
+     sage action. The mockup's own gaps here are 15px either side of the rule
+     (subtitle ends 71, rule 86, action 102) rather than the detail screen's 14. */
+  .psrowcard{min-height:74px;padding:0 24px;background:var(--card);
+    border-radius:var(--r-card);display:flex;align-items:center;gap:12px;
+    margin-top:5px}
+  .pssec .psrowcard:first-of-type{margin-top:0}
+  .psrowcard b{flex:1 1 auto;font-family:'Riccione',Georgia,serif;font-weight:400;
+    font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink)}
+  .psquiet{background:var(--card);border-radius:var(--r-card);padding:24px;
+    margin-top:5px}
+  .psqtop{display:flex;align-items:center;gap:12px}
+  .psqtop > div{flex:1 1 auto;min-width:0}
+  .psqt{font-family:'Riccione',Georgia,serif;font-weight:400;font-size:var(--t-lg);
+    line-height:1.18;color:var(--serif-ink)}
+  .psqsub{margin-top:1px;font-size:var(--t-md);line-height:1.25;color:rgba(5,5,5,.4)}
+  .psqdiv{height:1px;margin-top:15px;background:rgba(5,5,5,.1)}
+  .psqact{margin-top:15px;font-size:var(--t-md);line-height:1.25;
+    color:var(--sage-soft);cursor:pointer}
+  .psqact:active{opacity:.55}
+  /* the window presets the old screen carried; folded in under "Customise" so
+     the feature survives the rebuild without appearing in the resting card */
+  .psqseg{margin-top:15px}
+
   /* progress */
   .bar{height:12px;background:var(--box);border-radius:999px;overflow:hidden;
     border:none}
@@ -1347,29 +1537,11 @@ function VoicePicker({value, onChange}){
   </div>;
 }
 
-/* Shared personality tuner used by PLANT SETTINGS — preview bubble, preset grid,
-   fine-tuning. (Onboarding builds its own richer layout from the same parts.) */
-function PersonalityPicker({initial="Friendly"}){
-  const [preset,setPreset] = useState(personaByName(initial).k);
-  const [tune,setTune]     = useState(personaByName(initial).defaults);
-  const [playing,setPlaying] = useState(false);
-  const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); setPlaying(false); };
-  const setSlider = (key,i)=>{ setTune(t=>({...t,[key]:i})); setPlaying(false); };
-  return <div className="col" style={{gap:12}}>
-    <div className="field"><label>Voice preview</label>
-      <div className="col" style={{gap:9,alignItems:"center"}}>
-        <LinePreview preset={preset} tune={tune} playing={playing}
-          onPlay={()=>setPlaying(p=>!p)}/>
-        {/* the badge tracks the line, so the face and the bubble never disagree */}
-        <Photo round w={90} h={90} label="PLANT PHOTO" badge={faceFor(preset,tune)}/>
-      </div>
-    </div>
-    <div className="field"><label>Personality</label>
-      <PresetGrid value={preset} onChange={pick}/></div>
-    <div className="field"><label>Fine-tune</label>
-      <FineTuning tune={tune} onChange={setSlider}/></div>
-  </div>;
-}
+/* PersonalityPicker lived here — a preview blob, the preset grid and the
+   fine-tuning card stacked for PLANT SETTINGS, and nothing else ever called it.
+   446:93 replaces that composition wholesale, so it went with the rebuild.
+   PresetGrid / FineTuning / LinePreview stay: onboarding still builds on them. */
+
 
 /* ───────────────── DASHBOARD ICONS ─────────────────
    Exported 1:1 from the Figma "concept2" frames (24×24 boxes, 2px strokes,
@@ -1406,6 +1578,14 @@ function IconChevronLeft(){
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+/* 440:381 "edit-2" — the pencil on the name and species rows. Black at 40% in
+   the mockup; that opacity lives on .psedit so the glyph itself stays currentColor. */
+function IconEdit(){
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M17 3C17.2626 2.73736 17.5744 2.52902 17.9176 2.38687C18.2608 2.24473 18.6286 2.17157 19 2.17157C19.3714 2.17157 19.7392 2.24473 20.0824 2.38687C20.4256 2.52902 20.7374 2.73736 21 3C21.2626 3.26264 21.471 3.57445 21.6131 3.91761C21.7553 4.26077 21.8284 4.62857 21.8284 5C21.8284 5.37143 21.7553 5.73923 21.6131 6.08239C21.471 6.42555 21.2626 6.73736 21 7L7.5 20.5L2 22L3.5 16.5L17 3Z"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>;
 }
 function IconMore(){
@@ -1698,6 +1878,11 @@ const TL = MILESTONES.map(m=>m.stage.toLowerCase());
    footage; the map is the seam where per-plant films would land. */
 const FILM = { still:"assets/video/still-vlad.mp4",
                growth:"assets/video/growth-vlad.mp4" };
+
+/* Personality & Settings has its own film (446:93). Same plant, its own take:
+   a still, breathing portrait with the pot's face lit, framed for a stage that
+   scrolls away rather than for a scrub rail. */
+const PS_FILM = "assets/video/settings-vlad.mp4";
 
 /* the two stage framings, straight off the mockup's own "still 1" rects */
 const PD_Y     = { still:-184, growth:0 };   // 428:1782 / 437:90
@@ -2221,64 +2406,273 @@ function WaterConfig({params}){
     <button className="btn primary" onClick={nav.back}>Save</button>
   </div>;
 }
-/* Plant personality — reached from the plant card's ⋯ menu. Name, quiet hours and
-   removal now live in that menu, so this screen is purely the character tuner. */
-/* PERSONALITY & SETTINGS — the plant card's single ⋯ destination. Everything
-   about one plant lives here: name, character, active hours, and removal. */
+/* ═══════════ PERSONALITY & SETTINGS (Figma "concept2" 446:93) ═══════════
+   Everything about one plant's character lives here, rebuilt off the mockup's
+   four scroll states:
+
+     440:330  at rest — the film runs to the top of the screen behind the title,
+              its gradient resolves into the page at 662→750, and "Personality"
+              already sits on the film at 596.
+     438:96   part-scrolled, with the plant's reaction bubble at 163.
+     441:425  deeper — the film is gone and 441:566's scrim holds the title off
+              the settings sliding under it.
+     441:497  deepest — settings alone under the pinned title.
+
+   THREE LAYERS, and which layer a thing belongs to is the whole design:
+     · the nav is pinned and never moves;
+     · the scrim under it is a scroll state, absent while the film is there;
+     · everything else — film, gradient, settings — is ONE scroller, because the
+       brief has the film scrolling away rather than sitting behind the page the
+       way the detail screen's does.
+
+   The film is this screen's own: settings-vlad.mp4, 1340×1544, 5.04s, muted and
+   looping. It is never scrubbed — it is a live plant, not a timeline. */
+
+/* the stage, its resolve into the page, and the mockup's own overlap between
+   the two (Frame 60 opens at 596 while the gradient runs to 750) */
+const PS_STAGE = 662;
+const PS_FADE  = 88;
+const PS_LAP   = 154;
+
+/* ── HOW THE FILM SHRINKS ────────────────────────────────────────────────────
+   The two states that show the film do NOT show it at the same size, and the
+   difference is not decoration — it is the behaviour.
+
+     440:330  at rest: film 744×856 at (−171,−194), stage visible 0…662
+     438:96   scrolled ~200: film 402×462 at (0,0), stage visible 0…462
+
+   Read as "the film covers whatever is left of the stage, times a zoom", both
+   states fall out of one rule. Cover width for a visible stage of V is
+   V × 0.86788; the rest state runs 744 / (662 × 0.86788) = 1.295× that, and the
+   scrolled state runs 402 / (462 × 0.86788) = 1.002×, i.e. exactly cover. So
+   the zoom eases from 1.295 to 1 over the first 200px of scroll, and the film
+   is bottom-anchored throughout:
+
+     at scroll 0    height 662 × 1.295 = 857 → top at −195   (mockup −194)
+     at scroll 200  height 462 × 1     = 462 → top at 0      (mockup 0)
+
+   Past that, cover would take the film NARROWER than the screen (below 445px of
+   visible stage), so the width floors at the stage's own and the film simply
+   crops from the top the rest of the way — which is what the two deep states
+   show, a film already gone under a solid scrim.
+
+   This is also what keeps the pinned title readable: at rest the serif sits
+   above the canopy, and by the time scrolling would drag the canopy up into it
+   the zoom has already pulled the whole plant down out of the way. */
+const PS_AR       = 1340/1544;   // 0.86788
+const PS_ZOOM     = 0.295;       // extra zoom over cover, at rest
+const PS_ZOOM_END = 200;         // …spent by here
+const PS_VID_W0   = PS_STAGE * PS_AR * (1 + PS_ZOOM);   // 744px, the first paint
+
+/* The scrim's ramp, both ends read off the states rather than chosen.
+
+   Each reference frame pins a scroll position. The film's own size dates
+   438:96 at 200 (see PS_ZOOM), and the others date themselves by where their
+   content sits against its resting 596: 441:425 opens at 177, i.e. 419, and
+   441:497 opens on "General" at 213 against a resting 1019, i.e. 806.
+
+   438:96 has NO scrim and nothing under the title yet; 441:425 has it solid and
+   the film gone from under one. So the ramp is 200 → 419 — and it lands exactly
+   where it has to, because the settings' own top edge (596) reaches the title's
+   bottom (176) at 420. The scrim finishes arriving on the frame the content
+   needs it. */
+const PS_SCRIM_IN  = 200;
+const PS_SCRIM_OUT = 419;
+
+/* How long the reaction bubble holds after the last touch, and how far down the
+   page it still makes sense. 2.6s sits in the brief's 2–3s band. The bubble is
+   the PLANT answering, so it goes when there is no plant left under it: 410 is
+   the scroll at which the film has left the bubble's own box (163 + 89). */
+const PS_TALK_HOLD = 2600;
+const PS_TALK_MAX  = PS_STAGE - 163 - 89;         // 410
+
+/* 440:373 — a gendered voice, not the timbre VOICES carries. The two are
+   different questions and the onboarding tuner still asks the other one, so
+   this list is local to this screen rather than a change to the shared set. */
+const PS_VOICES = ["Male","Female","Prefer not to choose"];
+
 function PlantSettings({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
-  const [name,setName]   = useState(p.name);
-  const [quiet,setQuiet] = useState(true);
-  const [hours,setHours] = useState("10pm–8am");
-  const [confirm,setConfirm] = useState(false);
+
+  const [name,setName]       = useState(p.name.split(" ")[0]);
+  const [species,setSpecies] = useState(p.species);
+  const [editing,setEditing] = useState("");           // "" | "name" | "species"
+  const [preset,setPreset]   = useState(personaByName(p.persona).k);
+  const [tune,setTune]       = useState(personaByName(p.persona).defaults);
+  const [voice,setVoice]     = useState("Male");
+  const [msgs,setMsgs]       = useState(true);
+  const [quiet,setQuiet]     = useState(true);
+  const [hours,setHours]     = useState("10pm–8am");
+  const [custom,setCustom]   = useState(false);
   const first = name.split(" ")[0] || "they";
-  return <div className="screen">
-    <Top title="Personality &amp; Settings" onBack={nav.back} kicker={p.name}/>
 
-    <div className="card scard row" style={{alignItems:"center"}}>
-      <Photo round w={72} h={72} label="PHOTO" badge={p.emotion}/>
-      <div className="grow"><b>{name}</b><br/><small className="muted">{p.species} · {p.persona}</small></div>
-      <button className="btn sm">Change photo</button>
+  /* ── the reaction bubble ──────────────────────────────────────────────────
+     It is a PREVIEW, so it only exists while the user is shaping the character:
+     picking a preset or moving a slider raises it, anything else lowers it, and
+     it lowers itself 2.6s after the last touch. The line is not a placeholder —
+     sampleLine() already builds an in-character sentence from these very slider
+     values, so the bubble genuinely answers what was just changed. */
+  const [talk,setTalk] = useState(false);
+  const talkT = useRef(0);
+  const poke = ()=>{
+    setTalk(true);
+    clearTimeout(talkT.current);
+    talkT.current = setTimeout(()=>setTalk(false), PS_TALK_HOLD);
+  };
+  const hush = ()=>{ clearTimeout(talkT.current); setTalk(false); };
+  useEffect(()=>()=>clearTimeout(talkT.current),[]);
+
+  const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); poke(); };
+  const slide = (key,v)=>{ setTune(t=>({...t,[key]:v})); poke(); };
+
+  /* ── the scroll states ────────────────────────────────────────────────────
+     One read per frame, rAF-coalesced. The scrim is written straight to the
+     node because it changes on every frame of a flick; `deep` is a boolean and
+     only re-renders when it actually flips. */
+  const scroller = useRef(null);
+  const scrim    = useRef(null);
+  const vid      = useRef(null);
+  const stage    = useRef(null);
+  const sraf     = useRef(0);
+  const [deep,setDeep] = useState(false);
+  const sync = ()=>{
+    sraf.current = 0;
+    const s = scroller.current, k = scrim.current, v = vid.current, g = stage.current;
+    if(!s) return;
+    const t = s.scrollTop;
+    if(k) k.style.opacity =
+      Math.max(0, Math.min(1, (t - PS_SCRIM_IN) / (PS_SCRIM_OUT - PS_SCRIM_IN)));
+    /* the film covers what is left of the stage, times a zoom that eases out
+       over the first 200px — see PS_ZOOM. Width floors at the stage's own, so
+       once cover would make the film narrower than the screen it simply crops. */
+    if(v && g){
+      const vis = Math.max(0, PS_STAGE - t);
+      const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
+      v.style.width = Math.max(g.clientWidth, vis * PS_AR * z).toFixed(1) + "px";
+    }
+    setDeep(t > PS_TALK_MAX);
+  };
+  const onScroll = ()=>{
+    if(talk) hush();                       // scrolling is "interacting elsewhere"
+    if(!sraf.current) sraf.current = requestAnimationFrame(sync);
+  };
+  useEffect(()=>{
+    sync();
+    return ()=>{ if(sraf.current) cancelAnimationFrame(sraf.current); };
+  },[]);
+
+  const commit = ()=>setEditing("");
+  const field = (kind, value, set)=> editing===kind
+    ? <input autoFocus value={value} onChange={e=>set(e.target.value)}
+        onBlur={commit} onKeyDown={e=>e.key==="Enter"&&commit()}/>
+    : <b>{value}</b>;
+
+  return <div className="psscreen">
+
+    {/* 1 — the scroller: the film, its resolve, and the settings, in that order */}
+    <div className="psscroll" ref={scroller} onScroll={onScroll}>
+
+      <div className="psstage" ref={stage}>
+        <video className="psvid" ref={vid} src={PS_FILM}
+          muted loop autoPlay playsInline preload="auto"
+          style={{width:PS_VID_W0.toFixed(1)+"px"}}/>
+      </div>
+      <div className="psfade"/>
+
+      <div className="pscontent">
+
+        {/* ── PERSONALITY ──────────────────────────────────────────────── */}
+        <div className="pssec">
+          <h2 className="pssech">Personality</h2>
+          <div className="pschips">
+            {PERSONALITIES.presets.map(x=>(
+              <div key={x.k} className={"pschip"+(preset===x.k?" on":"")}
+                onClick={()=>pick(x.k)}>{x.k}</div>
+            ))}
+          </div>
+          <div className="pscard" style={{marginTop:"14px"}}>
+            {PERSONALITIES.sliders.map(sl=>(
+              <div className="psrow" key={sl.key}>
+                <div className="pslab">{sl.label}
+                  <span>{wordFor(sl.words, tune[sl.key])}</span></div>
+                <input type="range" className="psrange" min="0" max="100" step="1"
+                  value={tune[sl.key]} aria-label={sl.label}
+                  onChange={e=>slide(sl.key, Number(e.target.value))}
+                  style={{"--v": tune[sl.key] + "%"}}/>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── GENERAL ──────────────────────────────────────────────────────
+            The pencil is a real affordance: tapping the row (or the pencil)
+            swaps the serif line for an input in the same box, and blur or
+            Enter commits. A wireframe that draws an edit icon and does
+            nothing when you press it is the one thing worth avoiding here. */}
+        <div className="pssec" onPointerDown={hush}>
+          <h2 className="pssech">General</h2>
+          <div className="psfield" onClick={()=>setEditing("name")}>
+            {field("name", name, setName)}
+            <span className="psedit"><IconEdit/></span>
+          </div>
+          <div className="psfield" onClick={()=>setEditing("species")}>
+            {field("species", species, setSpecies)}
+            <span className="psedit"><IconEdit/></span>
+          </div>
+          <div className="psvoice">
+            {PS_VOICES.map(v=>(
+              <div key={v} className={"psvopt"+(voice===v?" on":"")}
+                onClick={()=>setVoice(v)}>{v}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── ACTIVITY ─────────────────────────────────────────────────── */}
+        <div className="pssec" onPointerDown={hush}>
+          <h2 className="pssech">Activity</h2>
+          <div className="psrowcard">
+            <b>Messages from {first}</b>
+            <Toggle on={msgs} onClick={()=>setMsgs(m=>!m)}/>
+          </div>
+          <div className="psquiet">
+            <div className="psqtop">
+              <div>
+                <div className="psqt">Quiet hours</div>
+                <div className="psqsub">{first} stays silent from {hours.replace("–"," till ")}</div>
+              </div>
+              <Toggle on={quiet} onClick={()=>setQuiet(q=>!q)}/>
+            </div>
+            <div className="psqdiv"/>
+            <div className="psqact" onClick={()=>setCustom(c=>!c)}>Customise</div>
+            {custom && <div className="psqseg">
+              <div className="segrow">
+                {["10pm–8am","11pm–7am","9pm–7am"].map(h=>(
+                  <div key={h} className={"seg"+(hours===h?" on":"")}
+                    onClick={()=>setHours(h)}>{h}</div>
+                ))}
+              </div>
+            </div>}
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <div className="field"><label>Name</label>
-      <input value={name} onChange={e=>setName(e.target.value)}/></div>
+    {/* 2 — the scrim: nothing at rest, solid once settings are under the title */}
+    <div className="psscrim" ref={scrim} aria-hidden="true"/>
 
-    {/* personality — the single shared picker, seeded with this plant's preset */}
-    <PersonalityPicker initial={p.persona}/>
-
-    <div className="kicker">Active hours</div>
-    <div className="card scard col" style={{gap:12}}>
-      <div className="spread">
-        <div><b>Quiet hours</b><br/>
-          <small className="muted">{first} stays silent during this window</small></div>
-        <Toggle on={quiet} onClick={()=>setQuiet(!quiet)}/>
-      </div>
-      <div className="segrow" style={{opacity:quiet?1:.5,pointerEvents:quiet?"auto":"none"}}>
-        {["10pm–8am","11pm–7am","Custom"].map(h=>(
-          <div key={h} className={"seg"+(hours===h?" on":"")} onClick={()=>setHours(h)}>{h}</div>
-        ))}
+    {/* 3 — the pinned nav, and the plant's reaction bubble beside it */}
+    <div className="pshead">
+      <div className="plhead">
+        <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+        <h1 className="pltitle">Personality &amp; Settings</h1>
       </div>
     </div>
-    <div className="card scard spread"><div><b>Messages from {first}</b><br/>
-      <small className="muted">Check-ins and reactions</small></div>
-      <Toggle on={true} onClick={()=>{}}/></div>
-
-    <button className="btn primary" onClick={nav.back}>Save</button>
-    {/* removal sits low and quiet — destructive, never a primary affordance */}
-    <button className="linkbtn" onClick={()=>setConfirm(true)}>Remove plant</button>
-
-    {confirm && <div className="overlay" onClick={()=>setConfirm(false)}>
-      <div className="dlg" onClick={ev=>ev.stopPropagation()}>
-        <b>Remove {first}?</b>
-        <p className="muted">The pot will be unpaired and their diary and bond will be gone. This can't be undone.</p>
-        {/* jump rather than push: the card we just removed must not sit behind Back */}
-        <button className="btn primary"
-          onClick={()=>{setConfirm(false);nav.jump([["dashboard"],["plantsList"]]);}}>Remove plant</button>
-        <button className="btn ghost" onClick={()=>setConfirm(false)}>Keep them</button>
-      </div>
-    </div>}
+    <div className={"psbub"+((talk && !deep)?"":" off")}
+      style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
+      {sampleLine(preset,tune)}
+    </div>
   </div>;
 }
 

@@ -2504,3 +2504,174 @@ One CLI note for next time: `vercel --prod` fails with a bare **"Not
 authorized"** from this directory unless `--scope wannabe-course` is passed.
 The project lives under the team, the CLI session is the personal account, and
 the linked `orgId` alone is not enough to resolve the scope.
+
+# Revision 27 — Personality & Settings, rebuilt on its own film
+
+Scope is this one screen. Source of truth is `446:93` and its four states, each
+of which turns out to date itself by where its content sits against the resting
+layout — which is what let the scroll behaviour be *derived* rather than guessed:
+
+| node | content top | ⇒ scroll | what it shows |
+|---|---|---|---|
+| `440:330` | 596 | **0** | the film to the top of the screen, its gradient at 662→750, "Personality" already on the film |
+| `438:96` | 442 | **200** (see below) | film smaller and lower, the reaction bubble at 163 |
+| `441:425` | 177 | **419** | film gone, `441:566`'s scrim holding the title off the settings |
+| `441:497` | 213 (at "General") | **806** | settings alone under the pinned title |
+
+## The layout is the mockup, to the pixel
+
+Measured on the running screen against the frame's own numbers — the mockup is
+402×818 and this device is 386×818, so every vertical number carries over 1:1
+and only widths re-scale:
+
+| | mockup | built |
+|---|---|---|
+| stage / film bottom | 662 | 662 |
+| gradient | 662 → 750 | 662 → 750 |
+| "Personality" | 596 | 596 |
+| chip row | 662 | 662 |
+| slider card | 750, h 229 | 750, h 229 |
+| slider thumb rows | 799 · 866 · 933 | 799 · 866 · 933 |
+| "General" | 1019 | 1019 |
+| name / species | 1085 · 1164 | 1085 · 1164 |
+| voice chips | 1243 | 1243 |
+| "Activity" | 1383 | 1383 |
+| messages row | 1449 | 1449 |
+| quiet-hours card | 1528, h 146 | 1528, h 146 |
+| its rule / action | 1614 / 1630 | 1614 / 1630 |
+| **total scroll height** | **1746** | **1746** |
+
+Chip widths land on the mockup's too — Friendly 123, Grump 117, Calm 99,
+Cheerful 128 — which is the useful confirmation that the 24px padding and the
+22px Riccione are right rather than merely close.
+
+Values, all from the file: chips and voice pills radius 40 on `#C9D6BC` when
+chosen and white when not (`440:356`, `440:373`); slider track `#EDEEE9`, fill
+and 22px thumb `#C9D6BC` (`440:338/341/344`); slider labels 16px `#050505` with
+the value at 40% (`440:347`); section headers 44.712px `#1E0C00`; the
+quiet-hours rule black at 10% and "Customise" `#ACBA9F`, i.e. the Auto-watering
+card's own pattern, with the mockup's 15px either side of the rule rather than
+that card's 14.
+
+## The film shrinks — that is the behaviour, not decoration
+
+The two states that show the film do not show it at the same size, and reading
+that difference as a rule is what made the scroll work:
+
+- `440:330` draws it **744×856 at (−171,−194)** with 662 of stage visible.
+- `438:96` draws it **402×462 at (0,0)** with 462 of stage visible.
+
+Cover width for a visible stage of V is `V × 0.86788` (the film is 1340×1544).
+The rest state runs `744 / (662 × 0.86788)` = **1.295×** cover; the scrolled one
+runs `402 / (462 × 0.86788)` = **1.002×**, i.e. exactly cover. So: **the film
+covers whatever is left of the stage, times a zoom that eases 1.295 → 1 over the
+first 200px**, bottom-anchored throughout. Built, it measures
+
+- scroll 0 → 744×857 at y −195 (mockup 744×856 at −194)
+- scroll 200 → 401×462 at y 0 (mockup 402×462 at 0)
+
+Past 445px of visible stage cover would take the film *narrower than the
+screen*, so the width floors there and the film crops from the top the rest of
+the way — which is what the two deep states show, a film already gone.
+
+This also settles a legibility problem the naive reading created. Holding the
+rest framing and merely scrolling it drags the canopy straight up through the
+pinned serif title, which is unreadable; the zoom pulls the whole plant down and
+out of the way before that can happen. The designer's two crops were the answer.
+
+**The film is bottom-anchored, never top-anchored.** Its bottom edge is the seam
+with the gradient and that seam must not move; the 386-vs-402 width difference
+is spent on the top crop instead, where nothing meets anything. Verified: stage
+bottom and gradient top are the same number at every scroll position tested.
+
+**One inconsistency, flagged.** `438:96`'s film says scroll 200 while its own
+content top (442 against a resting 596) says 154. Hand-placed frames disagree by
+46px. The film's reading is taken, because it is the one that reproduces two
+independent numbers (size *and* position) exactly.
+
+## The scrim is a scroll state
+
+`441:566` is `#EDEEE9 → transparent` over 120px at y 176 — solid page colour
+behind the title and a 120px dissolve under it, 296 in all. It is **absent** at
+rest (`440:330` runs the film to the top of the screen behind the title), so its
+opacity is a scroll state, and both ends of the ramp are read rather than
+chosen: `438:96` at 200 has no scrim and nothing under the title; `441:425` at
+419 has it solid and the film gone.
+
+**200 → 419**, and it lands where it must: the settings' own top edge (596)
+reaches the title's bottom (176) at scroll **420**. The scrim finishes arriving
+on the frame the content needs it.
+
+## The reaction bubble
+
+`438:175/176` — a 193×89 pebble at 11px from the right edge, top 163, 12px
+centred text. Same blob path as the detail screen's, drawn smaller, so it is
+recognisably the same object; same 230ms fade-and-settle off one class, so the
+two screens read as one behaviour.
+
+Decisions:
+
+- **The line is generated, not static.** The brief allowed a sample string, but
+  `sampleLine(preset, tune)` already exists and builds an in-character sentence
+  *from these very slider values* — so the bubble genuinely answers what was
+  just changed rather than miming it. Picking "Drama queen" gets "Call the
+  papers — this is my FINAL act!"; moving Warmth to the top appends its warm tag.
+- **12px is deliberate and off the locked type scale.** The scale's smallest
+  step is 13 and this sentence does not fit an 89px blob at 13. The mockup says
+  12; taken.
+- **It shows only while shaping the character** — a preset tap or a slider move
+  raises it, 2.6s of quiet lowers it (the brief's 2–3s band), and scrolling or
+  touching anything in General/Activity lowers it at once.
+- **And only while there is a plant under it.** It is the plant answering, so it
+  is gated on scroll < 410 — the point at which the film has left the bubble's
+  own box (163 + 89). Past that the bubble would be a voice from nowhere.
+
+## Calls worth naming
+
+- **Six presets, not eight.** The brief says "the canonical 8"; the canonical set
+  in this file is six and `440:356` draws exactly those six. Followed the file
+  and the mockup, which agree with each other.
+- **"Drama queen", not "Drama Queen".** The mockup capitalises it; the data does
+  not, and `PLANTS` stores `persona:"Drama queen"` while onboarding renders the
+  same list. Changing the casing would have reached two other screens.
+- **Male / Female / Prefer not to choose is a NEW list** (`PS_VOICES`), local to
+  this screen. `VOICES` is timbre — Warm, Bright, Soft, Playful — and onboarding
+  still asks that question; they are different questions, so the shared constant
+  was left alone rather than repurposed.
+- **The pencils work.** Tapping a name or species row swaps the serif line for an
+  input in the same box; blur or Enter commits. Drawing an edit affordance that
+  does nothing when pressed is the one thing worth avoiding on a settings screen.
+- **"Customise" on quiet hours opens the window picker inline** rather than being
+  a dead target or a new screen. The card the mockup draws is the resting state;
+  the three windows the previous screen carried fold in underneath, so the
+  feature survives the rebuild without appearing where the mockup shows nothing.
+- **"Remove plant" is gone, and nothing else offers it.** `446:93` has no
+  destructive action anywhere and the brief lists the screen's contents top to
+  bottom without one, so it went with the old composition — along with its
+  confirm dialog. Flagging it because it means the prototype now has no path to
+  removing a plant at all; putting an unmocked destructive button back would
+  have been the larger liberty, but it is a product call, not a layout one.
+- **`PersonalityPicker` was deleted.** It stacked a preview blob, the preset grid
+  and the fine-tuning card for this screen and nothing else ever called it.
+  `PresetGrid` / `FineTuning` / `LinePreview` stay — onboarding builds on them.
+- **The film is Vlad's for every plant**, exactly as the detail screen's already
+  are: there is one plant with footage and `PS_FILM` is the seam where per-plant
+  films would land.
+
+## Verification
+
+Headless Chrome over CDP at the live 386px device width. **No console errors and
+no exceptions** — this run the favicon 404 did not even appear.
+
+- Every layout number in the table above, measured on the running screen.
+- Film: 744×857 at −195 (scroll 0) → 401×462 at 0 (scroll 200) → floored at 386
+  wide and cropping from the top (300+). Stage bottom == gradient top at 0, 100,
+  200, 300, 419, 560. Restored exactly on the way back up.
+- Scrim: 0 at 0 and 200, 0.46 at 300, 1 at 419 and beyond.
+- Bubble: hidden at rest; opacity 1 on a preset tap with the line changing to
+  that character; opacity 1 on a real mouse drag of a slider; 0 after 2.6s; 0
+  after any scroll.
+- Name row opens an input carrying the current name; "Customise" reveals the
+  three windows with the current one lit.
+- All six flow-index entries still render, and Plant Detail → ⋯ → this screen →
+  back is intact in both directions.
