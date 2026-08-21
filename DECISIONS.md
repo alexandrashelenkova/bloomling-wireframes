@@ -2841,3 +2841,22 @@ device width. **No console errors and no exceptions.**
   Plant Detail with the card restated.
 - All six flow-index entries still render; Personality & Settings untouched and
   intact (film 744 wide at rest).
+
+## Shipped
+
+Commit `4ae906c` → `origin/main`, Vercel production
+`dpl_CkTY1SmDntDYtCTJWXKsv24y7Bpi`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site, **no console errors at all**:
+
+- **Live scrub** — thumb 0.75 / 0.50 / 0.25 against film t **1.24 / 2.49 /
+  3.74**, i.e. dead on the 1.25 / 2.50 / 3.75 owed, less the deliberate 0.04
+  tail trim. Home returns t 0 with the still film back at −184.
+- **Blob** — `pdbubpop`, 0.3s.
+- **Card** — inner block 70 → 0, card 146 → 76 on toggle off, and back.
+- **Auto-watering screen** — title "Auto-watering", labels at **161 / 330**,
+  three option cards **122px each** (equal), "2 days · best choice" and "Low"
+  lit from Vlad's own data, Save at **5 / 744 / 376 × 50**.
+- **Round trip** — picking "5 days" and saving lands on Plant Detail with the
+  card restated as **"Every 5th day at 7am"**.
