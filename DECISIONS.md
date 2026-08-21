@@ -2483,3 +2483,24 @@ card: schedule at y 989 in `rgba(5,5,5,.4)`, rule at 1023 (14px under), action a
 1038 (14px under) in `rgb(172,186,159)`.
 
 Collapse-on-drag and the popover anchor as measured in §6 and §7.
+
+## Shipped
+
+Commit `8d2c753` → `origin/main`, Vercel production
+`dpl_C5H4poRK8hscARFZ8cMvJvPbhcqb`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site — every figure identical to local:
+
+- rest: 4 segments · 4 dots · "now" lit · greeting 1 · halo 0 · thumb at 361
+- mid-span: 5 segments · 5 dots · **no word lit** · greeting 0 · halo 1
+- expanded: `scrollTop` 288 · `blurTop` 246 (= cards 396 − 150)
+- collapse-on-drag: back to `scrollTop` 0 within 500ms of the press
+- ⋯ popover: one item, 10.0px under the icon, right edges flush, opacity 1
+- auto-watering: "Every 3rd day at 7am", "Customise" at `rgb(172,186,159)`
+- rail band bottom 669 to bond card 684 — the mockup's 15px
+
+One CLI note for next time: `vercel --prod` fails with a bare **"Not
+authorized"** from this directory unless `--scope wannabe-course` is passed.
+The project lives under the team, the CLI session is the personal account, and
+the linked `orgId` alone is not enough to resolve the scope.
