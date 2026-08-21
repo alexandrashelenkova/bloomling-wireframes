@@ -513,10 +513,23 @@
      is the TOP centre so the shrink reads as the blob withdrawing towards the
      plant rather than collapsing into thin air. Opacity, not display: the box
      keeps its size, so nothing under it in .pdhead ever moves. */
+  /* ARRIVING is a keyframe, not a transition, because the overshoot has to be
+     stated: 300ms that carries the blob 3.5% past full size and settles back.
+     A back-out cubic on a .96 → 1 transition would have overshot by 0.4% — the
+     spring is real but there is almost no travel for it to spring over.
+     LEAVING keeps rev 26's plain ease-out: the .off rule brings its own
+     transition, and a transition is what runs when a class is ADDED, so the two
+     directions never borrow each other's curve. */
   .pdbubwrap{position:relative;margin:7px -16px 0;display:flex;justify-content:center;
     flex:0 0 auto;transform-origin:50% 0;
     transition:opacity 230ms ease-out,transform 230ms ease-out}
+  .pdbubwrap:not(.off){animation:pdbubpop 300ms cubic-bezier(.22,1,.36,1) both}
   .pdbubwrap.off{opacity:0;transform:translateY(-8px) scale(.96);pointer-events:none}
+  @keyframes pdbubpop{
+    0%  {opacity:0;transform:translateY(-8px) scale(.94)}
+    55% {opacity:1;transform:translateY(0)     scale(1.035)}
+    100%{opacity:1;transform:translateY(0)     scale(1)}
+  }
   .pdbub{position:relative;width:277px;max-width:calc(100% - 32px);min-height:116px;
     background-size:100% 100%;background-repeat:no-repeat;
     padding:26px 29px;font-size:var(--t-md);line-height:1.28;text-align:center;
@@ -606,6 +619,17 @@
      The schedule is the same muted ink as every other secondary label on this
      screen — rgba(5,5,5,.4), i.e. .scard-l — and the rule is black at 10%. */
   .pdauto{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  /* Everything under the title row belongs to auto-watering being ON: with the
+     toggle off there is no schedule to state and nothing to customise, so the
+     card collapses to its title row: 76px, .scard's two 24s round a row whose
+     height is the 28px toggle's rather than the 26px of serif beside it.
+     max-height rather than a grid-row or auto: the block's height is known and
+     fixed (1 + 20 + 14 + 1 + 14 + 20 = 70), so a hard number is honest here and
+     works everywhere, and overflow:hidden also gives the block its own BFC so
+     .pdautosub's 1px margin cannot collapse out of it. */
+  .pdautomore{overflow:hidden;max-height:80px;opacity:1;
+    transition:max-height 200ms ease-out,opacity 200ms ease-out}
+  .pdautomore.off{max-height:0;opacity:0;pointer-events:none}
   .pdautosub{margin-top:1px;font-size:var(--t-md);line-height:1.25;
     color:rgba(5,5,5,.4)}
   .pdautodiv{height:1px;margin-top:14px;background:rgba(5,5,5,.1)}
@@ -626,6 +650,46 @@
   .pdspeech{position:relative;max-width:280px;background:var(--c-me);border:none;
     border-radius:var(--bub);padding:14px 16px;font-size:var(--t-md);line-height:1.3;
     text-align:center}
+
+  /* ══════════ AUTO-WATERING SETTINGS (Figma "concept2" 447:131) ══════════
+     A plain page — 447:197 reads #EDEEE9 at every corner and every margin, so
+     the film that frames its two neighbours is deliberately absent here. Just
+     the unified nav, two labelled choices and a Save.
+
+     The mockup frame is 402×874 against this 386×818 device: the title and the
+     groups are top-anchored so their y carries over unchanged, and Save is
+     bottom-anchored (850 of 874 = 24 from the foot) so it comes off the bottom. */
+  .awscreen{flex:1 1 auto;display:flex;flex-direction:column;
+    padding:8px 16px 24px;overflow-y:auto;overflow-x:hidden}
+  .awscreen::-webkit-scrollbar{width:0}
+  /* 40px under the title's own box (69 + 52 = 121 → 161), and 40 between the
+     groups (161 + 129 = 290 → 330). -11px cancels the screen's 16 down to the
+     5px inset every card in this app is drawn on. */
+  .awbody{margin:40px -11px 0;display:flex;flex-direction:column;gap:40px;
+    flex:0 0 auto}
+  .awgroup{display:flex;flex-direction:column;gap:14px}
+  /* 447:234 pads the label row by 9, which lands the text on the device's 14 */
+  .awlab{padding:0 9px;font-size:var(--t-md);line-height:1.25;color:var(--ink)}
+  /* minmax(0,1fr), not 1fr: the middle card carries "best choice", which is
+     wider than "1 day", and a bare 1fr floors each track at its content — the
+     three cards came out 118/131/118 instead of the mockup's three equal 127. */
+  .awopts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
+    height:95px}
+  /* 24px of padding round 26 + 1 + 20 of type is the mockup's own 95 */
+  .awopt{background:var(--card);border-radius:40px;cursor:pointer;padding:24px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;transition:background 160ms ease-out}
+  .awopt.on{background:var(--sage)}
+  .awopt b{font-family:'Riccione',Georgia,serif;font-weight:400;
+    font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink);white-space:nowrap}
+  .awopt small{font-size:var(--t-md);line-height:1.25;color:rgba(5,5,5,.4);
+    white-space:nowrap}
+  /* 447:238 — --sage, radius 28, 15px of padding round a 16px centred line, and
+     it is --ink rather than the pill buttons' --serif-ink */
+  .awsave{flex:0 0 auto;margin:auto -11px 0;background:var(--sage);border:none;
+    border-radius:var(--r-sub);padding:15px;text-align:center;
+    font-size:var(--t-md);line-height:1.25;color:var(--ink);cursor:pointer}
+  .awsave:active{transform:translateY(1px)}
 
   /* ══════════ PERSONALITY & SETTINGS — full-bleed (Figma 446:93) ══════════
      A 402×818 frame in the mockup against this file's 386×818 device, so every
@@ -1213,7 +1277,11 @@ const PLANTS = [
   {
     id:"vlad", name:"Vlad", species:"Bonsai", persona:"Calm",
     emotion:"content", growth:88, lastWatered:"Today, 06:30", light:"Bright",
-    reservoir:71, autoOn:true, schedule:"Every 3 days", amount:"Low",
+    /* "Every 2 days" rather than 3: 445:90 sets the Plant Detail card to "Every
+       2nd day at 7am" and 447:131 opens with "2 days" selected, so the two
+       mockups agree with each other and it was Vlad's row that was out of step.
+       He is the plant every one of these frames is drawn from. */
+    reservoir:71, autoOn:true, schedule:"Every 2 days", amount:"Low",
     bondLevel:5, bondPct:84, bondTitle:"Old friends",
     checkin:"Ninety years of patience, and still growing. Good morning to you.",
     reaction:"Thank you. Slowly is how good things happen.",
@@ -1889,6 +1957,26 @@ const PD_Y     = { still:-184, growth:0 };   // 428:1782 / 437:90
 const PD_SLIDE = 420;   // the -184 ⇄ 0 glide; must match .pdvid-still's transition
 const PD_FADE  = 180;   // the cross-fade that covers the swap
 
+/* ── HOW HARD THE FILM CHASES THE FINGER ─────────────────────────────────────
+   Two speeds, and which one is in play is decided per scrub by how far the
+   request moved.
+
+     1        the film IS the finger — currentTime is written straight from the
+              thumb's position, frame for frame. This is what a continuous
+              scrub has to feel like: rev 26 eased every scrub at PD_EASE, which
+              needs ~26 frames to close a long drag and left the film visibly
+              trailing the thumb — near enough to "the drag doesn't move the
+              video" to be reported as exactly that.
+     PD_EASE  the film glides there under its own steam. Right for a JUMP: a
+              press landing far from the thumb, or the hand-over back to "now",
+              where a cut would be ugly and nobody is tracking a finger.
+
+   PD_SCRUB_JUMP is the line between them — 0.08 of the rail, ~28px, comfortably
+   more than any single pointermove or wheel notch and comfortably less than a
+   deliberate tap somewhere else. */
+const PD_EASE       = 0.22;
+const PD_SCRUB_JUMP = 0.08;
+
 /* The blur is a SCROLL STATE, and the mockup is what settles that. Aligning
    428:1782's film against the raw mp4 frame band by band gives sharpness ratios
    of 0.93 / 0.98 / 0.99 — the mockup's film is not blurred anywhere. It is
@@ -1988,7 +2076,8 @@ function PlantDetail({params}){
   const timers = useRef([]);
   const dur    = useRef(0);    // growth film's usable duration
   const want   = useRef(1);    // where the finger is, 0…1 (1 = now)
-  const shown  = useRef(1);    // where the film is, eased toward `want`
+  const shown  = useRef(1);    // where the film is, chasing `want`
+  const chase  = useRef(PD_EASE);   // …at this rate; see PD_SCRUB_JUMP
   /* still → down → growth → fadeOut → up → still. `down` and `up` are the
      -184 ⇄ 0 glides, `fadeOut` is the cross-fade home. A ref, not state: the
      visible consequences are all in `sy`/`gOn` and re-rendering on every step
@@ -2053,21 +2142,28 @@ function PlantDetail({params}){
 
   /* ── the scrub ────────────────────────────────────────────────────────────
      A pointermove fires far more often than a video can seek, so the handler
-     only records where the finger is and one animation frame later the film is
-     eased a fraction of the way there. The easing is not decoration: it is what
-     lets `pos` answer the finger instantly while the film glides, and what lets
-     the film sit at "now" through the whole hand-over and then rewind into
-     place afterwards instead of jump-cutting to wherever the finger got to.
+     only records where the finger is and the film is moved once per animation
+     frame. How far it moves is `chase`: all the way, for a continuous scrub, or
+     a fraction of the way, for a jump (see PD_SCRUB_JUMP).
 
      `shown` is deliberately frozen unless the growth film is actually on
-     screen. That is the guarantee that the cross-fade always happens with both
-     films showing the same frame. */
+     screen — tick() returns early otherwise. That is what lets the still film
+     sit at "now" through the whole 420ms hand-over no matter where the finger
+     has got to, and it is also why a live scrub cannot tear the cross-fade: the
+     growth film takes up the finger's position on the first frame it exists, at
+     opacity 0, and the 180ms fade turns what would have been a cut into a
+     dissolve from "now" to wherever the drag has reached. */
   const tick = ()=>{
     raf.current = 0;
     if(phase.current !== "growth") return;
     const g = growV.current, d = dur.current;
     const diff = want.current - shown.current;
-    shown.current = Math.abs(diff) > 0.0006 ? shown.current + diff*0.22 : want.current;
+    /* chase is 1 for a continuous scrub and PD_EASE for a jump; either way the
+       film only moves once it is actually on screen, which is what keeps the
+       cross-fade honest (see below). */
+    shown.current = (chase.current >= 1 || Math.abs(diff) <= 0.0006)
+      ? want.current
+      : shown.current + diff*chase.current;
     if(g && d > 0){
       const t = (1 - shown.current) * d;      // now = t 0; back in time = forward
       if(Math.abs(g.currentTime - t) > 0.003){ try{ g.currentTime = t; }catch(err){} }
@@ -2077,8 +2173,18 @@ function PlantDetail({params}){
   };
   const kick = ()=>{ if(!raf.current) raf.current = requestAnimationFrame(tick); };
 
-  const seek = (frac)=>{
+  /* ── THE SCRUB — one handler, every input ─────────────────────────────────
+     A finger on the rail, a trackpad gesture over it, and anything else that
+     ever moves the thumb all arrive here and nowhere else, so there is exactly
+     one description of what a position means: it is the thumb, it is `pos`, and
+     it is the growth film's currentTime, always the same three at once.
+
+     The only thing an input decides is the CHASE, and it decides it by its own
+     step size rather than by announcing what kind of input it is — a small step
+     is somebody tracking, a large one is somebody jumping. */
+  const scrub = (frac)=>{
     const f = Math.max(0, Math.min(1, frac));
+    chase.current = Math.abs(f - want.current) > PD_SCRUB_JUMP ? PD_EASE : 1;
     want.current = f;
     setPos(f);
     /* leaving "now" is what starts the whole sequence — a bare tap ON now does
@@ -2189,15 +2295,15 @@ function PlantDetail({params}){
     setDrag(true);
     collapseCards();
     try{ ev.currentTarget.setPointerCapture(ev.pointerId); }catch(err){}
-    seek(fracFrom(ev));
+    scrub(fracFrom(ev));
   };
-  const move = (ev)=>{ if(dragging.current) seek(fracFrom(ev)); };
+  const move = (ev)=>{ if(dragging.current) scrub(fracFrom(ev)); };
   const up   = ()=>{ dragging.current = false; setDrag(false); };
   /* a horizontal trackpad gesture over the rail scrubs it; a vertical one is
      left alone, because the sheet under the timeline is a scroller now and
      hijacking its wheel would trap the page */
   const wheel = (ev)=>{
-    if(Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) seek(want.current + ev.deltaX/1400);
+    if(Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) scrub(want.current + ev.deltaX/1400);
   };
 
   /* ── WHAT THE RAIL DRAWS ──────────────────────────────────────────────────
@@ -2368,10 +2474,12 @@ function PlantDetail({params}){
               <div className="scard-t">Auto-watering</div>
               <Toggle on={auto} onClick={()=>setAuto(a=>!a)}/>
             </div>
-            <div className="pdautosub">{scheduleLine(p)}</div>
-            <div className="pdautodiv"/>
-            <div className="pdautoact"
-              onClick={()=>nav.go("waterConfig",{id:p.id})}>Customise</div>
+            <div className={"pdautomore"+(auto?"":" off")}>
+              <div className="pdautosub">{scheduleLine(p)}</div>
+              <div className="pdautodiv"/>
+              <div className="pdautoact"
+                onClick={()=>nav.go("waterConfig",{id:p.id})}>Customise</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2379,33 +2487,76 @@ function PlantDetail({params}){
   </div>;
 }
 
-/* Auto-watering configuration — moved off the plant card onto its own screen */
+/* ═══════════ AUTO-WATERING SETTINGS (Figma "concept2" 447:131) ═══════════
+   Reached from "Customise" on the Plant Detail auto-watering card, and Back
+   returns there. Two questions, three answers each, one of which is marked as
+   the recommendation — and nothing else, because that is all 447:131 draws.
+
+   "best choice" rides the MIDDLE option permanently, not the selected one. The
+   mockup only ever shows it on a sage card, which reads two ways; the other
+   reading — that it is part of being selected — would have "High" become the
+   best choice the moment you picked it, which is not what a recommendation is. */
+const AW_EVERY = [
+  { k:"Every 1 day",  label:"1 day"  },
+  { k:"Every 2 days", label:"2 days", best:true },
+  { k:"Every 5 days", label:"5 days" },
+];
+const AW_AMOUNT = [
+  { k:"Low" }, { k:"Medium", best:true }, { k:"High" },
+];
+/* The plants carry cadences the mockup's three do not offer (Felix every 3,
+   Gosha every 10). Rather than open with nothing selected, the screen lands on
+   the nearest option it does have — and the pick, once made, is written back to
+   the plant, so the card that sent you here states what you just chose. */
+const awNearest = (schedule)=>{
+  const m = /(\d+)/.exec(schedule || "");
+  if(!m) return AW_EVERY[1].k;
+  const n = +m[1];
+  return AW_EVERY.reduce((best,o)=>{
+    const d = Math.abs((+/(\d+)/.exec(o.k)[1]) - n);
+    return d < best.d ? {d, k:o.k} : best;
+  }, {d:Infinity, k:AW_EVERY[1].k}).k;
+};
+
 function WaterConfig({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
-  const [schedule,setSchedule] = useState(p.schedule);
+  const [every,setEvery]   = useState(awNearest(p.schedule));
   const [amount,setAmount] = useState(p.amount);
-  return <div className="screen">
-    <Top title="Watering" onBack={nav.back} kicker={`${p.name} · auto-watering`}/>
-    <p className="muted">How often and how much the pot waters {p.name.split(" ")[0]} on its own.</p>
-    <div className="field">
-      <label>Schedule</label>
-      <div className="segrow">
-        {["Every 2 days","Every 3 days","Every 5 days"].map(s=>
-          <div key={s} className={"seg"+(schedule===s?" on":"")} onClick={()=>setSchedule(s)}>{s.replace("Every ","")}</div>)}
+
+  /* A wireframe whose Save does nothing teaches the wrong thing about the
+     screen. PLANTS is the prototype's only store, and Plant Detail re-reads it
+     on every mount — so writing the two values back is what makes "Every 2nd
+     day at 7am" on the card underneath tell the truth on the way back. */
+  const save = ()=>{ p.schedule = every; p.amount = amount; nav.back(); };
+
+  const group = (label, opts, value, set)=>
+    <div className="awgroup">
+      <div className="awlab">{label}</div>
+      <div className="awopts">
+        {opts.map(o=>(
+          <div key={o.k} className={"awopt"+(value===o.k?" on":"")}
+            onClick={()=>set(o.k)}>
+            <b>{o.label || o.k}</b>
+            {o.best && <small>best choice</small>}
+          </div>
+        ))}
       </div>
+    </div>;
+
+  return <div className="awscreen">
+    <div className="plhead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+      <h1 className="pltitle">Auto-watering</h1>
     </div>
-    <div className="field">
-      <label>Amount per watering</label>
-      <div className="segrow">
-        {["Low","Medium","High"].map(a=>
-          <div key={a} className={"seg"+(amount===a?" on":"")} onClick={()=>setAmount(a)}>{a}</div>)}
-      </div>
+    <div className="awbody">
+      {group("Watering every", AW_EVERY, every, setEvery)}
+      {group("Amount per watering", AW_AMOUNT, amount, setAmount)}
     </div>
-    <div style={{flex:1}}/>
-    <button className="btn primary" onClick={nav.back}>Save</button>
+    <button className="awsave" onClick={save}>Save</button>
   </div>;
 }
+
 /* ═══════════ PERSONALITY & SETTINGS (Figma "concept2" 446:93) ═══════════
    Everything about one plant's character lives here, rebuilt off the mockup's
    four scroll states:

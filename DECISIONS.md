@@ -2700,3 +2700,144 @@ favicon.
 One note: the film reports `paused` once it is entirely off-screen (scroll 806)
 and plays again on the way back up. That is Chrome suspending an invisible
 video, not a state bug — `currentTime` resumes from where it stopped.
+
+# Revision 28 — the rail drives the film, the blob bounces, and Auto-watering gets its screen
+
+## 1 — "Dragging moves the thumb but not the video"
+
+It did move the video. It moved it about **a second late**, which on a
+drag-and-release is indistinguishable from not moving it at all — and that is
+the whole of the bug.
+
+Two lags stacked. The hand-over costs `PD_SLIDE + PD_FADE` = 600ms before the
+growth film is even on screen, which is by design and stays. On top of that,
+rev 24's `shown += (want − shown) × 0.22` needed **~26 frames**, another ~440ms,
+to close a long drag — so the film arrived at a position the finger had left.
+Measured before the fix, mid-drag: thumb at 0.65 while the film sat at t 1.73
+against the 1.75 it owed, then still catching up 500ms after the last move.
+
+**The film now rides the finger.** `chase` is a per-scrub rate, and which rate
+is in play is decided by how far the request moved rather than by which input
+sent it:
+
+- **1** — write `currentTime` straight from the thumb, frame for frame. This is
+  a continuous scrub: a drag, a trackpad gesture, anything tracking.
+- **PD_EASE (0.22)** — glide. This is a *jump*: a press landing far from the
+  thumb, where a cut would be ugly and nobody is following a finger.
+
+`PD_SCRUB_JUMP = 0.08` of the rail (~28px) is the line — comfortably more than
+any single pointermove or wheel notch, comfortably less than a deliberate tap
+somewhere else. Measured after: thumb 0.75 / 0.60 / 0.45 / 0.30 against film
+t 1.24 / 1.98 / 2.73 / 3.48, i.e. exact to the 0.02 the deliberate tail-trim
+(`dur = duration − 0.04`) accounts for.
+
+**One handler, and it is now named as one.** `seek()` became `scrub()`, the
+single entry every input reaches: pointer down, pointer move, and wheel all call
+it and nothing else, so there is exactly one description of what a position
+means — it is the thumb, it is `pos`, and it is the film's `currentTime`, always
+the same three at once.
+
+**The "now" edge still holds.** Scrubbing live does not tear the cross-fade,
+because `shown` was already frozen while the growth film is off screen
+(`tick()` returns early unless phase is "growth"). So the still film sits at
+"now" through the whole 420ms glide however far the finger has got, and the
+growth film takes up the finger's position on the first frame it exists — at
+opacity 0, with the 180ms fade turning what would have been a cut into a
+dissolve from "now" to wherever the drag reached. Verified home: film back to
+t 0, growth faded out, still film back at −184.
+
+## 2 — The blob arrives with a bounce
+
+**A keyframe, not a spring curve on the transition**, and the reason is
+arithmetic: the blob travels from `scale(.96)` to `scale(1)`. A back-out cubic
+peaking ~10% past its target would overshoot that by **0.4%** — the spring is
+real and completely invisible. `@keyframes pdbubpop` states the overshoot
+instead: 300ms, `.94 → 1.035 at 55% → 1`. Caught mid-flight in the test at
+**scale 1.0345**.
+
+Exit is untouched, as asked. It falls out of how CSS picks a transition: a
+transition is the one on the state being *entered*, so adding `.off` runs
+`.off`'s own plain 230ms ease-out, and removing it runs the animation. Verified:
+`animation-name` reads `none` in the hidden state and `pdbubpop` on the way back.
+
+**`.psbub` on Personality & Settings was left alone** — it is the same object
+and arguably wants the same bounce, but this brief scopes to Plant Detail and
+the Auto-watering screen, and that is a different screen.
+
+## 3 — Auto-watering collapses when it is switched off
+
+With the toggle off there is no schedule to state and nothing to customise, so
+the schedule line, the rule and "Customise" go together and the card becomes its
+title row: **146px → 76px** over 200ms, measured.
+
+76 rather than the 74 every other single-line card on the screen is: `.scard`'s
+two 24s round a row whose height is the **28px toggle's**, not the 26px of serif
+beside it.
+
+`max-height`, not `grid-template-rows: 0fr` or `height: auto` — the block's
+height is known and fixed (1 + 20 + 14 + 1 + 14 + 20 = 70), so a hard 80px cap
+is honest here and works everywhere. `overflow:hidden` also gives the block its
+own formatting context, which is what stops `.pdautosub`'s 1px top margin
+collapsing out through the top of it.
+
+## 4 — The Auto-watering settings screen (447:131)
+
+Rebuilt to the mockup. Measured against the frame's own numbers (402×874 against
+this 386×818 device — the title and groups are top-anchored so their y carries
+over, Save is bottom-anchored at 850 of 874 = 24 from the foot):
+
+| | mockup | built |
+|---|---|---|
+| title (one line, serif) | 69 | 69 |
+| chevron | 85 | 82.9 |
+| "Watering every" | 161 | 160.9 |
+| its option row | 195, h 95 | 194.9, h 95 |
+| "Amount per watering" | 330 | 329.9 |
+| its option row | 364, h 95 | 363.9, h 95 |
+| Save | 24 up from the foot, h 50, r 28 | 744, h 50, r 28 |
+
+Values from the file: cards radius 40 on 24px of padding, white / `#C9D6BC`,
+serif 22px over a 16px `rgba(5,5,5,.4)` second line on a 1px gap; label rows
+16px `#050505` inset 9 (which lands on the device's 14); Save `#C9D6BC`, radius
+28, 15px padding, and its label is `--ink` rather than the pill buttons'
+`--serif-ink`. **No film**: `447:197` reads `#EDEEE9` at every corner and margin,
+so the video that frames both neighbouring screens is deliberately absent.
+
+Calls:
+
+- **"best choice" marks the middle option permanently, not the selected one.**
+  The mockup only ever shows it on a sage card, which reads two ways; the other
+  reading makes "High" become the best choice the moment you pick it, which is
+  not what a recommendation is.
+- **`minmax(0,1fr)`, not `1fr`.** A bare `1fr` floors each track at its content
+  and "best choice" is wider than "1 day", so the three cards came out
+  118/131/118 against the mockup's three equal 127.
+- **Vlad's cadence moved from "Every 3 days" to "Every 2 days".** The two
+  mockups agree with each other and his row did not: `445:90` sets the Plant
+  Detail card to "Every 2nd day at 7am" and `447:131` opens with "2 days"
+  selected. He is the plant every one of these frames is drawn from. The card
+  now reads exactly what `445:90` says.
+- **Plants whose cadence the mockup does not offer land on the nearest** (Felix
+  every 3 → 2 days, Gosha every 10 → 5 days) rather than opening with nothing
+  selected.
+- **Save writes back.** `PLANTS` is this prototype's only store and Plant Detail
+  re-reads it on mount, so the pick survives the trip: choosing "5 days" and
+  saving returns to a card reading **"Every 5th day at 7am"**. A Save that did
+  nothing would teach the wrong thing about the screen.
+- Navigation is unchanged — in from "Customise", back to Plant Detail, and Save
+  is also a back.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, at the live 386px
+device width. **No console errors and no exceptions.**
+
+- Live scrub: thumb 0.75/0.60/0.45/0.30 → film t 1.24/1.98/2.73/3.48. Home
+  restores t 0, growth hidden, still film at −184.
+- Blob: `pdbubpop`/0.3s at rest, `animation:none` + `scale(.96)` hidden,
+  `scale(1.0345)` 120ms into the return, `scale(1)` settled.
+- Card: inner block 70 → 0 and card 146 → 76 on toggle off, and back on.
+- The new screen's whole layout table above; picking 5 days + saving lands on
+  Plant Detail with the card restated.
+- All six flow-index entries still render; Personality & Settings untouched and
+  intact (film 744 wide at rest).
