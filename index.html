@@ -27,6 +27,7 @@
     --bg2:#EFEFEF;           /* chat sheet / scrim                    (345:213) */
     --sage:#C9D6BC;          /* header pill + expanded hero flood     (343:60)  */
     --sage-deep:#6E845C;     /* DERIVED: readable sage for accents/active states */
+    --sage-soft:#ACBA9F;     /* sage action text, "Customise"         (445:89)  */
     --accent:#6E845C;
     --ink:#050505;           /* body text                             (344:97)  */
     --serif-ink:#1E0C00;     /* display headline                      (344:125) */
@@ -389,27 +390,32 @@
      the cards' own edge, so the ramp is already under way before the first card
      arrives — that is what removes the hard edge. Radii compound as
      sqrt(a²+b²…) because each layer blurs what the one before it left. */
+  /* All four layers now start INSIDE the lead, i.e. above the cards, because
+     that band is the only part of the ramp anyone can see — under the cards the
+     film is behind opaque white. Rev 25 spent two of its four layers below the
+     card edge and the visible ramp was correspondingly thin. */
   .pdblur > i:nth-child(1){top:0;
-    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 80px);
-            mask-image:linear-gradient(180deg,transparent 0,#000 80px)}
-  .pdblur > i:nth-child(2){top:30px;
-    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 90px);
-            mask-image:linear-gradient(180deg,transparent 0,#000 90px)}
-  .pdblur > i:nth-child(3){top:120px;
-    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 110px)}
+  .pdblur > i:nth-child(2){top:34px;
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 120px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 120px)}
+  .pdblur > i:nth-child(3){top:80px;
+    -webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 130px);
+            mask-image:linear-gradient(180deg,transparent 0,#000 130px)}
+  .pdblur > i:nth-child(4){top:150px;
+    -webkit-backdrop-filter:blur(48px);backdrop-filter:blur(48px);
     -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 140px);
             mask-image:linear-gradient(180deg,transparent 0,#000 140px)}
-  .pdblur > i:nth-child(4){top:250px;
-    -webkit-backdrop-filter:blur(34px);backdrop-filter:blur(34px);
-    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 170px);
-            mask-image:linear-gradient(180deg,transparent 0,#000 170px)}
   /* Effective radius (they compound as √Σr²) measured from the cards' own top
-     edge, which sits PD_BLUR_LEAD into the ramp:
-        at the edge  ≈  7px   — present, still soft
-        200px under  ≈ 16px
-        400px under  ≈ 37px */
+     edge, which sits PD_BLUR_LEAD = 150px into the ramp:
+        150px above the edge  ≈  0px   — the ramp's own start, no seam
+         60px above the edge  ≈  9px
+        at the edge           ≈ 21px   — rev 25 read 7px here
+        deep under the cards  ≈ 57px   — rev 25 topped out at 40px */
 
   /* ── the static header layer ──────────────────────────────────────────────
      The nav row, species + mood chip and the speech blob used to be a
@@ -423,7 +429,8 @@
      underneath, so a drag anywhere on the film still scrolls the cards. */
   .pdhead{position:absolute;left:0;right:0;top:0;z-index:2;padding:8px 16px 0;
     display:flex;flex-direction:column;pointer-events:none}
-  .pdhead .plback,.pdhead .plmore,.pdhead .pdmenu{pointer-events:auto}
+  .pdhead .plback,.pdhead .plmore,.pdhead .plmorewrap,
+  .pdhead .pdmenu{pointer-events:auto}
   /* .plback carries opacity .4 by default but .plmore never did — it only ever
      appeared on light screens where it was already dark enough. 428:1809 comes
      back black at .4 like the chevron, so it is set here rather than on the
@@ -446,7 +453,18 @@
   .pdspacer{flex:0 0 auto;height:calc(100% - 190px);min-height:24px}
   .pdlower{flex:0 0 auto}
 
-  .pdmenu{position:absolute;top:104px;right:14px;z-index:120;background:var(--card);
+  /* ── THE ⋯ POPOVER ────────────────────────────────────────────────────────
+     It used to be `top:104px;right:14px` against .pdhead — a SCREEN coordinate
+     that merely happened to land near the ⋯, and drifted away from it whenever
+     the header did. The menu now lives inside .plmorewrap, a zero-cost
+     positioning shell around the icon, so its offsets read as what a popover
+     actually is: `top:calc(100% + 10px); right:0` = ten pixels under the icon,
+     right edges flush. The shell exists because .plmore itself carries
+     opacity .4 on this screen — nesting the menu inside the icon would have
+     faded the menu to 40% along with it. */
+  .plmorewrap{position:relative;display:flex;flex:0 0 auto}
+  .pdmenu{position:absolute;top:calc(100% + 10px);right:0;z-index:120;
+    background:var(--card);
     border:none;border-radius:var(--r-sub);min-width:214px;overflow:hidden;
     box-shadow:0 10px 40px rgba(30,12,0,.14)}
   .pdmenu > div{padding:14px 18px;font-size:var(--t-md);cursor:pointer;
@@ -488,49 +506,86 @@
      marks: the shape already says it is speech. */
   /* 7px puts the blob's top on the mockup's 161 (121 + the 33px chip + 7). It
      had to be re-derived anyway once the row above it moved. */
+  /* The blob is a "now, at rest" object: it belongs to the live plant, so it
+     goes away the moment you scrub into the past or pull the cards up over the
+     film. It fades and settles rather than cutting — 230ms ease-out, a 8px rise
+     and a 4% shrink, played in both directions off one class. transform-origin
+     is the TOP centre so the shrink reads as the blob withdrawing towards the
+     plant rather than collapsing into thin air. Opacity, not display: the box
+     keeps its size, so nothing under it in .pdhead ever moves. */
   .pdbubwrap{position:relative;margin:7px -16px 0;display:flex;justify-content:center;
-    flex:0 0 auto}
+    flex:0 0 auto;transform-origin:50% 0;
+    transition:opacity 230ms ease-out,transform 230ms ease-out}
+  .pdbubwrap.off{opacity:0;transform:translateY(-8px) scale(.96);pointer-events:none}
   .pdbub{position:relative;width:277px;max-width:calc(100% - 32px);min-height:116px;
     background-size:100% 100%;background-repeat:no-repeat;
     padding:26px 29px;font-size:var(--t-md);line-height:1.28;text-align:center;
     color:var(--ink);display:flex;align-items:center;justify-content:center}
 
-  /* ── TIMELINE SCRUB ───────────────────────────────────────────────────────
-     Now in the scrolling layer rather than pinned to a stage box, sitting 19px
-     above the bond card exactly as the mockup measures it (rail 715 → card 740),
-     so the relationship holds at every scroll position instead of only at rest.
-     Position maps linearly to video currentTime, the right end being "now".
-     Pointer events cover touch and mouse in one path; touch-action:none keeps a
-     scrub from scrolling the sheet under it. */
-  .pdtimeline{position:relative;margin:0 -16px;padding:0 20px;
+  /* ── TIMELINE SCRUB (437:93 — the reworked rail) ──────────────────────────
+     Rebuilt from the three reference states. Every number is measured on the
+     mockup's own 402px frame:
+
+       words       16px white. The stop you are standing on is at 100%, every
+                   other word at 60% — 444:71 "thriving" against 444:21 "now",
+                   441:576 "now" against 441:577 "seed". A flat opacity, not a
+                   gradient: that is what the file says.
+       label box   684 → 704, then a 5px gap to the rail band's top at 709.
+       rail band   16px, the thumb's own height; the line's centre at 717.
+       line        2px, PURE WHITE, and broken: a pixel probe across 441:633 at
+                   y 716 reads white … 2px gap … thumb … 2px gap … white. It
+                   stops 5px short of a dot's centre and 10px short of the
+                   thumb's, i.e. 2px clear of both edges.
+       dots        6px, white, centres at 17 and 385 → a 17px inset.
+       thumb       16px, white.
+
+     There is no track/fill pair any more. The rail is one colour end to end and
+     the GAPS, not a tint, are what mark the stops — which is also why the line
+     is drawn as segments between holes (see PlantDetail) rather than as a bar. */
+  .pdtimeline{position:relative;margin:0 -16px;padding:0 14px;
     touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
   .pdtimeline:active{cursor:grabbing}
-  /* labels 684→704, dots 711→721: a 7px gap.
-     The two END labels are always drawn, and the mockup states the fade
-     exactly: "now" with the thumb on it is white at FULL opacity (441:576),
-     "sprout" with the thumb away from it is the same white at .6 (441:577).
-     A flat opacity, not a gradient — that is what the file says, and a masked
-     dissolve would read as a different effect at 16px. The transition is what
-     makes it live: the value changes as `idx` crosses a stop mid-scrub. */
-  .pdtllab{position:relative;height:20px;margin-bottom:7px}
+  /* Nothing inside may take a pointer. The press is picked up by the wrapper
+     wherever it lands — on a dot, on the line, on a word, on the empty band
+     around them — which is what makes the WHOLE length draggable instead of
+     just the dots. */
+  .pdtimeline *{pointer-events:none}
+  .pdtllab{position:relative;height:20px;margin-bottom:5px}
+  /* every word is always mounted, so arriving at a stop is a fade and not a
+     pop; the two ends rest at .6 and the middle words rest at 0 */
   .pdtllab span{position:absolute;white-space:nowrap;font-size:var(--t-md);
-    line-height:1.25;color:#fff;opacity:1;transition:opacity 180ms ease}
-  .pdtllab span.dim{opacity:.6}
-  .pdtlrail{position:relative;height:10px}
-  .pdtltrack{position:absolute;left:0;right:0;top:4px;height:2px;border-radius:2px;
-    background:rgba(255,255,255,.42)}
-  .pdtlfill{position:absolute;left:0;top:4px;height:2px;border-radius:2px;background:#fff}
-  .pdtldot{position:absolute;top:0;width:10px;height:10px;margin-left:-5px;
-    border-radius:50%;background:rgba(255,255,255,.55)}
-  .pdtldot.on{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.20)}
+    line-height:1.25;color:#fff;opacity:.6;transition:opacity 200ms ease-out}
+  .pdtllab span.mid{opacity:0}
+  .pdtllab span.on{opacity:1}
+  .pdtlrail{position:relative;height:16px;margin:0 3px}
+  .pdtlseg{position:absolute;top:7px;height:2px;border-radius:2px;background:#fff}
+  .pdtldot{position:absolute;top:5px;width:6px;height:6px;margin-left:-3px;
+    border-radius:50%;background:#fff}
+  .pdtlthumb{position:absolute;top:0;width:16px;height:16px;margin-left:-8px;
+    border-radius:50%;background:#fff}
+  /* ── the drag indicator ───────────────────────────────────────────────────
+     A soft white halo that blooms under the thumb the moment the rail is
+     picked up and dissolves on release, so a scrub in progress is legible even
+     when the thumb is standing still. It is drawn BEFORE the thumb, so the
+     thumb keeps its hard 16px edge and the halo only spreads around it. Kept to
+     a halo rather than a bubble because the rail's own bottom (725) sits 15px
+     above the bond card — there is no room under it for anything with a box,
+     and a glow is already this file's language for "active" (.moodchip). */
+  .pdtlhalo{position:absolute;top:-9px;width:34px;height:34px;margin-left:-17px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.5) 0%,
+      rgba(255,255,255,.34) 42%,rgba(255,255,255,0) 72%);
+    opacity:0;transform:scale(.5);
+    transition:opacity 200ms ease-out,transform 200ms ease-out}
+  .pdtimeline.drag .pdtlhalo{opacity:1;transform:scale(1)}
 
   /* ── INFO CARDS ───────────────────────────────────────────────────────────
      The mockup insets them 5px from a 402px frame and stacks them on a 5px gap;
-     -11px cancels the screen's 16px padding down to that 5. The 19px top margin
-     is the mockup's own gap between the timeline dots (bottom 721) and the bond
-     card (740); the 24px bottom lets the auto-watering card clear the edge once
-     the sheet is scrolled all the way up. */
-  .pdcards{display:flex;flex-direction:column;gap:5px;margin:19px -11px 24px;
+     -11px cancels the screen's 16px padding down to that 5. The 15px top margin
+     is the mockup's own gap between the rail band (bottom 725, the thumb's own
+     edge) and the bond card (740); the 24px bottom lets the auto-watering card
+     clear the edge once the sheet is scrolled all the way up. */
+  .pdcards{display:flex;flex-direction:column;gap:5px;margin:15px -11px 24px;
     flex:0 0 auto}
   .pdbondmeta{display:flex;align-items:center;gap:8px;margin:1px 0 14px}
   .pdsep{width:4px;height:4px;border-radius:50%;background:#050505;opacity:.2;
@@ -543,7 +598,22 @@
   /* reservoir level — the mockup's own wave path, stretched to the fill height */
   .reswater{position:absolute;left:-9%;right:-9%;bottom:0;pointer-events:none;
     background-repeat:no-repeat;background-size:100% 100%}
+  /* ── AUTO-WATERING (445:85) ───────────────────────────────────────────────
+     Four rows in a 392×144 card on .scard's own 24px padding, and every inner
+     gap is the mockup's: title box 1016→1042, the schedule line at 1043 (so a
+     single pixel under it), the hairline at 1077, "Customise" at 1092, card
+     bottom 1136. That makes both gaps around the rule exactly 14px.
+     The schedule is the same muted ink as every other secondary label on this
+     screen — rgba(5,5,5,.4), i.e. .scard-l — and the rule is black at 10%. */
   .pdauto{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .pdautosub{margin-top:1px;font-size:var(--t-md);line-height:1.25;
+    color:rgba(5,5,5,.4)}
+  .pdautodiv{height:1px;margin-top:14px;background:rgba(5,5,5,.1)}
+  /* the row, not just the word, is the tap target — invisible either way, and
+     a 328px-wide target is the kind a thumb actually hits */
+  .pdautoact{margin-top:14px;font-size:var(--t-md);line-height:1.25;
+    color:var(--sage-soft);cursor:pointer}
+  .pdautoact:active{opacity:.55}
 
   /* the plant + pot placeholders and the blob bubble the CREATE-CHARACTER hero
      and the plant-settings preview still build on */
@@ -975,13 +1045,18 @@ const NOTIFS = [
     text:"Gosha needs more light — a brighter spot would do it" },
 ];
 
-/* Universal growth milestones — the same six for every plant, so the timeline
-   reads consistently across the whole garden. */
+/* Universal growth milestones — the same five for every plant, so the timeline
+   reads consistently across the whole garden.
+
+   FIVE, not six. The reworked rail (437:93) draws four dots and a thumb, and
+   the reference state that names a middle stop puts "thriving" at the FOURTH
+   of five positions (444:71 centred on 287, with stops at 17·107·197·287·385).
+   Dropping "Established" is what makes the list land on the mockup exactly.
+   Nothing else in the app reads MILESTONES — it feeds this one rail. */
 const MILESTONES = [
   { stage:"Seed",        date:"2 Mar"  },
   { stage:"Sprout",      date:"12 Mar" },
   { stage:"Young plant", date:"18 Apr" },
-  { stage:"Established", date:"24 May" },
   { stage:"Thriving",    date:"21 Jun" },
   { stage:"Now",         date:"Today"  },
 ];
@@ -1640,8 +1715,61 @@ const PD_FADE  = 180;   // the cross-fade that covers the swap
    PD_BLUR_LEAD is how far above the cards' own top edge the ramp begins. The
    cards are opaque #FFF, so a ramp starting exactly at their edge would be both
    invisible and a discontinuity on the boundary — the one thing "no hard blur
-   edge" rules out. 72px lands the first layer ~70% on where the cards arrive. */
-const PD_BLUR_LEAD = 72;
+   edge" rules out.
+
+   150, up from rev 25's 72. The brief asks for a blur that starts higher and
+   bites harder, and those are two different knobs: LEAD is the reach and the
+   four layers' radii are the strength. Both moved, and the layers were pulled
+   up inside the lead as well (see .pdblur), because the band ABOVE the cards is
+   the only part of the ramp that is ever visible — under them the film is
+   behind opaque white. The ramp still starts at zero, so there is no edge. */
+const PD_BLUR_LEAD = 150;
+
+/* ── THE RAIL'S GEOMETRY, in the mockup's own pixels ────────────────────────
+   The line is broken around every stop. These are the holes' radii, measured
+   from each stop's centre: 5px around a 6px dot and 10px around the 16px
+   thumb, i.e. 2px of clear film either side of both (444:23/26 against
+   444:27/28, confirmed by a pixel probe across 441:633 at y 716). */
+const PD_TL_DOTGAP   = 5;
+const PD_TL_THUMBGAP = 10;
+/* How near a stop counts as standing ON it. Two different tolerances, because
+   they answer two different questions:
+     ACTIVE, in gaps — when does the stop's word light up. A quarter-gap is
+       generous enough that the word arrives as you approach and honest enough
+       that the middle of a span shows nothing, which is the mockup's own
+       centred state (441:633: thumb at 333, no word lit).
+     MERGE, in rail fractions — when has the thumb physically swallowed the dot.
+       That one is not a taste call: it is the thumb's own reach, 10px over the
+       368px rail, and it is why 444:18 has no dot under its thumb. */
+const PD_TL_ACTIVE = 0.28;
+const PD_TL_MERGE  = 10/368;
+/* The mockup's rail width, and the shortest piece of line worth drawing on it.
+   As the thumb closes on a neighbouring dot the segment between them shrinks to
+   a two-pixel speck that reads as dirt rather than as rail, so anything under
+   4px is dropped and the two holes simply sit side by side. */
+const PD_TL_RAILW  = 368;
+const PD_TL_MINSEG = 4;
+
+/* The cards' glide home when a scrub starts. 420ms on a quartic ease-out is the
+   same shape --soft draws, so it reads as their own collapse rather than a jump. */
+const PD_COLLAPSE = 420;
+
+/* 445:90 reads "Every 2nd day at 7am". That is a SENTENCE FORM, not a string to
+   paste: the cadence is the plant's own `schedule` ("Every 3 days") and the
+   hour is the one every auto-watering in this prototype runs at, so the card
+   states what is actually configured rather than what one mockup happened to
+   show. Vlad therefore reads "Every 3rd day at 7am". */
+const PD_WATER_HOUR = "7am";
+const ordinal = (n)=>{
+  const t = n % 10, h = n % 100;
+  return n + ((t===1 && h!==11) ? "st" : (t===2 && h!==12) ? "nd"
+            : (t===3 && h!==13) ? "rd" : "th");
+};
+const scheduleLine = (pl)=>{
+  const m = /(\d+)/.exec(pl.schedule || "");
+  return m ? "Every " + ordinal(+m[1]) + " day at " + PD_WATER_HOUR
+           : (pl.schedule || "") + " at " + PD_WATER_HOUR;
+};
 
 function PlantDetail({params}){
   const nav = useNav();
@@ -1652,6 +1780,13 @@ function PlantDetail({params}){
   const [pos,setPos]   = useState(1);        // 0…1 along the timeline; 1 = "now"
   const [menu,setMenu] = useState(false);
   const [auto,setAuto] = useState(p.autoOn);
+  /* Two booleans the rest of the screen reads off. `drag` is the rail being
+     held — it lights the drag indicator. `atTop` is the cards sitting at their
+     default position — together with pos===1 it is the ONLY state in which the
+     plant's greeting is on screen. Both are mirrored from refs/measurements
+     rather than being the source of truth, so nothing re-renders per frame. */
+  const [drag,setDrag]   = useState(false);
+  const [atTop,setAtTop] = useState(true);
 
   /* ── THE STAGE ────────────────────────────────────────────────────────────
      Two films stacked in one box. `sy` is the still film's Y, handed to a CSS
@@ -1807,6 +1942,11 @@ function PlantDetail({params}){
     const range = s.scrollHeight - s.clientHeight;
     const prog = range > 0 ? Math.max(0, Math.min(1, s.scrollTop / range)) : 0;
     for(let i = 0; i < b.children.length; i++) b.children[i].style.opacity = prog;
+    /* the same measurement answers "are the cards still down?", which is what
+       gates the greeting. 8px of slack absorbs a rubber-band overshoot; React
+       bails out of the re-render whenever the boolean has not actually flipped,
+       so this costs nothing on the frames where the answer is unchanged. */
+    setAtTop(s.scrollTop < 8);
   };
   const onScroll = ()=>{ if(!braf.current) braf.current = requestAnimationFrame(syncBlur); };
   useEffect(()=>{
@@ -1814,19 +1954,60 @@ function PlantDetail({params}){
     return ()=>{ if(braf.current) cancelAnimationFrame(braf.current); };
   },[]);
 
+  /* Pointer capture normally guarantees the matching pointerup, but a capture
+     can be lost (a system gesture, a context menu, a cancelled touch) and the
+     drag indicator would then be stranded on screen. A window-level release is
+     the backstop; it is idempotent, so it costs nothing when capture worked. */
+  useEffect(()=>{
+    const end = ()=>{ dragging.current = false; setDrag(false); };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return ()=>{ window.removeEventListener("pointerup", end);
+                 window.removeEventListener("pointercancel", end);
+                 if(stween.current) cancelAnimationFrame(stween.current); };
+  },[]);
+
+  /* ── the cards get out of the way ─────────────────────────────────────────
+     Starting a scrub with the sheet pulled up is a contradiction: the thing you
+     are scrubbing is the film the cards are covering. So they glide home. Hand-
+     tweened rather than handed to scrollTo({behavior:"smooth"}), because that
+     is the browser's curve and duration, not this file's — 420ms on 1-(1-t)⁴ is
+     the shape --soft draws, i.e. the motion the sheet already has. */
+  const stween = useRef(0);
+  const collapseCards = ()=>{
+    const s = scroller.current;
+    if(!s || s.scrollTop <= 0) return;
+    if(stween.current) cancelAnimationFrame(stween.current);
+    const from = s.scrollTop, t0 = (typeof performance!=="undefined"?performance.now():Date.now());
+    const step = ()=>{
+      const now = (typeof performance!=="undefined"?performance.now():Date.now());
+      const t = Math.min(1, (now - t0) / PD_COLLAPSE);
+      s.scrollTop = from * (1 - (1 - Math.pow(1-t, 4)));
+      stween.current = t < 1 ? requestAnimationFrame(step) : 0;
+    };
+    stween.current = requestAnimationFrame(step);
+  };
+
   const fracFrom = (ev)=>{
     const el = rail.current; if(!el) return want.current;
     const r = el.getBoundingClientRect();
     return r.width ? (ev.clientX - r.left) / r.width : want.current;
   };
   const dragging = useRef(false);
+  /* The press is taken on .pdtimeline, which spans the words, the rail and the
+     band around them, and every child is pointer-events:none — so a press
+     ANYWHERE along the timeline picks the thumb up and scrubs from there. The
+     position comes from the rail's own rect, so the thumb lands under the
+     finger rather than jumping by the wrapper's padding. */
   const down = (ev)=>{
     dragging.current = true;
-    ev.currentTarget.setPointerCapture(ev.pointerId);
+    setDrag(true);
+    collapseCards();
+    try{ ev.currentTarget.setPointerCapture(ev.pointerId); }catch(err){}
     seek(fracFrom(ev));
   };
   const move = (ev)=>{ if(dragging.current) seek(fracFrom(ev)); };
-  const up   = ()=>{ dragging.current = false; };
+  const up   = ()=>{ dragging.current = false; setDrag(false); };
   /* a horizontal trackpad gesture over the rail scrubs it; a vertical one is
      left alone, because the sheet under the timeline is a scroller now and
      hijacking its wheel would trap the page */
@@ -1834,17 +2015,46 @@ function PlantDetail({params}){
     if(Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) seek(want.current + ev.deltaX/1400);
   };
 
-  const idx = Math.round(pos*last);
-  /* Which words are on the rail. BOTH ends are always drawn — that is the whole
-     point of the mockup's fade: "sprout" and "now" are permanent anchors that
-     tell you the range, and their opacity tells you whether you are standing on
-     one. The stop you are actually on is drawn too when it is neither end, so
-     the middle of the rail is still legible; six words at once would not fit on
-     a phone, which is why everything else stays a dot. */
-  const labelled = (i)=> i===0 || i===last || i===idx;
-  const dimmed   = (i)=> (i===0 || i===last) && i!==idx;
+  /* ── WHAT THE RAIL DRAWS ──────────────────────────────────────────────────
+     `onStop` is the stop the thumb is standing on, or -1 for the spans in
+     between. It drives everything: which word is bright, whether a middle word
+     is on screen at all, and whether that stop's dot still exists.
+
+     Every word IS mounted at every position — the two ends resting at .6, the
+     middle ones at 0 — so lighting one up is a fade rather than a mount. The
+     ends are anchored to the edges (the mockup sets "seed" at x 14 and "now"
+     flush right) and a middle word is centred on its own stop, which is where
+     444:71 puts "thriving": centre 286.5 against a stop at 287. */
+  const onStop = (()=>{ const k = Math.round(pos*last);
+                        return Math.abs(pos*last - k) <= PD_TL_ACTIVE ? k : -1; })();
   const labelPos = (i)=> i===last ? {right:0} : i===0 ? {left:0}
                        : {left:((i/last)*100)+"%", transform:"translateX(-50%)"};
+
+  /* The line is the space BETWEEN holes. One hole per surviving dot plus a
+     wider one for the thumb; sort them and every consecutive pair is a segment.
+     Written this way the rail needs no special cases: it ends at the outermost
+     stop because that stop is the outermost hole, it re-splits itself as the
+     thumb travels, and when the thumb lands on a stop the two holes become one
+     because the dot has already been dropped. Percent for the stop, pixels for
+     the hole — calc() carries both, and max() keeps a segment from going
+     negative as the thumb closes on its neighbour. */
+  const covered = (f)=> Math.abs(f - pos) <= PD_TL_MERGE;
+  const holes = [];
+  for(let i = 0; i <= last; i++) if(!covered(i/last)) holes.push({f:i/last, g:PD_TL_DOTGAP});
+  holes.push({f:Math.max(0, Math.min(1, pos)), g:PD_TL_THUMBGAP});
+  holes.sort((a,b)=> a.f - b.f);
+  const segs = [];
+  for(let k = 0; k < holes.length - 1; k++){
+    const a = holes[k], b = holes[k+1];
+    if((b.f - a.f) * PD_TL_RAILW - (a.g + b.g) < PD_TL_MINSEG) continue;
+    segs.push({ left:  "calc("+(a.f*100).toFixed(3)+"% + "+a.g+"px)",
+                width: "max(0px, calc("+((b.f-a.f)*100).toFixed(3)+"% - "+(a.g+b.g)+"px))" });
+  }
+
+  /* The greeting is the live plant talking, so it is on screen in exactly one
+     state: the film at "now" with the sheet still down. Scrub away from now, or
+     pull the cards up over the film, and it withdraws. */
+  const greeting = atTop && pos > 0.9994;
 
   return <div className="pdscreen" onClick={()=>menu&&setMenu(false)}>
 
@@ -1869,19 +2079,21 @@ function PlantDetail({params}){
     {/* 2 — the header: outside the scroller, so it cannot move or bounce */}
     <div className="pdhead">
 
-      {/* everything about this plant lives behind the ⋯ */}
-      {menu && <div className="pdmenu" onClick={ev=>ev.stopPropagation()}>
-        <div onClick={()=>{setMenu(false);nav.go("plantSettings",{id:p.id});}}>
-          Personality &amp; Settings</div>
-        <div onClick={()=>{setMenu(false);nav.go("waterConfig",{id:p.id});}}>
-          Watering schedule</div>
-      </div>}
-
       <div className="plhead">
         <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
         <h1 className="pltitle">{p.name.split(" ")[0]}</h1>
-        <span className="plmore" title="More"
-          onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
+        {/* The ⋯ and its popover travel together: the shell is the anchor, so
+            the menu opens against the ICON instead of against a screen
+            coordinate. One destination now — the watering schedule moved into
+            the auto-watering card, where the schedule it edits already is. */}
+        <span className="plmorewrap">
+          <span className="plmore" title="More"
+            onClick={ev=>{ev.stopPropagation();setMenu(m=>!m);}}><IconMore/></span>
+          {menu && <div className="pdmenu" onClick={ev=>ev.stopPropagation()}>
+            <div onClick={()=>{setMenu(false);nav.go("plantSettings",{id:p.id});}}>
+              Personality &amp; Settings</div>
+          </div>}
+        </span>
       </div>
 
       <div className="pdrow">
@@ -1890,8 +2102,9 @@ function PlantDetail({params}){
           filter:"drop-shadow(0 0 15px "+e.glow+")"}}>{e.word}</span>
       </div>
 
-      {/* the plant's own words, in a white organic blob. No quote marks. */}
-      <div className="pdbubwrap">
+      {/* the plant's own words, in a white organic blob. No quote marks. It is
+          only here at "now" with the sheet down; see `greeting`. */}
+      <div className={"pdbubwrap"+(greeting?"":" off")}>
         <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
           {p.checkin}
         </div>
@@ -1905,21 +2118,28 @@ function PlantDetail({params}){
       <div className="pdspacer"/>
 
       <div className="pdlower">
-        {/* 3 — the scrub: drag it, position maps linearly to currentTime */}
-        <div className="pdtimeline" onPointerDown={down} onPointerMove={move}
+        {/* 3 — the scrub: press anywhere along it, position maps linearly to
+            currentTime. The halo is drawn before the thumb so it spreads under
+            it and the thumb keeps its own hard edge. */}
+        <div className={"pdtimeline"+(drag?" drag":"")}
+          onPointerDown={down} onPointerMove={move}
           onPointerUp={up} onPointerCancel={up} onWheel={wheel}>
           <div className="pdtllab">
-            {TL.map((label,i)=> labelled(i) &&
-              <span key={label} className={dimmed(i)?"dim":""}
-                style={labelPos(i)}>{label}</span>)}
+            {TL.map((label,i)=>{
+              const cls = [];
+              if(i!==0 && i!==last) cls.push("mid");
+              if(i===onStop) cls.push("on");
+              return <span key={label} className={cls.join(" ")}
+                style={labelPos(i)}>{label}</span>;
+            })}
           </div>
           <div className="pdtlrail" ref={rail}>
-            <div className="pdtltrack"/>
-            <div className="pdtlfill" style={{width:(pos*100).toFixed(2)+"%"}}/>
-            {TL.map((label,i)=>(
-              <span key={label} className={"pdtldot"+(i===idx?" on":"")}
-                style={{left:((i/last)*100)+"%"}}/>
-            ))}
+            {segs.map((st,k)=><span key={k} className="pdtlseg" style={st}/>)}
+            {TL.map((label,i)=> !covered(i/last) &&
+              <span key={label} className="pdtldot"
+                style={{left:((i/last)*100)+"%"}}/>)}
+            <span className="pdtlhalo" style={{left:(pos*100).toFixed(3)+"%"}}/>
+            <span className="pdtlthumb" style={{left:(pos*100).toFixed(3)+"%"}}/>
           </div>
         </div>
 
@@ -1955,9 +2175,18 @@ function PlantDetail({params}){
             </div>
           </div>
 
-          <div className="scard pdauto">
-            <div className="scard-t">Auto-watering</div>
-            <Toggle on={auto} onClick={()=>setAuto(a=>!a)}/>
+          {/* 445:85 — title + toggle, the schedule it is running, a hairline,
+              then the way in to change it. "Customise" goes to the watering
+              screen this app already has rather than being a dead target. */}
+          <div className="scard">
+            <div className="pdauto">
+              <div className="scard-t">Auto-watering</div>
+              <Toggle on={auto} onClick={()=>setAuto(a=>!a)}/>
+            </div>
+            <div className="pdautosub">{scheduleLine(p)}</div>
+            <div className="pdautodiv"/>
+            <div className="pdautoact"
+              onClick={()=>nav.go("waterConfig",{id:p.id})}>Customise</div>
           </div>
         </div>
       </div>

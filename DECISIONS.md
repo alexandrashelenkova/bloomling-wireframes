@@ -2269,3 +2269,217 @@ buffered enough to seek. Waiting for `readyState 4` **and** `buffered.end > 4.9`
 before scrubbing gives `t 2.50` at pos 0.50 and `t 4.90` at pos 0.02, exactly as
 locally. Worth knowing alongside the rev 24 note about Range requests: with
 video, an unbuffered film fails the same way a non-seekable one does.
+
+# Revision 26 — Plant Detail: the reworked rail, the drag indicator, the greeting's one state
+
+Scope is the Plant Detail screen only. Source of truth is the reworked mockup,
+section `437:93`, and its three reference states:
+
+| node | what it is |
+|---|---|
+| `428:1782` | at **now** — thumb at the right end, greeting on screen, cards down |
+| `441:633` | **mid-span** — thumb at 333, between stops, no word lit, greeting gone |
+| `444:18` | **on a stop** — thumb at 287 with "thriving" bright above it |
+
+## 1 — The rail, rebuilt
+
+Every number is measured off the mockup's own 402px frame, not inferred:
+
+- **words** 16px white; the stop you are standing on at **100%**, every other at
+  **60%**. `444:71` "thriving" (no opacity) against `444:21` "now"
+  (`opacity-60`), and the same pair the other way round in state 1 —
+  `441:576` "now" at full, `441:577` "seed" at 60%.
+- **label box** 684 → 704, then a **5px** gap to the rail band's top at 709.
+- **rail band** 16px — the thumb's own height. Line centre 717.
+- **line** 2px, **pure white** (`444:23` comes back `bg-white`, no opacity), and
+  it is **broken**. A pixel probe across `441:633` at y 716 reads
+  `white … 2px gap … 16px thumb … 2px gap … white`, and the rect coordinates say
+  the same: segments stop **5px** from a dot's centre and **10px** from the
+  thumb's, i.e. 2px clear of both edges.
+- **dots** 6px white, centres at 17 and 385 → a **17px inset**.
+- **thumb** 16px white.
+
+**The track/fill pair is gone.** The old rail was a translucent track with a
+bright fill up to the thumb; the new one is a single white line whose *gaps*,
+not a tint, mark the stops. `.pdtltrack` / `.pdtlfill` were deleted.
+
+**Segments are drawn as the space between holes.** One hole per surviving dot
+(radius 5px) plus a wider one for the thumb (radius 10px), sorted, and every
+consecutive pair becomes a segment. Written that way there are no special
+cases: the line ends at the outermost stop because that stop is the outermost
+hole, it re-splits itself as the thumb travels, and when the thumb lands on a
+stop the two holes become one because the dot has already been dropped.
+Percent for the stop, pixels for the hole — `calc()` carries both, `max()` keeps
+a segment from going negative.
+
+**Decisions taken here**
+
+- **Five milestones, not six.** The rail draws four dots and a thumb, and the
+  state that names a middle stop puts "thriving" at the *fourth of five*
+  positions (`444:71` centred on 287, stops at 17·107·197·287·385). Dropping
+  **"Established"** is what lands the list on the mockup exactly. Safe to do:
+  `MILESTONES` is read in exactly one place in the whole file — this rail.
+- **`PD_TL_ACTIVE = 0.28` gaps** decides when a word lights up. It has to be a
+  judgement because the rail is continuous and the mockup is three stills; a
+  quarter-gap is generous enough that the word arrives as you approach, and
+  strict enough that the middle of a span shows nothing — which is the mockup's
+  own centred state (`441:633`: thumb at 333, not a word lit).
+- **`PD_TL_MERGE = 10/368`** decides when the thumb has swallowed a dot. Not a
+  taste call: it is the thumb's own reach, and it is why `444:18` has no dot
+  under its thumb.
+- **A segment under 4px is dropped** (`PD_TL_MINSEG`). As the thumb closes on a
+  neighbouring dot the piece between them shrinks to a two-pixel speck that
+  reads as dirt rather than as rail. The dot stays; only the stub goes.
+- **Every word stays mounted** — the ends resting at .6, the middle ones at 0 —
+  so arriving at a stop is a 200ms fade rather than a mount.
+
+## 2 — Drag along the whole length, and the indicator
+
+The press was already taken on `.pdtimeline` rather than on the dots, but the
+dots and the words were live targets sitting on top of it and a press that
+started on one behaved differently from a press on bare line. **Every child is
+now `pointer-events:none`** and the wrapper takes the lot: a press anywhere —
+on a dot, on the line, on a word, on the empty band between them — picks the
+thumb up and scrubs from there. The fraction still comes from the *rail's* own
+rect, so the thumb lands under the finger rather than jumping by the wrapper's
+padding.
+
+Release is also backstopped at the window: pointer capture normally guarantees
+the matching `pointerup`, but a capture can be lost (a system gesture, a
+cancelled touch) and the indicator would be stranded on screen.
+
+**The drag indicator is a call, and it is logged as one.** The brief points at
+"the centred state on the reference", but there is no indicator node there —
+`441:633` has nothing under its thumb, and a pixel probe of the 34px around the
+thumb centre confirms it: background on every side. So the design language had
+to supply the answer. It is a **soft white halo that blooms under the thumb on
+press and dissolves on release** (34px, radial white .5 → 0, 200ms ease-out,
+scaling .5 → 1). Reasons: the rail's own bottom (725) sits **15px** above the
+bond card, so nothing with a box fits under it; a glow is already this file's
+"active" (the mood chip); and it is drawn *before* the thumb, so the thumb keeps
+its hard 16px edge and only the surround softens.
+
+## 3 — The greeting has exactly one state
+
+`greeting = atTop && pos > 0.9994`. The blob is the *live* plant talking, so it
+is on screen only with the film at "now" and the sheet still down; scrub away
+from now, or pull the cards up over the film, and it withdraws.
+
+`atTop` is published by `syncBlur()` — the scroll measurement it already takes
+each frame answers "are the cards still down?" for free, with 8px of slack for
+a rubber-band overshoot. React bails out of the re-render on the frames where
+the boolean has not flipped.
+
+The transition is **230ms ease-out on opacity and transform**, an 8px rise and a
+4% shrink, played in both directions off one class. `transform-origin` is the
+**top** centre, so the shrink reads as the blob withdrawing towards the plant
+rather than collapsing into itself. Opacity, not `display` — the box keeps its
+size, so nothing else in `.pdhead` can move.
+
+## 4 — The blur, higher and harder
+
+Two knobs, both turned:
+
+- **`PD_BLUR_LEAD` 72 → 150.** That is the reach: the ramp now begins 150px
+  above the cards' own top edge.
+- **The four radii 6/10/18/34 → 8/14/26/48**, and all four layer tops pulled up
+  *inside* the lead (0/34/80/150, was 0/30/120/250).
+
+The second half of that matters as much as the first: rev 25 spent two of its
+four layers *below* the card edge, where the film is behind opaque white and
+nobody can see the blur at all. Measured from the cards' top edge, compounding
+as √Σr²:
+
+| | rev 25 | rev 26 |
+|---|---|---|
+| 150px above the edge | — (ramp had not started) | 0px — the ramp's own start |
+| 60px above the edge | ~2px | ~9px |
+| at the edge | ~7px | **~21px** |
+| deep under the cards | ~40px | **~57px** |
+
+It still starts at zero, so there is still no hard edge. Strength is still a
+scroll state — nothing at rest, full at the bottom.
+
+## 5 — Auto-watering, reworked
+
+`445:85`. Four rows in a 392×144 card on `.scard`'s own 24px padding, and every
+inner gap is the mockup's: title box 1016→1042, the schedule line at **1043**
+(a single pixel under it), the hairline at **1077**, "Customise" at **1092**,
+card bottom 1136 — which makes both gaps around the rule exactly **14px**. The
+rule is 344 wide, i.e. inset 24 each side, black at **10%**. The schedule is
+`rgba(5,5,5,.4)`, the same muted ink as every other secondary label here.
+"Customise" is **#ACBA9F** (`445:89`), added to the palette as `--sage-soft` —
+lighter than `--sage-deep` and not a colour this file already had.
+
+Two calls:
+
+- **"Customise" is wired, not a stub.** The brief allowed either; `waterConfig`
+  already exists and already edits this schedule, so pointing at it is strictly
+  better than a dead target. It is also what let the ⋯ menu lose its own
+  "Watering schedule" entry without losing the destination.
+- **The schedule line is composed, not pasted.** `445:90` reads "Every 2nd day
+  at 7am"; that is a *sentence form*, not a string. The cadence comes from the
+  plant's own `schedule` and the hour from `PD_WATER_HOUR`, so the card states
+  what is actually configured. Vlad therefore reads **"Every 3rd day at 7am"** —
+  his real schedule in the mockup's own words. Pasting "2nd" onto a plant
+  watered every 3 days would have been a wireframe that lies.
+- The whole row is the tap target, not just the 77px word — invisible either
+  way, and a 328px-wide target is the kind a thumb actually hits.
+
+## 6 — The cards get out of the way
+
+Starting a scrub with the sheet pulled up is a contradiction: the thing being
+scrubbed is the film the cards are covering. So a `pointerdown` on the rail
+glides them home.
+
+Hand-tweened, **not** `scrollTo({behavior:"smooth"})` — that is the browser's
+curve and the browser's duration, neither of which is this file's. 420ms on
+`1-(1-t)⁴` is the shape `--soft` draws, i.e. the motion the sheet already has.
+Measured: `scrollTop` 288 → 236 (60ms) → 6 (260ms) → 0 (460ms).
+
+The rail slides down under the finger while this runs. That is correct and
+needs no special handling, because the scrub fraction is read from the rail's
+*live* rect on every move.
+
+## 7 — The ⋯ popover
+
+It was `top:104px; right:14px` against `.pdhead` — a **screen** coordinate that
+merely happened to land near the ⋯ and drifted away from it whenever the header
+did. The menu now lives inside `.plmorewrap`, a zero-cost positioning shell
+around the icon, so its offsets read as what a popover actually is:
+`top:calc(100% + 10px); right:0` — ten pixels under the icon, right edges flush.
+
+**The shell exists for a specific reason:** `.plmore` carries `opacity:.4` on
+this screen, and an element with opacity < 1 fades its descendants — nesting the
+menu inside the icon would have rendered the menu at 40%. Measured after the
+change: gap below the icon **10.0px**, right edges flush to **0.0px**, menu
+opacity **1**.
+
+**"Watering schedule" removed**; "Personality & Settings" is the only entry. The
+schedule now has a better home — the card that shows it (§5).
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, at the live 386px
+device width. **No exceptions and no console errors** beyond the pre-existing
+missing favicon.
+
+| state | measured |
+|---|---|
+| rest | 4 segments · 4 dots · "now" lit · greeting opacity 1 · halo 0 |
+| press at 62% (mid-span) | 5 segments · 5 dots · **no word lit** · greeting 0 · halo 1 |
+| drag to 75% | "thriving" lit · dot swallowed (4 dots) · growth film seeking |
+| at seed (x=0) | "seed" lit · thumb at 9 |
+| 8px past a dot | dot merged, no stub segment |
+| 13px past a dot | dot back, stub still suppressed |
+| home | 4 segments · "now" lit · greeting back to 1 · film home |
+
+Geometry against the mockup, scaled 402 → 386: rail 17 → 369 (17px inset both
+ends, mockup 17/17); "seed" at x 14 (mockup 14); "now" 14 from the right
+(mockup 12); dots 6px at centres 17·105·193·281; thumb 16px; segments 5px clear
+of a dot centre and 10px of the thumb's; rail band bottom to bond card **15px**
+(mockup 725 → 740); labels 190 up from the bottom edge (unchanged). Auto-watering
+card: schedule at y 989 in `rgba(5,5,5,.4)`, rule at 1023 (14px under), action at
+1038 (14px under) in `rgb(172,186,159)`.
+
+Collapse-on-drag and the popover anchor as measured in §6 and §7.
