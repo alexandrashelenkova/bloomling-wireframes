@@ -2675,3 +2675,28 @@ no exceptions** — this run the favicon 404 did not even appear.
   three windows with the current one lit.
 - All six flow-index entries still render, and Plant Detail → ⋯ → this screen →
   back is intact in both directions.
+
+## Shipped
+
+Commit `49e40f1` → `origin/main`, Vercel production
+`bloomling-wireframes-h1blssl19`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+`settings-vlad.mp4` (3.9 MB) is committed alongside the other two films.
+
+Re-verified against the live site — identical to local at every point:
+
+| scroll | film | stage bottom / gradient top | scrim |
+|---|---|---|---|
+| 0 | 744×857 at −195 | 662 / 662 | 0 |
+| 200 | 401×462 at 0 | 462 / 462 | 0 |
+| 419 | 386×445 at −202 | 243 / 243 | 1 |
+| 806 | 386×445 at −589 | −144 / −144 | 1 |
+| back to 0 | 744×857 at −195 | 662 / 662 | 0 |
+
+Scroll height **1746**, the mockup frame's own. Preset tap raises the bubble and
+2.7s of quiet lowers it. No console errors beyond the pre-existing missing
+favicon.
+
+One note: the film reports `paused` once it is entirely off-screen (scroll 806)
+and plays again on the way back up. That is Chrome suspending an invisible
+video, not a state bug — `currentTime` resumes from where it stopped.
