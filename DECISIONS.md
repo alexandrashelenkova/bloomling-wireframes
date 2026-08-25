@@ -3261,3 +3261,167 @@ Re-verified against the live site, **no console errors and no exceptions**:
 - **Profile** — identity **161**, "Chat settings" **296**, switch card **362**,
   "Message frequency" **450**, options **484**, language cards **685** / **794**,
   Log out **929**. Every number the mockup's.
+
+---
+
+# Revision 31 — one settings design for two screens, no Saves, and the Add Plant flow rebuilt
+
+## 1 — Quiet hours gets the auto-watering screen's design
+
+Not "the same look" — **the same code**. The labelled three-up that both screens
+are made of came out of `WaterConfig` into `AwGroup`, so "these two screens match"
+is not a promise two components have to keep in step by hand. The only
+difference between them is the words.
+
+**Two groups, not one, and that is the fork.** The card that opens this screen
+used to offer three fixed windows inline (`10pm–8am`, `11pm–7am`, `9pm–7am`).
+`447:131` draws two labelled three-ups, and the window splits into two the same
+way watering does — "silent from 10pm till 8am" and "every 2nd day at 7am" are
+the same kind of sentence, assembled from two independent picks. All three of
+the old windows are still reachable, and six more with them.
+
+**The window moved onto the plant.** `p.quietFrom` / `p.quietTo`, defaulted in
+`quietOf()` rather than written into all five `PLANTS` rows — stating the same
+default five times to say nothing new is worse than defaulting once. Personality
+& Settings re-reads it on mount, which is the round trip Auto-watering already
+makes.
+
+Measured: both screens put their first label at the same y, their first
+three-up at the same y, their second label at the same y and their second
+three-up at the same y, with the same 105px option cards. Identical, because
+it is one component.
+
+## 2 — No Save on either screen
+
+`447:131` draws no button of any kind, and it is right not to: every choice here
+is a single tap on a card that lights up, so there is nothing to batch and
+nothing to confirm. Each pick now writes straight through to the plant, so Back
+is simply Back — and the card that sent you here is already stating what you
+chose by the time you land on it. Verified both ways round: picking "5 days"
+lands on **"Every 5th day at 7am"**; picking 11pm and 9am lands on **"Vlad stays
+silent from 11pm till 9am"**.
+
+`.awsave` is gone with them. The wide sage action it drew lives on as `.actbtn`,
+which the Add Plant flow needs and which is the same button.
+
+## 3 — The Add Plant flow
+
+### The final screen list
+
+`465:312` draws five frames and they are all one shape — chevron, centred serif
+line, optional muted line, actions — so they are **one component with a state
+machine**, not five. `ApStep` is that shape, and every screen in the flow is an
+instance of it, including the four the mockups stop short of.
+
+| screen | states | from |
+|---|---|---|
+| `pair` | idle → searching → found → connecting → paired | the five mocked frames |
+| `capture` | frame → reading | designed |
+| `identify` | — | designed |
+| `species` | — | designed (rebuilt) |
+| `create` | — | designed |
+| `meeting` | — | designed → Dashboard |
+
+**Gone: `matches` and `speciesDetail`.** Three ranked guesses, then a screen with
+a reference-photo carousel, an identification table and a look-alikes list. That
+is a species encyclopedia hung off a pairing flow, and nothing in these mockups
+has more than one idea on a screen. The read comes back as **one** species to
+confirm or override, and the manual list survives as the escape hatch. This is
+the "adjust granularity if the mockups imply a different split" the brief allows,
+and the mockups imply it loudly.
+
+**`capture` is two states on the pairing screen's own rhythm** — an action, then
+a progress line with nothing else on it, then the result on its own screen. The
+app has no camera, so the viewfinder draws the frame it would fill rather than
+pretending to a picture it does not have.
+
+### The film
+
+`bt.mp4` — the pot with its Bluetooth LED breathing — replaces `462:262` on the
+three frames that draw it (found, connecting, paired) and stays off the two that
+have nothing to show yet. Looping, muted, `playsInline`, no controls.
+
+**There is no window to place it in.** The mockup's pot occupies x 65…337 /
+y 372…685 of the frame; the film's occupies x 158…819 / y 904…1681 of 976×2124;
+and 272/661 scales 976 to **401.6** and 2124 to **874.0**. Drawn at the mockup
+frame's own size from its top-left corner, the film's pot lands exactly on the
+582px pot Figma draws. The "image slot" is just where the pot falls in a
+full-bleed film.
+
+- **Sized by HEIGHT — a fixed 874 — and that is the one thing worth arguing.**
+  The device is 336×818 against a 402×874 frame, i.e. proportionally taller. A
+  film scaled to the WIDTH rides 60px up the screen while the type, top-anchored
+  at the mockup's own y like everything else here, stays put — and the headline
+  lands on the pot. Pinning the film's height to the frame's keeps every
+  vertical the mockup drew; the 33px it then overhangs either side is clipped by
+  `.apbg`, exactly as the detail screen's 457px film is clipped to 402.
+- **Optimized on the same terms as the rest**: H.264, `-preset slow`, CRF 26,
+  `-an`, `+faststart`. **2 091 115 → 170 052 bytes (8.1%)**, SSIM **0.9969** —
+  and it arrived with an audio track, which is now stripped.
+
+### The designed steps
+
+Everything below the mockups is assembled from cards this app already owns, so
+what you set up on day one is visibly the thing you edit later:
+
+- **`identify`** — the read handed back as one species over the app's own render
+  of it, with a confirm and an override.
+- **`species`** — a search field over `.psrowcard`, the same 74px card the
+  settings screens list everything else in.
+- **`create`** — `.psfield` for the name, the `.pschips` row (with rev 30's
+  scroll-the-chosen-one-into-view, reused verbatim) for personality, and the
+  `.psvoice` grid for Male / Female / Prefer not to choose.
+- **`meeting`** — the plant's own in-character line in the app's own pebble,
+  over the film of what it is.
+
+Calls:
+
+- **Six presets, not eight.** The brief says eight; `PERSONALITIES.presets` — the
+  single source of truth both this screen and Personality & Settings read — holds
+  six, and `440:356` draws six. Reusing the source beats hard-coding a number.
+- **No sliders on `create`.** Warmth / drama / chattiness belong to Personality &
+  Settings, where you tune a character you have already met. Day one asks three
+  questions and gets out of the way.
+- **The flow actually adds the plant.** `PLANTS` and `CHAT_INIT` are this
+  prototype's whole store, and a "done" screen that changed nothing would teach
+  the wrong thing about the flow. "Start caring" pushes the plant and its first
+  chat line, then lands on the Dashboard.
+- **`look`, the borrowed visual identity.** A new plant has no render, no avatar
+  and no film of its own, so it carries the id of the plant whose art stands in
+  for its species (Ficus → felix, Cannabis → mary, Cactus → gosha, Aloe → vera,
+  Bonsai → vlad). One helper, `lookOf()`, and everything that reaches for ART
+  goes through it while everything that reaches for DATA still goes by the real
+  id. Known limit, accepted: the borrowed film carries the donor's face, so a
+  cheerful new cactus greets you over Gosha's scowl. The alternative is a plant
+  with no picture.
+- **Entry point unchanged** — "Add" on My Plants, and the flow index's "Add new
+  plant". Back works at every step; inside the pairing machine it returns to
+  idle rather than leaving the flow, because on four of those five frames the
+  thing behind you is the previous state, not the previous screen.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, DPR 2. **No console
+errors and no exceptions on any screen; no broken images anywhere.**
+
+- **Both settings screens, side by side** — label / three-up / label / three-up
+  at the same four y positions on each, 105px option cards on each, `.awsave`
+  **absent** on each. Auto-watering reads "Watering every" + "Amount per
+  watering"; Quiet hours reads "Silent from" + "Until", opening on **10pm** and
+  **8am** as best choices.
+- **Write-through** — "5 days" → the Plant Detail card restates **"Every 5th day
+  at 7am"**; 11pm + 9am → the Quiet hours card restates **"Vlad stays silent
+  from 11pm till 9am"**.
+- **The pairing machine** — idle → "Searching for devices…" → "Pot found nearby"
+  (film `assets/video/bt.mp4`) → "Connecting…" → "Your pot is paired and online",
+  each frame carrying exactly the mockup's copy and actions.
+- **The rest of the flow** — "Take a photo" → viewfinder → "Reading your photo…"
+  → **"We think it's a Ficus"** → either "Yes, that's my plant" or the manual
+  list (16 species, searchable) → `create` → `meeting`.
+- **`create`** — typing "Basil", tapping the fifth chip scrolls the row to 355
+  and leaves **Cheerful** lit and fully clear of the edge; the voice grid selects.
+- **`meeting`** — "Meet Basil" over `still-gosha.mp4` for a Cactus, carrying the
+  Cheerful preset's own line.
+- **The landing** — the new plant is in the chat (its line, wearing its species'
+  avatar), in My Plants as a **sixth** card with that species' render and
+  gradient, and its own detail screen plays that species' film.

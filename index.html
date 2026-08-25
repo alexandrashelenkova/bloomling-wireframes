@@ -707,12 +707,10 @@
     font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink);white-space:nowrap}
   .awopt small{font-size:var(--t-md);line-height:1.25;color:rgba(5,5,5,.4);
     white-space:nowrap}
-  /* 447:238 — --sage, radius 28, 15px of padding round a 16px centred line, and
-     it is --ink rather than the pill buttons' --serif-ink */
-  .awsave{flex:0 0 auto;margin:auto -11px 0;background:var(--sage);border:none;
-    border-radius:var(--r-sub);padding:15px;text-align:center;
-    font-size:var(--t-md);line-height:1.25;color:var(--ink);cursor:pointer}
-  .awsave:active{transform:translateY(1px)}
+  /* (447:238's Save is gone from both settings screens — every pick applies on
+     the tap. The wide sage action it drew lives on in .actbtn, which the Add
+     Plant flow needs and which is the same button: --sage, radius 28, 15px of
+     padding round a 16px centred line in --ink.) */
 
   /* ══════════ PROFILE (460:144) ══════════
      The same plain page the auto-watering screen is: no film, the unified nav,
@@ -756,6 +754,88 @@
     border:none;border-radius:var(--r-sub);padding:15px;text-align:center;
     font-size:var(--t-md);line-height:1.25;color:#E39B84;cursor:pointer}
   .pflogout:active{transform:translateY(1px)}
+
+  /* ══════════ ADD NEW PLANT (465:312) ══════════
+     Five frames, one shape: the pot's own film full-bleed behind everything, a
+     back chevron and nothing else at the top, a centred serif line at 187, an
+     optional muted line 14 under it, and the actions either following the text
+     or sitting 40px off the bottom edge. Every frame renders flat #EDEEE9 — the
+     457×818 still each one carries is a hidden layer, exactly as on Profile.
+
+     66px is what puts the headline on the mockup's 187: the head box ends at
+     121 (8 of screen padding + 13 of margin + its own 52), which is where every
+     other screen's title box ends too. */
+  .apscreen{flex:1 1 auto;position:relative;display:flex;flex-direction:column;
+    padding:8px 16px 40px;overflow:hidden;background:var(--bg)}
+  /* the film reaches back over the status bar, like the detail screen's stage */
+  .apbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
+    background:var(--bg);z-index:0}
+  /* bt.mp4 is 976×2124 and there is no window to place it in: drawn at the
+     MOCKUP FRAME'S size — 402×874, from its top-left corner — its pot lands
+     exactly on the 582px pot 462:262 draws. Measured, not assumed: the mockup's
+     pot occupies x 65…337 / y 372…685 of the frame, the film's occupies
+     x 158…819 / y 904…1681 of 976×2124, and 272/661 scales 976 to 401.6 and
+     2124 to 874.0. The "image slot" is just where the pot falls in a full-bleed
+     film.
+
+     Sized by HEIGHT, and that is the whole reason this is a fixed 874 rather
+     than width:100%: the device is 336×818 against the mockup's 402×874, so it
+     is proportionally taller, and a film scaled to the width would ride 60px up
+     the screen while the type — top-anchored at the mockup's own y, like every
+     other screen here — stayed put. The headline landed on the pot. Pinning the
+     film's height to the frame's keeps every vertical the mockup drew, and the
+     33px it then overhangs either side is clipped by .apbg, exactly as the
+     detail screen's 457px film is clipped to 402. */
+  .apvid{position:absolute;left:50%;top:0;transform:translateX(-50%);
+    height:874px;aspect-ratio:976 / 2124;
+    display:block;border:0;background:transparent;pointer-events:none}
+  .aphead{position:relative;z-index:1;flex:0 0 auto;height:52px;margin:13px -2px 0;
+    display:flex;align-items:center}
+  .aptitle{position:relative;z-index:1;flex:0 0 auto;margin:66px auto 0;
+    max-width:310px;font-family:'Riccione',Georgia,serif;font-weight:400;
+    color:var(--serif-ink);font-size:var(--t-xl);line-height:1.16;
+    letter-spacing:0;text-align:center}
+  .apsub{position:relative;z-index:1;flex:0 0 auto;margin:14px auto 0;
+    max-width:310px;font-size:var(--t-md);line-height:1.25;
+    color:rgba(5,5,5,.4);text-align:center}
+  /* 374 of 402 is 14 either side, and -2 cancels the screen's 16 down to it.
+     The stack is 5px apart (779 → 784) and sits 40px off the foot (834 → 874),
+     which is this screen's own bottom padding. */
+  .apacts{position:relative;z-index:1;flex:0 0 auto;margin:auto -2px 0;
+    display:flex;flex-direction:column;gap:5px}
+  .apacts.inflow{margin-top:40px}          /* 417 → 457 on the opening frame */
+  .actbtn{display:block;width:100%;background:var(--sage);border:none;
+    border-radius:var(--r-sub);padding:15px;text-align:center;
+    font-size:var(--t-md);line-height:1.25;color:var(--ink);cursor:pointer}
+  .actbtn.ghost{background:var(--card)}    /* 462:259, the secondary of the pair */
+  .actbtn:active{transform:translateY(1px)}
+
+  /* the steps the mockups stop short of, drawn in the same language ─────────
+     the viewfinder: the app has no camera, so it draws the frame it would fill */
+  .apframe{position:relative;z-index:1;flex:0 0 auto;margin:40px auto 0;
+    width:280px;max-width:100%;height:340px;border-radius:var(--r-card);
+    border:1px solid var(--sage-soft);background:rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center;
+    font-size:var(--t-md);line-height:1.25;color:rgba(5,5,5,.4)}
+  /* the read photo — the app's own render of that species, in the card shape
+     the rest of the flow is drawn in */
+  .apshot{position:relative;z-index:1;flex:0 0 auto;margin:24px auto 0;
+    width:240px;height:240px;border-radius:var(--r-card);overflow:hidden;
+    background:var(--card)}
+  .apshot img{display:block;width:100%;height:100%;object-fit:contain}
+  /* the first-meeting bubble — the app's own pebble, drawn at reading size
+     rather than the 193×89 the settings screen packs in beside its title */
+  .apbub{position:relative;z-index:1;flex:0 0 auto;margin:24px auto 0;
+    width:260px;max-width:100%;min-height:96px;
+    background-size:100% 100%;background-repeat:no-repeat;
+    padding:18px 26px;font-size:var(--t-md);line-height:1.3;text-align:center;
+    color:var(--ink);display:flex;align-items:center;justify-content:center}
+  /* the two scrolling steps borrow .pfscreen's shell; -11 is the same cancel
+     .pfbody and .awbody make, back to the 5px inset every card is drawn on */
+  .apbody{position:relative;z-index:1;margin:0 -11px}
+  .apsec{margin-top:40px}
+  .aplist{position:relative;z-index:1;margin:24px -11px 0;
+    display:flex;flex-direction:column;gap:5px}
 
   /* ══════════ PERSONALITY & SETTINGS — full-bleed (Figma 446:93) ══════════
      A 402×818 frame in the mockup against this file's 386×818 device, so every
@@ -991,9 +1071,9 @@
   .psqact{margin-top:15px;font-size:var(--t-md);line-height:1.25;
     color:var(--sage-soft);cursor:pointer}
   .psqact:active{opacity:.55}
-  /* the window presets the old screen carried; folded in under "Customise" so
-     the feature survives the rebuild without appearing in the resting card */
-  .psqseg{margin-top:15px}
+  /* ("Customise" opens the Quiet hours screen now — 447:131's design, the same
+     one Auto-watering is drawn on — so the window presets no longer live inside
+     this card and the collapsing tail is always the fixed 51px it is cut for.) */
 
   /* progress */
   .bar{height:12px;background:var(--box);border-radius:999px;overflow:hidden;
@@ -1408,6 +1488,11 @@ const PLANTS = [
   },
 ];
 const plantById = (id) => PLANTS.find(p=>p.id===id) || PLANTS[0];
+/* A plant added through the Add Plant flow has no render, no avatar and no film
+   of its own, so it carries `look` — the id of the plant whose art stands in for
+   its species. Everything that reaches for art goes through here; everything
+   that reaches for DATA still goes by the real id. */
+const lookOf = (id) => { const x = PLANTS.find(p=>p.id===id); return (x && x.look) || id; };
 
 /* NOTIFICATIONS = a digest of what actually needs the user OFFLINE. Social chatter
    ("Felix says hi") belongs in the chat and is deliberately absent here.
@@ -1958,7 +2043,7 @@ function GardenChat({focus, open, onCollapse}){
         {shown.map((m,i)=>{
           const isMe = m.who==="me";
           const p = !isMe && plantById(m.who);
-          const av = AVATAR[m.who];
+          const av = AVATAR[lookOf(m.who)];
           const shape = isMe ? "me" : (m.urgent ? "alert" : "them");
           return <div key={i} className={"grow-row "+(isMe?"me":"them")+(m.rx?" rx":"")}
             ref={i===hot ? target : null}>
@@ -1970,7 +2055,7 @@ function GardenChat({focus, open, onCollapse}){
                 style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
             </div>
             <div className="gbub" style={{backgroundImage:
-              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[m.who]||BUBBLE.mary))}}>
+              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[lookOf(m.who)]||BUBBLE.mary))}}>
               {!isMe && <div className="gmeta">
                 <b>{p.name.split(" ")[0]}</b><span>{m.at}</span>
               </div>}
@@ -2175,7 +2260,7 @@ function PlantDetail({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"vlad");
   const e = EMO[p.emotion] || EMO.neutral;
-  const film = filmFor(p.id);          // this plant's own two films
+  const film = filmFor(lookOf(p.id));  // this plant's own two films
   const last = TL.length - 1;
 
   const [pos,setPos]   = useState(1);        // 0…1 along the timeline; 1 = "now"
@@ -2654,31 +2739,51 @@ const awNearest = (schedule)=>{
    AW_AMOUNT carry, because it is drawn on the same option card. */
 const PF_FREQ = [{k:"Quiet"}, {k:"Moderate", best:true}, {k:"Chatty"}];
 
+/* Quiet hours, on the auto-watering screen's own design (447:131). Two labelled
+   three-ups instead of one, for the same reason watering has two: the window is
+   two independent picks that compose into one sentence, and "Every 2nd day at
+   7am" and "silent from 10pm till 8am" are the same kind of sentence.
+   The three fixed windows this used to offer inline (10pm–8am, 11pm–7am,
+   9pm–7am) are all still reachable, and six more with them. */
+const QT_FROM = [{k:"9pm"}, {k:"10pm", best:true}, {k:"11pm"}];
+const QT_TO   = [{k:"7am"}, {k:"8am",  best:true}, {k:"9am"}];
+/* PLANTS does not carry a window, and adding one to five rows to state the
+   default twice over would be worse than defaulting here. */
+const quietOf = (p)=>({ from: p.quietFrom || "10pm", to: p.quietTo || "8am" });
+
+/* ── the labelled three-up both settings screens are built from (447:131) ────
+   One component, so "the same design" is not a promise two screens have to keep
+   in step by hand — it is the same code, and the only difference between them
+   is the words. */
+function AwGroup({label, opts, value, onPick}){
+  return <div className="awgroup">
+    <div className="awlab">{label}</div>
+    <div className="awopts">
+      {opts.map(o=>(
+        <div key={o.k} className={"awopt"+(value===o.k?" on":"")}
+          onClick={()=>onPick(o.k)}>
+          <b>{o.label || o.k}</b>
+          {o.best && <small>best choice</small>}
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
+/* ── NO SAVE, on either screen ───────────────────────────────────────────────
+   447:131 draws no button of any kind, and it is right not to: every choice
+   here is a single tap on a card that lights up, so there is nothing to batch
+   and nothing to confirm. Each pick writes straight through to the plant —
+   PLANTS is this prototype's only store and both cards that send you here
+   re-read it on mount — so Back is simply Back, and the card underneath is
+   already stating what you just chose by the time you land on it. */
 function WaterConfig({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
   const [every,setEvery]   = useState(awNearest(p.schedule));
   const [amount,setAmount] = useState(p.amount);
-
-  /* A wireframe whose Save does nothing teaches the wrong thing about the
-     screen. PLANTS is the prototype's only store, and Plant Detail re-reads it
-     on every mount — so writing the two values back is what makes "Every 2nd
-     day at 7am" on the card underneath tell the truth on the way back. */
-  const save = ()=>{ p.schedule = every; p.amount = amount; nav.back(); };
-
-  const group = (label, opts, value, set)=>
-    <div className="awgroup">
-      <div className="awlab">{label}</div>
-      <div className="awopts">
-        {opts.map(o=>(
-          <div key={o.k} className={"awopt"+(value===o.k?" on":"")}
-            onClick={()=>set(o.k)}>
-            <b>{o.label || o.k}</b>
-            {o.best && <small>best choice</small>}
-          </div>
-        ))}
-      </div>
-    </div>;
+  const pickEvery  = (k)=>{ p.schedule = k; setEvery(k); };
+  const pickAmount = (k)=>{ p.amount   = k; setAmount(k); };
 
   return <div className="awscreen">
     <div className="plhead">
@@ -2686,10 +2791,32 @@ function WaterConfig({params}){
       <h1 className="pltitle">Auto-watering</h1>
     </div>
     <div className="awbody">
-      {group("Watering every", AW_EVERY, every, setEvery)}
-      {group("Amount per watering", AW_AMOUNT, amount, setAmount)}
+      <AwGroup label="Watering every"      opts={AW_EVERY}  value={every}  onPick={pickEvery}/>
+      <AwGroup label="Amount per watering" opts={AW_AMOUNT} value={amount} onPick={pickAmount}/>
     </div>
-    <button className="awsave" onClick={save}>Save</button>
+  </div>;
+}
+
+/* The chat-timing twin of the screen above — same shell, same groups, same
+   absence of a Save. Reached from the Quiet hours card's "Customise". */
+function QuietConfig({params}){
+  const nav = useNav();
+  const p = plantById((params&&params.id)||"felix");
+  const q0 = quietOf(p);
+  const [from,setFrom] = useState(q0.from);
+  const [to,setTo]     = useState(q0.to);
+  const pickFrom = (k)=>{ p.quietFrom = k; setFrom(k); };
+  const pickTo   = (k)=>{ p.quietTo   = k; setTo(k); };
+
+  return <div className="awscreen">
+    <div className="plhead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+      <h1 className="pltitle">Quiet hours</h1>
+    </div>
+    <div className="awbody">
+      <AwGroup label="Silent from" opts={QT_FROM} value={from} onPick={pickFrom}/>
+      <AwGroup label="Until"       opts={QT_TO}   value={to}   onPick={pickTo}/>
+    </div>
   </div>;
 }
 
@@ -2793,7 +2920,7 @@ const PS_VOICES = ["Male","Female","Prefer not to choose"];
 function PlantSettings({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
-  const ar = psAr(p.id);               // this plant's settings film's own ratio
+  const ar = psAr(lookOf(p.id));       // this plant's settings film's own ratio
 
   const [name,setName]       = useState(p.name.split(" ")[0]);
   const [species,setSpecies] = useState(p.species);
@@ -2803,12 +2930,11 @@ function PlantSettings({params}){
   const [voice,setVoice]     = useState("Male");
   const [msgs,setMsgs]       = useState(true);
   const [quiet,setQuiet]     = useState(true);
-  const [hours,setHours]     = useState("10pm–8am");
-  const [custom,setCustom]   = useState(false);
+  /* the window itself lives on the plant now, written by the Customise screen
+     and re-read here on every mount — the same round trip Auto-watering makes */
+  const q = quietOf(p);
   const first = name.split(" ")[0] || "they";
-  /* switching Quiet hours off also folds "Customise" away, so the collapsing
-     tail is always the fixed 51px .psqmore.tail is cut for */
-  const toggleQuiet = ()=>{ if(quiet) setCustom(false); setQuiet(!quiet); };
+  const toggleQuiet = ()=>setQuiet(!quiet);
 
   /* ── the reaction bubble ──────────────────────────────────────────────────
      It used to be a PREVIEW that only surfaced while the character was being
@@ -2899,7 +3025,7 @@ function PlantSettings({params}){
     <div className="psscroll" ref={scroller} onScroll={onScroll}>
 
       <div className="psstage" ref={stage}>
-        <video className="psvid" key={p.id} ref={vid} src={psFilm(p.id)}
+        <video className="psvid" key={p.id} ref={vid} src={psFilm(lookOf(p.id))}
           muted loop autoPlay playsInline preload="auto"
           style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>
       </div>
@@ -2965,23 +3091,16 @@ function PlantSettings({params}){
               <div className="psqtxt">
                 <div className="psqt">Quiet hours</div>
                 <div className={"psqmore"+(quiet?"":" off")}>
-                  <div className="psqsub">{first} stays silent from {hours.replace("–"," till ")}</div>
+                  <div className="psqsub">{first} stays silent from {q.from} till {q.to}</div>
                 </div>
               </div>
               <Toggle on={quiet} onClick={toggleQuiet}/>
             </div>
             <div className={"psqmore tail"+(quiet?"":" off")}>
               <div className="psqdiv"/>
-              <div className="psqact" onClick={()=>setCustom(c=>!c)}>Customise</div>
+              <div className="psqact"
+                onClick={()=>nav.go("quietConfig",{id:p.id})}>Customise</div>
             </div>
-            {quiet && custom && <div className="psqseg">
-              <div className="segrow">
-                {["10pm–8am","11pm–7am","9pm–7am"].map(h=>(
-                  <div key={h} className={"seg"+(hours===h?" on":"")}
-                    onClick={()=>setHours(h)}>{h}</div>
-                ))}
-              </div>
-            </div>}
           </div>
         </div>
 
@@ -3005,307 +3124,262 @@ function PlantSettings({params}){
   </div>;
 }
 
-/* ───────────────── ADD NEW PLANT FLOW ───────────────── */
-/* Step 1 — pairing. The idle state is a proper welcome (centred art + a warm
-   line), and the "connected" state doubles as the photo explainer so the user
-   never taps Continue twice through two pass-through screens. */
+/* ───────────────── ADD NEW PLANT (465:312) ─────────────────
+   The section draws five frames and they are all one shape — chevron, centred
+   serif line, optional muted line, actions — so they are one component with a
+   state machine, not five. `ApStep` is that shape; every screen in the flow is
+   an instance of it, including the four the mockups stop short of.
+
+   THE FINAL SCREEN LIST (the mockups' own logic first, the brief's list
+   second — see DECISIONS):
+     pair      the five mocked frames: idle → searching → found → connecting →
+               paired, one component
+     capture   point-and-shoot, then "Reading your photo…" — the same
+               action → progress → result rhythm the pairing screen already has
+     identify  the photo read back as a species, to confirm or override
+     species   the manual pick, if the read was wrong
+     create    name, personality, voice
+     meeting   the first greeting, in the plant's own bubble → Dashboard
+
+   Gone with the rebuild: `matches` (three ranked guesses) and `speciesDetail`
+   (a carousel, an identification table and look-alikes). They are a species
+   encyclopedia hung off a pairing flow, and nothing in these mockups has more
+   than one idea on a screen. The manual list survives as the escape hatch. */
+
+const AP_FILM = "assets/video/bt.mp4";
+
+/* What the recogniser returns in this prototype, and the plant whose render,
+   avatar and film stand in for each species. A new plant has no art of its own,
+   so it wears the art the app already has for what it is. */
+const AP_SPECIES = "Ficus";
+const LOOK_BY_SPECIES = { Ficus:"felix", Cannabis:"mary", Cactus:"gosha",
+                          Aloe:"vera", Bonsai:"vlad" };
+const lookFor = (species)=> LOOK_BY_SPECIES[species] || "felix";
+
+function ApStep({onBack, film, title, sub, children, actions, inflow}){
+  return <div className="apscreen">
+    <div className="apbg" aria-hidden="true">
+      {film && <video className="apvid" key={film} src={film}
+        muted loop autoPlay playsInline preload="auto"/>}
+    </div>
+    <div className="aphead">
+      {onBack && <span className="plback" onClick={onBack} title="Back">
+        <IconChevronLeft/></span>}
+    </div>
+    <h1 className="aptitle">{title}</h1>
+    {sub && <p className="apsub">{sub}</p>}
+    {children}
+    {actions && <div className={"apacts"+(inflow?" inflow":"")}>{actions}</div>}
+  </div>;
+}
+
+/* Step 1 — pairing, the five mocked frames.
+   The film (bt.mp4, the pot with its Bluetooth LED breathing) appears exactly
+   where the mockups put the pot: on found, connecting and paired, and not on
+   the two frames that have nothing to show yet.
+   Back inside the machine returns to idle rather than leaving the flow — the
+   chevron is drawn on every frame, and on four of them the thing behind you is
+   the previous state, not the previous screen. */
 function PairDevice(){
   const nav = useNav();
-  const [st,setSt] = useState("idle"); // idle → searching → found → connecting → done
+  const [st,setSt] = useState("idle");   // idle → searching → found → connecting → done
   useEffect(()=>{
     let t;
-    if(st==="searching") t=setTimeout(()=>setSt("found"),1700);
+    if(st==="searching")  t=setTimeout(()=>setSt("found"),1700);
     if(st==="connecting") t=setTimeout(()=>setSt("done"),1600);
     return ()=>clearTimeout(t);
   },[st]);
-  return <div className="screen">
-    <Top title="Pair your pot" onBack={nav.back} kicker="New plant · step 1 of 3"/>
+  const back = ()=> st==="idle" ? nav.back() : setSt("idle");
+  const film = (st==="found"||st==="connecting"||st==="done") ? AP_FILM : null;
 
-    {st==="idle" && <>
-      <div style={{flex:1}}/>
-      <Photo w={190} h={190} label="POT + PLANT" style={{margin:"0 auto"}}/>
-      <h2 className="center" style={{marginTop:16,fontSize:"var(--t-lg)"}}>Let's meet your new plant 🌱</h2>
-      <p className="muted center">Switch the pot on and keep your phone close —
-        we'll find it over Bluetooth and introduce you properly.</p>
-      <div style={{flex:1}}/>
-      <button className="btn primary" onClick={()=>setSt("searching")}>Start searching</button>
-    </>}
+  if(st==="idle") return <ApStep onBack={back}
+    title={"Pair your pot & meet your new plant"}
+    sub="Switch the pot on and keep your phone close — we'll find it over Bluetooth and introduce you properly."
+    inflow
+    actions={<button className="actbtn" onClick={()=>setSt("searching")}>Start searching</button>}/>;
 
-    {st==="searching" && <>
-      <p className="muted">Keep the pot powered on and nearby.</p>
-      <div className="card row"><div className="pulse"/><div className="grow"><b>Searching for devices…</b><br/><small className="muted">Make sure the pot is powered on</small></div></div>
-      <div style={{flex:1}}/>
-      <button className="btn" disabled>Searching…</button>
-    </>}
+  if(st==="searching") return <ApStep onBack={back} title="Searching for devices…"/>;
 
-    {st==="found" && <>
-      <p className="muted">Found something — is this yours?</p>
-      <div className="card row">
-        <Photo w={48} h={48} label="POT"/>
-        <div className="grow"><b>Pot found nearby</b><br/><small className="muted">Signal strong · ready to pair</small></div>
-        <span className="pill accent">Found</span></div>
-      <div style={{flex:1}}/>
-      <button className="btn primary" onClick={()=>setSt("connecting")}>Connect</button>
-      <button className="btn ghost" onClick={()=>setSt("searching")}>Search again</button>
-    </>}
+  if(st==="found") return <ApStep onBack={back} film={film} title="Pot found nearby"
+    actions={<>
+      <button className="actbtn" onClick={()=>setSt("connecting")}>Connect</button>
+      <button className="actbtn ghost" onClick={()=>setSt("searching")}>Search again</button>
+    </>}/>;
 
-    {st==="connecting" && <>
-      <p className="muted">Almost there.</p>
-      <div className="card row"><div className="spin"/><div className="grow"><b>Connecting…</b><br/><small className="muted">Shaking hands with your pot</small></div></div>
-      <div style={{flex:1}}/>
-      <button className="btn" disabled>Connecting…</button>
-    </>}
+  if(st==="connecting") return <ApStep onBack={back} film={film} title="Connecting…"/>;
 
-    {/* MERGED: success + "one quick photo" explainer, one Continue */}
-    {st==="done" && <>
-      <div className="card row"><span className="dot ok"/>
-        <div className="grow"><b>Connected ✓</b><br/><small className="muted">Your pot is paired and online</small></div>
-        <span className="pill accent">Online</span></div>
-      <div style={{flex:1}}/>
-      <Photo w={150} h={150} label="CAMERA" style={{margin:"0 auto"}}/>
-      <h2 className="center" style={{marginTop:14,fontSize:"var(--t-lg)"}}>Now one quick photo</h2>
-      <p className="muted center">We'll use it to recognise the species and set up your plant's
-        profile. You can retake or replace it anytime.</p>
-      <div style={{flex:1}}/>
-      <button className="btn primary" onClick={()=>nav.go("capture")}>Take a photo</button>
-    </>}
-  </div>;
+  return <ApStep onBack={back} film={film} title="Your pot is paired and online"
+    actions={<button className="actbtn" onClick={()=>nav.go("capture")}>Take a photo</button>}/>;
 }
 
-/* Step 2 — camera → processing. On success it PUSHES the matches screen, so the
-   back stack is camera → matches → species detail and Back always steps back one
-   real screen instead of dumping the user into the viewfinder again. */
+/* Step 2 — the photo. Two states on the pairing screen's own rhythm: an action,
+   then a progress line with nothing else on it, then the result on its own
+   screen so Back lands on the viewfinder rather than on a spinner. */
 function CapturePhoto(){
   const nav = useNav();
-  const [st,setSt] = useState("frame"); // frame → processing → (push) matches
+  const [st,setSt] = useState("frame");   // frame → reading → (push) identify
   useEffect(()=>{
     let t;
-    if(st==="processing") t=setTimeout(()=>nav.go("matches"),2200);
+    if(st==="reading") t=setTimeout(()=>nav.go("identify"),1800);
     return ()=>clearTimeout(t);
   },[st]);
 
-  // Camera framing = a full-bleed viewfinder with an iPhone-style shutter.
-  if(st==="frame"){
-    return <div className="camwrap">
-      <div className="camtop">
-        <button className="camx" onClick={nav.back}>‹ Back</button>
-        <span className="camhint">Fit your plant inside the frame</span>
-      </div>
-      <div className="camguide">[CAMERA VIEWFINDER]</div>
-      <div className="camctrls">
-        <button className="galthumb" title="Choose from gallery" onClick={()=>setSt("processing")}>▢</button>
-        <button className="shutter" onClick={()=>setSt("processing")} aria-label="Take photo"/>
-        <div className="camspacer"/>
-      </div>
-    </div>;
-  }
+  if(st==="reading") return <ApStep onBack={()=>setSt("frame")} title="Reading your photo…"/>;
 
-  return <div className="screen">
-    <Top title="Add a photo" onBack={nav.back} kicker="New plant · step 2 of 3"/>
-    <div className="ph" style={{height:190}}>[PHOTO CAPTURED]</div>
-    <div className="card row"><div className="spin"/><div className="grow"><b>Analysing your plant…</b><br/><small className="muted">Matching it against thousands of species</small></div></div>
-    <div className="bar"><i className="fill-anim"/></div>
-    <div style={{flex:1}}/>
-    <button className="btn" disabled>Just a moment…</button>
-  </div>;
+  return <ApStep onBack={nav.back} title="Now point it at your plant"
+    sub="Fit the whole plant in the frame — the species is read off the photo."
+    actions={<button className="actbtn" onClick={()=>setSt("reading")}>Take the photo</button>}>
+    <div className="apframe">Viewfinder</div>
+  </ApStep>;
 }
 
-/* Step 2b — "Best matches". Its own screen so species detail can come back here. */
-const SUGGESTIONS = [
-  { s:"Ficus",        pct:92 },
-  { s:"Rubber plant", pct:71 },
-  { s:"Peace lily",   pct:44 },
-];
-function SpeciesMatches(){
+/* Step 3 — the read, handed back as one species to confirm or override. */
+function IdentifyPlant({params}){
   const nav = useNav();
-  return <div className="screen">
-    <Top title="Best matches" onBack={nav.back} kicker="New plant · step 2 of 3"/>
-    <div className="ph" style={{height:150}}>[PHOTO CAPTURED]</div>
-    <small className="muted">Tap a match for details, or Select to confirm straight away.</small>
-    <div className="col">
-      {SUGGESTIONS.map((x,i)=>(
-        <div key={x.s} className="card spread" style={{gap:8}}>
-          {/* tap-through region → species detail */}
-          <div className="row grow" style={{cursor:"pointer"}} onClick={()=>nav.go("speciesDetail",{species:x.s})}>
-            <Photo w={44} h={44} label="PIC"/>
-            <div><b>{x.s}</b>{i===0 && <span className="pill accent" style={{marginLeft:6}}>Top pick</span>}
-              <br/><small className="muted">{x.pct}% match · tap for details ›</small></div>
-          </div>
-          {/* direct quick-select from the row */}
-          <button className="btn sm primary" onClick={()=>nav.go("create",{species:x.s})}>Select</button>
-        </div>
-      ))}
-    </div>
-    <button className="btn ghost" onClick={()=>nav.go("species")}>None of these — choose manually</button>
-  </div>;
+  const species = (params&&params.species)||AP_SPECIES;
+  const shot = SHOT[lookFor(species)];
+  return <ApStep onBack={nav.back} title={"We think it's a "+species}
+    sub="Say yes and the pot sets itself up for one. Not right? Pick the species yourself."
+    actions={<>
+      <button className="actbtn" onClick={()=>nav.go("create",{species})}>Yes, that's my plant</button>
+      <button className="actbtn ghost" onClick={()=>nav.go("species")}>Choose the species myself</button>
+    </>}>
+    {shot && <div className="apshot"><img src={shot.src} alt=""/></div>}
+  </ApStep>;
 }
 
-/* Step 2b — searchable, scrollable species list (fixes the old broken jump) */
+/* Step 3b — the manual pick. A search field over the canonical row card, which
+   is the same 74px card the settings screens list everything else in. */
 function SpeciesList(){
   const nav = useNav();
   const [q,setQ] = useState("");
-  const filtered = SPECIES.filter(s=>s.toLowerCase().includes(q.trim().toLowerCase()));
-  return <div className="screen">
-    <Top title="Choose species" onBack={nav.back} kicker="New plant · step 2 of 3"/>
-    <div className="field">
-      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search species…" autoFocus/>
+  const filtered = SPECIES.filter(x=>x.toLowerCase().includes(q.trim().toLowerCase()));
+  return <div className="pfscreen">
+    <div className="aphead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
     </div>
-    <div className="list card" style={{overflowY:"auto"}}>
-      {filtered.length===0 && <div className="li"><span className="muted">No matches — try another name</span></div>}
-      {filtered.map(s=>(
-        <div key={s} className="li" style={{cursor:"pointer"}} onClick={()=>nav.go("speciesDetail",{species:s})}>
-          <div className="grow">{s}</div><span className="muted">›</span>
-        </div>
+    <h1 className="aptitle">Choose the species</h1>
+    <div className="aplist">
+      <div className="psfield" style={{marginTop:0}}>
+        <input value={q} onChange={e=>setQ(e.target.value)}
+          placeholder="Search species…" autoFocus/>
+      </div>
+      {filtered.length===0 &&
+        <div className="psrowcard" style={{marginTop:0}}><b>Nothing by that name</b></div>}
+      {filtered.map(x=>(
+        <div key={x} className="psrowcard" style={{marginTop:0,cursor:"pointer"}}
+          onClick={()=>nav.go("create",{species:x})}><b>{x}</b></div>
       ))}
     </div>
   </div>;
 }
 
-/* Step 2c — species detail: is this the right species? (identification, not care) */
-/* Placeholder identification data for any species. Wireframe content is generic
-   (labels, not real botany) but each species gets its OWN carousel shots and its
-   own set of look-alikes, so tapping through feels like distinct screens. */
-function speciesInfo(species){
-  const shots = [1,2,3,4].map(n=> species+" · REF "+n);
-  const ident = [
-    ["Leaves",          "Leaf shape, edge and vein pattern"],
-    ["Colour & texture","Surface colour, gloss and any variegation"],
-    ["Growth habit",    "Upright, bushy, trailing or rosette"],
-    ["Size at maturity","Typical height indoors"],
-    ["Stem / trunk",    "Woody, fleshy or none"],
-  ];
-  const tells = [
-    "Thicker, stiffer leaves",
-    "Leaves rise straight from the base",
-    "Smaller leaves on thin, drooping stems",
-    "Paler colour and a matte surface",
-  ];
-  // three other species as look-alikes, each tappable through to its own screen
-  const confused = SPECIES.filter(s=>s!==species).slice(0,3)
-    .map((s,i)=>[s, tells[i%tells.length]]);
-  return { shots, ident, confused };
-}
-function SpeciesDetail({params}){
-  const nav = useNav();
-  const species = (params&&params.species)||"your plant";
-  const [pi,setPi] = useState(0);
-  const { shots, ident, confused } = speciesInfo(species);
-  return <div className="screen">
-    <Top title={species} onBack={nav.back} kicker="New plant · is this your species?"/>
-
-    {/* reference-photo carousel (swipe, dot indicators) */}
-    <div className="carousel" onScroll={e=>{
-      const w=e.target.clientWidth||1; setPi(Math.round(e.target.scrollLeft/w));
-    }}>
-      {shots.map((s,i)=><div key={i} className="cslide ph">[{s}]</div>)}
-    </div>
-    <div className="dots">{shots.map((_,i)=><span key={i} className={"pgdot"+(pi===i?" on":"")}/>)}</div>
-
-    <div className="kicker">How to identify it</div>
-    <div className="list card">
-      {ident.map(([k,v])=>(
-        <div key={k} className="li"><div style={{width:110,color:"var(--mut)",fontSize:"var(--t-sm)"}}>{k}</div>
-          <div className="grow">{v}</div></div>
-      ))}
-    </div>
-
-    <div className="kicker">Often confused with</div>
-    <div className="col">
-      {confused.map(([s,how])=>(
-        <div key={s} className="card tap row" onClick={()=>nav.go("speciesDetail",{species:s})}>
-          <Photo w={44} h={44} label="PIC"/>
-          <div className="grow"><b>{s}</b><br/><small className="muted">{how}</small></div>
-          <span className="muted">›</span></div>
-      ))}
-    </div>
-
-    {/* bottom actions pinned as a sticky footer — visible without scrolling to the end.
-        "Keep looking" pops all the way back to Best matches, even after the user has
-        hopped through several "often confused with" species. */}
-    <div className="footer">
-      <button className="btn primary" onClick={()=>nav.go("create",{species})}>This is my plant</button>
-      <button className="btn ghost" onClick={()=>nav.backTo("matches")}>Not quite — keep looking</button>
-    </div>
-  </div>;
-}
-
-/* Step 3 — create the character. The top ~⅔ is an immersive plant + pot, exactly
-   like the plant card, with the live in-character line coming off the pot as a
-   speech bubble and a text "Try it" button under it. Every control sits below.
-   The bubble + button are sticky inside the scroll area, so the line you are
-   tuning stays visible once the pot scrolls away. */
+/* Step 4 — the character. Name, personality, voice, and nothing else: the
+   sliders belong to Personality & Settings, where you tune a character you have
+   already met. Every control here is that screen's own — .psfield, the .pschips
+   row with its scroll-the-chosen-one-into-view, and the .psvoice grid — so the
+   thing you set up on day one is visibly the thing you edit later. */
 function CreateCharacter({params}){
   const nav = useNav();
-  const species = (params&&params.species)||"your plant";
+  const species = (params&&params.species)||AP_SPECIES;
   const [name,setName]     = useState("");
-  const [preset,setPreset] = useState("Friendly");
-  const [tune,setTune]     = useState(personaByName("Friendly").defaults);
-  const [voice,setVoice]   = useState("Warm");
-  const [gender,setGender] = useState("Rather not say");
-  const [previewPlaying,setPreviewPlaying] = useState(false);
-  const finalName = name.trim() || "your plant";
-  // any change to the character stops the mock preview playback
-  const pickPreset = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); setPreviewPlaying(false); };
-  const setSlider  = (key,i)=>{ setTune(t=>({...t,[key]:i})); setPreviewPlaying(false); };
+  const [preset,setPreset] = useState(PERSONALITIES.presets[0].k);
+  const [voice,setVoice]   = useState(PS_VOICES[2]);
+  const chipRow = useRef(null);
+  const reveal = (el)=>{
+    const row = chipRow.current;
+    if(!row || !el || !row.scrollTo) return;
+    const r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    const left  = row.scrollLeft + (r.left  - rr.left) - PS_CHIP_PAD;
+    const right = row.scrollLeft + (r.right - rr.left) + PS_CHIP_PAD;
+    let to = row.scrollLeft;
+    if(right > to + row.clientWidth) to = right - row.clientWidth;
+    if(left  < to)                   to = left;
+    to = Math.max(0, Math.min(to, row.scrollWidth - row.clientWidth));
+    if(Math.abs(to - row.scrollLeft) > 1) row.scrollTo({left:to, behavior:"smooth"});
+  };
+  const finalName = name.trim() || species;
 
-  return <div className="screen">
-    <Top title="Create their character" onBack={nav.back} kicker={`New plant · step 3 of 3 · ${species}`}/>
+  return <div className="pfscreen">
+    <div className="aphead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+    </div>
+    <h1 className="aptitle">Give them a name and a nature</h1>
 
-    {/* 1 — IMMERSIVE HERO (~top ⅔): the line comes off the pot as a speech bubble */}
-    <div className="cchero">
-      <div className="ccbubble">
-        <LinePreview preset={preset} tune={tune} playing={previewPlaying}
-          onPlay={()=>setPreviewPlaying(p=>!p)}/>
+    <div className="apbody">
+      <div className="apsec">
+        <h2 className="pssech">Name</h2>
+        <div className="psfield">
+          <input value={name} onChange={e=>setName(e.target.value)}
+            placeholder={"Your "+species.toLowerCase()}/>
+          <span className="psedit"><IconEdit/></span>
+        </div>
       </div>
-      <div className="ph pdplant" style={{height:214,width:148}}>[PLANT]</div>
-      {/* the pot wears the emotion that matches the line in the bubble above it */}
-      <div className="pdpot" style={{width:188,height:146}}>
-        <span style={{fontSize:32}}>{(EMO[faceFor(preset,tune)]||EMO.neutral).face}</span>
+
+      <div className="apsec">
+        <h2 className="pssech">Personality</h2>
+        <div className="pschips" ref={chipRow}>
+          {PERSONALITIES.presets.map(x=>(
+            <div key={x.k} className={"pschip"+(preset===x.k?" on":"")}
+              onClick={ev=>{ setPreset(x.k); reveal(ev.currentTarget); }}>{x.k}</div>
+          ))}
+        </div>
+      </div>
+
+      <div className="apsec">
+        <h2 className="pssech">Voice</h2>
+        <div className="psvoice">
+          {PS_VOICES.map(v=>(
+            <div key={v} className={"psvopt"+(voice===v?" on":"")}
+              onClick={()=>setVoice(v)}>{v}</div>
+          ))}
+        </div>
       </div>
     </div>
 
-    {/* 2 — NAME */}
-    <div className="field"><label>Name</label>
-      <input value={name} onChange={e=>setName(e.target.value)} placeholder="What should we call them?"/></div>
-
-    {/* 2b — GENDER (three options; "Rather not say" is the default) */}
-    <div className="field"><label>Gender</label>
-      <div className="segrow">
-        {["Male","Female","Rather not say"].map(g=>(
-          <div key={g} className={"seg"+(gender===g?" on":"")} onClick={()=>setGender(g)}>{g}</div>
-        ))}
-      </div>
+    <div className="apacts" style={{marginTop:"40px"}}>
+      <button className="actbtn"
+        onClick={()=>nav.go("meeting",{name:finalName,species,preset,voice})}>Say hello</button>
     </div>
-
-    {/* 3 — PERSONALITY (6 presets, compact 3×2 grid) */}
-    <div className="field"><label>Personality</label>
-      <PresetGrid value={preset} onChange={pickPreset}/></div>
-
-    {/* 4 — FINE-TUNING (revealed once a preset is chosen — always one selected) */}
-    <div className="field"><label>Fine-tune {preset}</label>
-      <FineTuning tune={tune} onChange={setSlider}/></div>
-
-    {/* 5 — VOICE (timbre; simple selectable rows — playback lives in the preview) */}
-    <VoicePicker value={voice} onChange={setVoice}/>
-
-    {/* 6 — CTA */}
-    <div style={{flex:1}}/>
-    <button className="btn primary" onClick={()=>nav.go("meeting",{name:finalName})}>Say hello 👋</button>
   </div>;
 }
 
-/* Step 3 done — first meeting */
+/* The flow ends by actually adding the plant. PLANTS and CHAT_INIT are this
+   prototype's whole store, and a "done" screen that changed nothing would teach
+   the wrong thing about the flow — so the new plant is on the dashboard, in the
+   chat and in My Plants the moment you land. `look` is the borrowed visual
+   identity: no render, no avatar and no film of its own, so it wears the ones
+   the app already has for its species. */
+const addNewPlant = ({name, species, preset, voice})=>{
+  if(PLANTS.some(x=>x.id==="new")) return;
+  const persona = personaByName(preset);
+  PLANTS.push({
+    id:"new", look:lookFor(species), name, species, persona:preset, voice,
+    emotion:persona.faces.base, growth:4, lastWatered:"Just now", light:"Good",
+    reservoir:100, autoOn:true, schedule:"Every 2 days", amount:"Medium",
+    bondLevel:1, bondPct:6, bondTitle:"Just met",
+    checkin:persona.lines.base, reaction:persona.lines.warm,
+    diaryNote:"Day one. New pot, new window, new person.",
+  });
+  CHAT_INIT.push({ who:"new", at:"now", text:persona.lines.big });
+};
+
+/* Step 5 — the first meeting: the plant's own line, in the app's own bubble,
+   over the film of what it is. */
 function FirstMeeting({params}){
   const nav = useNav();
-  const name = (params&&params.name)||"your plant";
-  return <div className="screen center" style={{justifyContent:"center"}}>
-    <div style={{flex:1}}/>
-    <div className="center"><Photo round w={140} h={140} label="PLANT PHOTO" style={{margin:"0 auto"}}/></div>
-    <h1 className="display" style={{fontSize:"var(--t-lg)",margin:"18px 0 6px"}}>Hi, I'm {name}!</h1>
-    <p className="muted">Thanks for giving me a personality.<br/>We're a team now. I promise not to be too dramatic.<br/>(well… mostly)</p>
-    <div style={{flex:1}}/>
-    <button className="btn primary" onClick={()=>nav.go("dashboard")}>Start caring</button>
-  </div>;
+  const name    = (params&&params.name)||AP_SPECIES;
+  const species = (params&&params.species)||AP_SPECIES;
+  const preset  = (params&&params.preset)||PERSONALITIES.presets[0].k;
+  const voice   = (params&&params.voice)||PS_VOICES[2];
+  const start = ()=>{ addNewPlant({name,species,preset,voice}); nav.go("dashboard"); };
+  return <ApStep onBack={nav.back} film={filmSrc(lookFor(species),"still")}
+    title={"Meet "+name}
+    actions={<button className="actbtn" onClick={start}>Start caring</button>}>
+    <div className="apbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
+      {personaByName(preset).lines.base}
+    </div>
+  </ApStep>;
 }
 
 /* ───────────────── ALERT ───────────────── */
@@ -3546,8 +3620,8 @@ function PlantsList(){
            of it. The last card is the one exception and it paints last anyway. */
         return <div className="plcard" key={it.id}
           onClick={()=>nav.go("plant",{id:it.id})}>
-          <div className="plsurface" style={{background:"var(--g-"+it.id+")"}}/>
-          <PotShot who={it.id}/>
+          <div className="plsurface" style={{background:"var(--g-"+lookOf(it.id)+")"}}/>
+          <PotShot who={lookOf(it.id)}/>
           <div className="plchip">{e.word}</div>
           {it.species !== it.name.split(" ")[0] &&
             <div className="plspecies">{it.species}</div>}
@@ -3565,10 +3639,11 @@ const useApp = () => useContext(AppCtx);
 const SCREENS = {
   dashboard:Dashboard, notifs:Notifications, profile:Profile, langPick:LangPick,
   plantsList:PlantsList,
-  plant:PlantDetail, waterConfig:WaterConfig, plantSettings:PlantSettings,
+  plant:PlantDetail, waterConfig:WaterConfig, quietConfig:QuietConfig,
+  plantSettings:PlantSettings,
   alert:Alert, diagnosis:Diagnosis, alertDone:AlertDone,
-  pair:PairDevice, capture:CapturePhoto, matches:SpeciesMatches, species:SpeciesList,
-  speciesDetail:SpeciesDetail, create:CreateCharacter, meeting:FirstMeeting,
+  pair:PairDevice, capture:CapturePhoto, identify:IdentifyPlant,
+  species:SpeciesList, create:CreateCharacter, meeting:FirstMeeting,
 };
 
 /* Flow index — prototype-shell shortcut panel. Lives OUTSIDE the device.
