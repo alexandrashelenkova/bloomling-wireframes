@@ -329,15 +329,12 @@
      top:-48px reaches back up over the status bar, which is what makes the
      bleed reach the actual top of the screen; .device's own overflow+radius
      clip it back to the phone. */
-  /* The films stop short of the bottom edge in the default framing (see .pdvid),
-     and the mockup now says exactly what goes under them: `Rectangle 60`
-     (441:683) is a VERTICAL resolve, #C8C8BC at the film's own bottom edge
-     running to #EDEEE9 — the app's --bg — over 88px. That replaces rev 24's
-     sampled horizontal guess. The film's bottom lands at 94.25% of this box
-     (-184px + 386 × 1.13681 × 2124/976 = 771 of 818) and the 88px ramp scales
-     to 84.5px, i.e. 10.33%, so it finishes just past the bottom edge. */
+  /* Whatever the film does not cover is simply the page. The resolve that used
+     to live here as this box's BACKGROUND — a #C8C8BC ramp painted UNDER the
+     film — is gone: 458:65 puts it ON TOP of the film instead, so it is its own
+     element now (see .pdresolve) and this layer is flat --bg. */
   .pdbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
-    background:linear-gradient(180deg,#C8C8BC 94.25%,#EDEEE9 104.58%);z-index:0}
+    background:var(--bg);z-index:0}
 
   /* ── the two films ────────────────────────────────────────────────────────
      Both are framed exactly as the mockup frames "still 1": x=-27, 457×995 on
@@ -364,6 +361,32 @@
   /* the growth film is parked at 0 forever and only ever fades; it sits above
      the still one in the stack, so a single opacity drives the cross-fade */
   .pdvid-grow{opacity:0;will-change:opacity;transition:opacity 180ms linear}
+
+  /* ── THE RESOLVE, ON TOP OF THE FILM (458:65) ─────────────────────────────
+     88px of transparent-into-page, laid OVER the film with its bottom edge on
+     the film's own bottom edge. All three states agree on that anchor and on
+     nothing else, which is what makes it the rule rather than a coincidence:
+     428:1782 has the film at -184 (bottom 811) and the rect at 723…811, while
+     441:633 and 444:18 have it at 0 (bottom 995) and the rect at 907…995.
+
+     So the resolve is given the FILM'S OWN BOX — same left, same width, same
+     aspect-ratio — and the same Y transform on the same 420ms curve as
+     .pdvid-still. Its bottom edge is then the film's bottom edge by
+     construction rather than by arithmetic, and the two glide together with no
+     second number to keep in sync. It runs 457px wide like the film and .pdbg
+     clips it back to the device; the gradient is vertical, so the overhang
+     costs nothing.
+
+     The stops are the mockup's own: transparent --bg to 16.837%, full --bg by
+     50%, solid the rest of the way. It reads as the page arriving over the
+     film's last 70px rather than as a band sitting under it. */
+  .pdresolve{position:absolute;left:-6.716%;top:0;width:113.681%;
+    aspect-ratio:976 / 2124;pointer-events:none;z-index:1;
+    transform:translate3d(0,0,0);will-change:transform;
+    transition:transform 420ms cubic-bezier(.33,.72,.26,1)}
+  .pdresolve::after{content:"";position:absolute;left:0;right:0;bottom:0;
+    height:88px;
+    background:linear-gradient(180deg,rgba(237,238,233,0) 16.837%,#EDEEE9 50%)}
   /* ── PROGRESSIVE BLUR UNDER THE CARDS ─────────────────────────────────────
      Four stacked backdrop-filters, each masked in over its own band, so the
      blur RAMPS instead of starting at an edge. Sibling backdrop-filters
@@ -691,6 +714,49 @@
     font-size:var(--t-md);line-height:1.25;color:var(--ink);cursor:pointer}
   .awsave:active{transform:translateY(1px)}
 
+  /* ══════════ PROFILE (460:144) ══════════
+     The same plain page the auto-watering screen is: no film, the unified nav,
+     and the canonical cards. 460:145 does carry a still of the pot, but the
+     frame renders flat #EDEEE9 over every inch of it — it is a hidden layer,
+     not a background, and the render is what is built.
+
+     The whole screen is one rhythm and both numbers are the mockup's: 40px
+     between sections (title box 121 → card 161, card 256 → header 296, seg 579
+     → header 619, last card 889 → Log out 929) and 14px inside one (header 348
+     → card 362, card 436 → label 450, label 470 → seg 484, card 780 → card
+     794). -11px cancels the screen's 16 back to the 5px inset every card in
+     this app is drawn on, exactly as .awbody does. */
+  .pfscreen{flex:1 1 auto;display:flex;flex-direction:column;
+    padding:8px 16px 24px;overflow-y:auto;overflow-x:hidden}
+  .pfscreen::-webkit-scrollbar{width:0}
+  .pfbody{margin:40px -11px 0;flex:0 0 auto}
+  .pfsec{margin-top:40px}
+  /* identity (460:201/208) — 95px is 24 of padding round a 47px row: a 40px
+     avatar, 14px, then the name over the plant count. The count is the way into
+     the plants list, so the whole card is the target. */
+  .pfme{height:95px;padding:0 24px;background:var(--card);
+    border-radius:var(--r-card);display:flex;align-items:center;gap:14px;
+    cursor:pointer}
+  .pfme:active{background:var(--box)}
+  .pfava{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto}
+  /* 460:183/187 — the same title/subtitle pair the Quiet-hours card sets,
+     reused verbatim so every settings card across both screens is one object:
+     .psqt over .psqsub, on 24px of padding, in a 95px card. */
+  /* .psrowcard carries a 5px top margin for the settings screen's own stack;
+     here the header's 14px is the whole gap, so the borrowed card gives it up */
+  .pfsec .psrowcard{margin-top:0}
+  .pfrow{min-height:95px;padding:24px;background:var(--card);
+    border-radius:var(--r-card);margin-top:14px;cursor:pointer}
+  .pfsec .pfrow:first-of-type{margin-top:0}
+  .pfrow:active{background:var(--box)}
+  /* 460:209 — --card at radius 28 round a centred 16px line, in the coral the
+     palette already carries as Mary's second gradient stop. Not a --sage Save:
+     this is the only destructive thing on the screen. */
+  .pflogout{display:block;width:100%;margin-top:40px;background:var(--card);
+    border:none;border-radius:var(--r-sub);padding:15px;text-align:center;
+    font-size:var(--t-md);line-height:1.25;color:#E39B84;cursor:pointer}
+  .pflogout:active{transform:translateY(1px)}
+
   /* ══════════ PERSONALITY & SETTINGS — full-bleed (Figma 446:93) ══════════
      A 402×818 frame in the mockup against this file's 386×818 device, so every
      VERTICAL number below is the mockup's own, unchanged, and only widths are
@@ -756,19 +822,37 @@
   .psvid{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
     display:block;border:0;pointer-events:none;
     aspect-ratio:1340 / 1544;background:transparent}   /* overridden inline */
-  /* 441:421 — the same vertical resolve the detail screen uses, from the film's
-     own bottom row into the page: #C8C8BC → --bg over 88px, no hard edge. */
-  .psfade{height:88px;margin:0 -5px;flex:0 0 auto;
-    background:linear-gradient(180deg,#C8C8BC 0,#EDEEE9 100%)}
+  /* ── THE RESOLVE (441:421) ────────────────────────────────────────────────
+     The same object the detail screen carries, and it moved the same way: no
+     longer a band UNDER the film but 88px of transparent-into-page laid OVER
+     it, on the mockup's own stops.
+
+     440:330 — the one state whose film is drawn at the size the cover rule
+     actually produces — puts it at 592…680 against a film bottom of 662: 70px
+     up into the film, 18px past it. A -70px top margin says exactly that, and
+     because the stage is what it follows in the flow it stays welded to the
+     film's bottom edge at every scroll position for free.
+     (438:96 draws the same 88px band at -60/+28 of its own film bottom. The
+     rest state is the one measured from — it is the state the screen opens in,
+     and the only one whose film is drawn to the rule.)
+
+     No z-index on any of the three: .psstage, .psfade and .pscontent are all
+     positioned and paint in DOM order, which is the order the mockup stacks
+     them — film, resolve, then the settings ON TOP of both. A z-index here put
+     the resolve over the "Personality" header and half-dissolved it. */
+  .psfade{height:88px;margin:-70px -5px 0;position:relative;
+    flex:0 0 auto;pointer-events:none;
+    background:linear-gradient(180deg,rgba(237,238,233,0) 16.837%,#EDEEE9 50%)}
 
   /* ── the plant's reaction bubble (438:175/176) ────────────────────────────
      193×89 at 11px from the right edge, top 163 — the same pebble as the detail
      screen's blob, drawn smaller, so it is the same object in both places. 12px
      type is the mockup's and it has to be: the smallest step of the locked
      scale would not fit this sentence in an 89px blob.
-     It rides in the pinned layer, not in the stage, because 441:425 still has
-     it at 163 with the page scrolled — and it fades on the same 230ms curve as
-     the detail screen's, off one class, so the two read as one behaviour. */
+     It rides in the pinned layer rather than in the stage, so its 163 is a
+     screen position and not a scroll position — and it fades on the same 230ms
+     curve as the detail screen's, off one class, so the two read as one
+     behaviour. What it fades on is now only depth: see PS_TALK_MAX. */
   /* 163 on the mockup, less the 48px status bar this box already starts under */
   .psbub{position:absolute;top:115px;right:11px;width:193px;max-width:calc(100% - 32px);
     min-height:89px;z-index:4;pointer-events:none;
@@ -780,11 +864,13 @@
   .psbub.off{opacity:0;transform:translateY(-8px) scale(.96)}
 
   /* ── the settings themselves ──────────────────────────────────────────────
-     -154px is the mockup's own overlap: Frame 60 opens at 596 while the stage
-     and its gradient run to 750, so the "Personality" header sits ON the video
-     and the chip row rides the gradient. 72px at the foot is the frame's own
-     tail under the last card (1674 → 1746). */
-  .pscontent{position:relative;margin-top:-154px;padding-bottom:72px}
+     -84px is the mockup's own overlap, restated for the resolve's new place:
+     Frame 60 still opens at 596, but the stage (662) plus the 18px of resolve
+     that now hangs below it run to 680 rather than to 750. The header still
+     sits ON the video and the chip row still rides the gradient — the content
+     has not moved a pixel, only the box above it has. 72px at the foot is the
+     frame's own tail under the last card (1674 → 1746). */
+  .pscontent{position:relative;margin-top:-84px;padding-bottom:72px}
   /* sections are 40px apart (Frame 59 → 51 → 52 at 0 / 423 / 787) and each
      header clears its first card by 14px (52 → 66) */
   .pssec{margin-top:40px}
@@ -862,8 +948,13 @@
      card's exact pattern: title + toggle, a muted line, a hairline, then the
      sage action. The mockup's own gaps here are 15px either side of the rule
      (subtitle ends 71, rule 86, action 102) rather than the detail screen's 14. */
+  /* gap:0, not 12: both mockups run the title box from 24 to the switch's own
+     left edge at 318 with nothing between them (439:189/460:191 against
+     439:191/460:192). The 12px gap cost "Plants talk to each other" its single
+     line on a 386px device, where the card is 16px narrower than the frame it
+     was drawn on and every one of those pixels counts. */
   .psrowcard{min-height:74px;padding:0 24px;background:var(--card);
-    border-radius:var(--r-card);display:flex;align-items:center;gap:12px;
+    border-radius:var(--r-card);display:flex;align-items:center;gap:0;
     margin-top:5px}
   .pssec .psrowcard:first-of-type{margin-top:0}
   .psrowcard b{flex:1 1 auto;font-family:'Riccione',Georgia,serif;font-weight:400;
@@ -871,10 +962,31 @@
   .psquiet{background:var(--card);border-radius:var(--r-card);padding:24px;
     margin-top:5px}
   .psqtop{display:flex;align-items:center;gap:12px}
-  .psqtop > div{flex:1 1 auto;min-width:0}
+  /* .psqtxt, not `> div`: the switch is a <div> too, and a bare child selector
+     handed it flex:1 1 auto at a higher specificity than its own flex:0 0. */
+  .psqtxt{flex:1 1 auto;min-width:0}
   .psqt{font-family:'Riccione',Georgia,serif;font-weight:400;font-size:var(--t-lg);
     line-height:1.18;color:var(--serif-ink)}
   .psqsub{margin-top:1px;font-size:var(--t-md);line-height:1.25;color:rgba(5,5,5,.4)}
+  /* Everything but the title row belongs to Quiet hours being ON — with the
+     switch off there is no window to state and nothing to customise. The
+     Auto-watering card's exact pattern, and deliberately the same numbers:
+     max-height over a known height, 200ms, and overflow:hidden so the block
+     gets its own BFC and .psqsub's 1px margin cannot collapse out of it.
+     Two blocks rather than one, because the subtitle lives inside the title
+     column (so the switch stays centred on what is left) while the rule and
+     the action sit under the whole row.
+       sub   1 + 20 = 21, or 41 on the second line → 60
+       tail  15 + 1 + 15 + 20 = 51                   → 80, .pdautomore's own
+     The subtitle gets room for two lines because on a 386px device it takes
+     them: it is 254px of body copy and the text column here is 228, where the
+     402px frame it was drawn on gives 294. Body copy wrapping is fine; the
+     serif TITLE wrapping is not, which is why .psrowcard gave up its gap and
+     this card keeps its 12px of air beside the switch. */
+  .psqmore{overflow:hidden;opacity:1;max-height:60px;
+    transition:max-height 200ms ease-out,opacity 200ms ease-out}
+  .psqmore.tail{max-height:80px}
+  .psqmore.off{max-height:0;opacity:0;pointer-events:none}
   .psqdiv{height:1px;margin-top:15px;background:rgba(5,5,5,.1)}
   .psqact{margin-top:15px;font-size:var(--t-md);line-height:1.25;
     color:var(--sage-soft);cursor:pointer}
@@ -1079,8 +1191,13 @@
   .field input::placeholder{color:var(--mut)}
   /* switch — the settings-card control from the mockup (415:1523/1524): a page-tint
      track with a sage knob when on. One switch for every settings card in the app. */
+  /* flex:0 0 50px, not 0 0 auto: as a bare <div> the switch is an easy target
+     for a container's own `> div` rule, and one of those (.psqtop's text-column
+     rule) beat `flex:0 0 auto` on specificity and grew the Quiet-hours switch
+     into the whole row. A stated basis makes the width the switch's own
+     property rather than something its parent gets a vote on. */
   .toggle{width:50px;height:28px;border-radius:40px;background:var(--bg);
-    border:none;position:relative;cursor:pointer;flex:0 0 auto}
+    border:none;position:relative;cursor:pointer;flex:0 0 50px;box-sizing:border-box}
   .toggle > i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
     background:#C6C7C0;border:none;
     transition:left .14s var(--soft),background .14s var(--soft)}
@@ -2371,6 +2488,10 @@ function PlantDetail({params}){
       <video className="pdvid pdvid-grow" key={film.growth} ref={growV} src={film.growth}
         muted playsInline preload="auto" onLoadedMetadata={onGrowMeta}
         style={{opacity:gOn?1:0}}/>
+      {/* the resolve rides the still film's Y, so it stays welded to the film's
+          bottom edge through the -184 ⇄ 0 glide */}
+      <div className="pdresolve" aria-hidden="true"
+        style={{transform:"translate3d(0,"+sy+"px,0)"}}/>
       {/* four masked backdrop-filters that ramp into one another; syncBlur()
           writes the top edge from the cards' measured position */}
       <div className="pdblur" ref={blurEl} aria-hidden="true">
@@ -2529,6 +2650,10 @@ const awNearest = (schedule)=>{
   }, {d:Infinity, k:AW_EVERY[1].k}).k;
 };
 
+/* Profile's message frequency (460:164) — the same {k, best} shape AW_EVERY and
+   AW_AMOUNT carry, because it is drawn on the same option card. */
+const PF_FREQ = [{k:"Quiet"}, {k:"Moderate", best:true}, {k:"Chatty"}];
+
 function WaterConfig({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
@@ -2594,7 +2719,7 @@ function WaterConfig({params}){
    the two (Frame 60 opens at 596 while the gradient runs to 750) */
 const PS_STAGE = 662;
 const PS_FADE  = 88;
-const PS_LAP   = 154;
+const PS_LAP   = 84;    // stage 662 + the resolve's 18px overhang → content 596
 
 /* ── HOW THE FILM SHRINKS ────────────────────────────────────────────────────
    The two states that show the film do NOT show it at the same size, and the
@@ -2651,12 +2776,14 @@ const psVidW0     = (ar)=> PS_STAGE * ar * (1 + PS_ZOOM);
 const PS_SCRIM_IN  = 200;
 const PS_SCRIM_OUT = 419;
 
-/* How long the reaction bubble holds after the last touch, and how far down the
-   page it still makes sense. 2.6s sits in the brief's 2–3s band. The bubble is
-   the PLANT answering, so it goes when there is no plant left under it: 410 is
-   the scroll at which the film has left the bubble's own box (163 + 89). */
-const PS_TALK_HOLD = 2600;
-const PS_TALK_MAX  = PS_STAGE - 163 - 89;         // 410
+/* The chips' own side padding, and so the clearance a revealed chip keeps from
+   the screen edge — one pad, the same gap it would have from a neighbour. */
+const PS_CHIP_PAD = 24;
+
+/* How far down the page the bubble still makes sense. The bubble is the PLANT
+   talking, so it goes when there is no plant left under it: 410 is the scroll
+   at which the film has left the bubble's own box (163 + 89). */
+const PS_TALK_MAX = PS_STAGE - 163 - 89;          // 410
 
 /* 440:373 — a gendered voice, not the timbre VOICES carries. The two are
    different questions and the onboarding tuner still asks the other one, so
@@ -2679,30 +2806,56 @@ function PlantSettings({params}){
   const [hours,setHours]     = useState("10pm–8am");
   const [custom,setCustom]   = useState(false);
   const first = name.split(" ")[0] || "they";
+  /* switching Quiet hours off also folds "Customise" away, so the collapsing
+     tail is always the fixed 51px .psqmore.tail is cut for */
+  const toggleQuiet = ()=>{ if(quiet) setCustom(false); setQuiet(!quiet); };
 
   /* ── the reaction bubble ──────────────────────────────────────────────────
-     It is a PREVIEW, so it only exists while the user is shaping the character:
-     picking a preset or moving a slider raises it, anything else lowers it, and
-     it lowers itself 2.6s after the last touch. The line is not a placeholder —
-     sampleLine() already builds an in-character sentence from these very slider
-     values, so the bubble genuinely answers what was just changed. */
-  const [talk,setTalk] = useState(false);
-  const talkT = useRef(0);
-  const poke = ()=>{
-    setTalk(true);
-    clearTimeout(talkT.current);
-    talkT.current = setTimeout(()=>setTalk(false), PS_TALK_HOLD);
-  };
-  const hush = ()=>{ clearTimeout(talkT.current); setTalk(false); };
-  useEffect(()=>()=>clearTimeout(talkT.current),[]);
+     It used to be a PREVIEW that only surfaced while the character was being
+     shaped and hid itself 2.6s later. That is gone: it is simply the plant now,
+     on screen the whole time the plant is. sampleLine() still builds the line
+     from these very slider values, so it stays live — it answers each change
+     instead of appearing for each change.
 
-  const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); poke(); };
-  const slide = (key,v)=>{ setTune(t=>({...t,[key]:v})); poke(); };
+     ONE gate survives, and it is not the one that was removed: the bubble still
+     withdraws once the film has scrolled out from under it (PS_TALK_MAX). The
+     brief names "the personality-editing-only show/hide logic" as the thing to
+     drop and asks for the bubble to be always visible OVER THE VIDEO, and the
+     mockups agree — 438:96 draws it on the film, while 441:425 and 441:497,
+     the two states scrolled past the film, do not draw it at all. Pinned at
+     top:115 with nothing behind it, it would sit on top of the "General"
+     heading, which is the one thing neither reading of the brief wants. */
+
+  const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); };
+  const slide = (key,v)=>setTune(t=>({...t,[key]:v}));
+
+  /* ── the chip row scrolls the chosen preset fully into view ───────────────
+     The row is 774px against a 386px screen, so tapping a chip that is half
+     off the edge selects something you cannot read. Neither edge is special —
+     the same two lines handle both — and 24px of clearance is the chips' own
+     side padding, so a revealed chip sits exactly one pad from the edge rather
+     than flush against it. Measured through getBoundingClientRect against the
+     row, not offsetLeft: .pschips is not positioned, so offsetParent is the
+     content column and offsetLeft would be measuring the wrong box. */
+  const chipRow = useRef(null);
+  const reveal = (el)=>{
+    const row = chipRow.current;
+    if(!row || !el || !row.scrollTo) return;
+    const r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    const left  = row.scrollLeft + (r.left  - rr.left) - PS_CHIP_PAD;
+    const right = row.scrollLeft + (r.right - rr.left) + PS_CHIP_PAD;
+    let to = row.scrollLeft;
+    if(right > to + row.clientWidth) to = right - row.clientWidth;
+    if(left  < to)                   to = left;
+    to = Math.max(0, Math.min(to, row.scrollWidth - row.clientWidth));
+    if(Math.abs(to - row.scrollLeft) > 1) row.scrollTo({left:to, behavior:"smooth"});
+  };
 
   /* ── the scroll states ────────────────────────────────────────────────────
-     One read per frame, rAF-coalesced. The scrim is written straight to the
-     node because it changes on every frame of a flick; `deep` is a boolean and
-     only re-renders when it actually flips. */
+     One read per frame, rAF-coalesced, and written straight to the nodes — the
+     scrim's opacity and the film's width both change on every frame of a flick,
+     so neither belongs in state. `deep` is the one exception and earns it: it
+     is a boolean, so it only re-renders on the frame it actually flips. */
   const scroller = useRef(null);
   const scrim    = useRef(null);
   const vid      = useRef(null);
@@ -2724,10 +2877,9 @@ function PlantSettings({params}){
       const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
       v.style.width = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
     }
-    setDeep(t > PS_TALK_MAX);
+    setDeep(t > PS_TALK_MAX);      // the film has left the bubble's own box
   };
   const onScroll = ()=>{
-    if(talk) hush();                       // scrolling is "interacting elsewhere"
     if(!sraf.current) sraf.current = requestAnimationFrame(sync);
   };
   useEffect(()=>{
@@ -2758,10 +2910,10 @@ function PlantSettings({params}){
         {/* ── PERSONALITY ──────────────────────────────────────────────── */}
         <div className="pssec">
           <h2 className="pssech">Personality</h2>
-          <div className="pschips">
+          <div className="pschips" ref={chipRow}>
             {PERSONALITIES.presets.map(x=>(
               <div key={x.k} className={"pschip"+(preset===x.k?" on":"")}
-                onClick={()=>pick(x.k)}>{x.k}</div>
+                onClick={ev=>{ pick(x.k); reveal(ev.currentTarget); }}>{x.k}</div>
             ))}
           </div>
           <div className="pscard" style={{marginTop:"14px"}}>
@@ -2783,7 +2935,7 @@ function PlantSettings({params}){
             swaps the serif line for an input in the same box, and blur or
             Enter commits. A wireframe that draws an edit icon and does
             nothing when you press it is the one thing worth avoiding here. */}
-        <div className="pssec" onPointerDown={hush}>
+        <div className="pssec">
           <h2 className="pssech">General</h2>
           <div className="psfield" onClick={()=>setEditing("name")}>
             {field("name", name, setName)}
@@ -2802,7 +2954,7 @@ function PlantSettings({params}){
         </div>
 
         {/* ── ACTIVITY ─────────────────────────────────────────────────── */}
-        <div className="pssec" onPointerDown={hush}>
+        <div className="pssec">
           <h2 className="pssech">Activity</h2>
           <div className="psrowcard">
             <b>Messages from {first}</b>
@@ -2810,15 +2962,19 @@ function PlantSettings({params}){
           </div>
           <div className="psquiet">
             <div className="psqtop">
-              <div>
+              <div className="psqtxt">
                 <div className="psqt">Quiet hours</div>
-                <div className="psqsub">{first} stays silent from {hours.replace("–"," till ")}</div>
+                <div className={"psqmore"+(quiet?"":" off")}>
+                  <div className="psqsub">{first} stays silent from {hours.replace("–"," till ")}</div>
+                </div>
               </div>
-              <Toggle on={quiet} onClick={()=>setQuiet(q=>!q)}/>
+              <Toggle on={quiet} onClick={toggleQuiet}/>
             </div>
-            <div className="psqdiv"/>
-            <div className="psqact" onClick={()=>setCustom(c=>!c)}>Customise</div>
-            {custom && <div className="psqseg">
+            <div className={"psqmore tail"+(quiet?"":" off")}>
+              <div className="psqdiv"/>
+              <div className="psqact" onClick={()=>setCustom(c=>!c)}>Customise</div>
+            </div>
+            {quiet && custom && <div className="psqseg">
               <div className="segrow">
                 {["10pm–8am","11pm–7am","9pm–7am"].map(h=>(
                   <div key={h} className={"seg"+(hours===h?" on":"")}
@@ -2842,7 +2998,7 @@ function PlantSettings({params}){
         <h1 className="pltitle">Personality &amp; Settings</h1>
       </div>
     </div>
-    <div className={"psbub"+((talk && !deep)?"":" off")}
+    <div className={"psbub"+(deep?" off":"")}
       style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
       {sampleLine(preset,tune)}
     </div>
@@ -3225,56 +3381,78 @@ function AlertDone(){
   </div>;
 }
 
-/* ───────────────── PROFILE & SETTINGS ─────────────────
-   One flat page: identity, chat settings and language are expanded INLINE rather
-   than hidden behind navigation cards. Adding plants lives only on the plants
-   list, reached by tapping the plant count. */
+/* ───────────────── PROFILE (460:144) ─────────────────
+   Rebuilt on the mockup: the unified nav, then four blocks — who you are, chat
+   settings, language, and the way out. Three of the four are cards this app
+   already owns, so the screen is assembled rather than drawn: .psrowcard for
+   the switch row, the auto-watering group (.awlab + .awopts + .awopt) for
+   message frequency, and .psqt/.psqsub for identity and the language rows.
+
+   The frequency control IS the auto-watering option card, down to "best choice"
+   on the middle one — 460:167 is the same 95px pill on the same 5px gap with
+   the same --sage fill and the same 22/16 pair inside it. Reusing it is the
+   point: two screens, one control.
+
+   Gone with the redesign: the descriptions under each row ("They comment on
+   each other, not just you", "Buttons, menus and screens") and the prototype
+   version line. The mockup states the current VALUE under each title instead —
+   "English", "5 plants" — which is the more useful thing for a settings row to
+   say, and it ends at Log out. */
 function Profile(){
   const nav = useNav();
   const { chatCross, setChatCross, freq, setFreq, uiLang, convLang } = useApp();
-  return <div className="screen">
-    <Top title="Profile" onBack={nav.back}/>
+  return <div className="pfscreen">
 
-    {/* identity — the plant count is the way into the plants list */}
-    <div className="card scard row">
-      <img className="gava" src={USER_AVATAR} alt=""
-        style={{width:52,height:52}}/>
-      <div className="grow"><b>{USER_NAME}</b><br/>
-        <small className="muted" style={{cursor:"pointer",textDecoration:"underline"}}
-          onClick={()=>nav.go("plantsList")}>{PLANTS.length} plants ›</small></div></div>
-
-    {/* CHAT SETTINGS — inline, two controls */}
-    <div className="kicker" style={{marginTop:4}}>Chat settings</div>
-    <div className="card scard spread">
-      <div><b>Plants talk to each other</b><br/>
-        <small className="muted">They comment on each other, not just you</small></div>
-      <Toggle on={chatCross} onClick={()=>setChatCross(!chatCross)}/>
-    </div>
-    <div className="card scard col" style={{gap:12}}>
-      <b>Message frequency</b>
-      <div className="segrow">
-        {["Quiet","Moderate","Chatty"].map(f=>(
-          <div key={f} className={"seg"+(freq===f?" on":"")} onClick={()=>setFreq(f)}>{f}</div>
-        ))}
-      </div>
+    <div className="plhead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+      <h1 className="pltitle">Profile</h1>
     </div>
 
-    {/* LANGUAGE — inline rows showing the current value; tapping opens a list */}
-    <div className="kicker" style={{marginTop:4}}>Language</div>
-    <div className="list card scard">
-      <div className="li" style={{cursor:"pointer"}} onClick={()=>nav.go("langPick",{which:"ui"})}>
-        <div className="grow"><b>Interface</b><br/><small className="muted">Buttons, menus and screens</small></div>
-        <small className="muted">{uiLang}</small><span className="muted">›</span>
-      </div>
-      <div className="li" style={{cursor:"pointer"}} onClick={()=>nav.go("langPick",{which:"conv"})}>
-        <div className="grow"><b>Conversation</b><br/><small className="muted">The language your plants chat in</small></div>
-        <small className="muted">{convLang}</small><span className="muted">›</span>
-      </div>
-    </div>
+    <div className="pfbody">
 
-    <div style={{flex:1}}/>
-    <button className="linkbtn" onClick={()=>nav.go("dashboard")}>Log out</button>
-    <p className="muted center"><small><Brand/> · prototype · v0.3</small></p>
+      {/* identity — the plant count is still the way into the plants list */}
+      <div className="pfme" onClick={()=>nav.go("plantsList")}>
+        <img className="pfava" src={USER_AVATAR} alt=""/>
+        <div>
+          <div className="psqt">{USER_NAME}</div>
+          <div className="psqsub">{PLANTS.length} plants</div>
+        </div>
+      </div>
+
+      <div className="pfsec">
+        <h2 className="pssech">Chat settings</h2>
+        <div className="psrowcard">
+          <b>Plants talk to each other</b>
+          <Toggle on={chatCross} onClick={()=>setChatCross(!chatCross)}/>
+        </div>
+        <div className="awgroup" style={{marginTop:"14px"}}>
+          <div className="awlab">Message frequency</div>
+          <div className="awopts">
+            {PF_FREQ.map(o=>(
+              <div key={o.k} className={"awopt"+(freq===o.k?" on":"")}
+                onClick={()=>setFreq(o.k)}>
+                <b>{o.k}</b>
+                {o.best && <small>best choice</small>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="pfsec">
+        <h2 className="pssech">Language</h2>
+        <div className="pfrow" onClick={()=>nav.go("langPick",{which:"ui"})}>
+          <div className="psqt">App interface</div>
+          <div className="psqsub">{uiLang}</div>
+        </div>
+        <div className="pfrow" onClick={()=>nav.go("langPick",{which:"conv"})}>
+          <div className="psqt">Plants conversation</div>
+          <div className="psqsub">{convLang}</div>
+        </div>
+      </div>
+
+      <button className="pflogout" onClick={()=>nav.go("dashboard")}>Log out</button>
+    </div>
   </div>;
 }
 

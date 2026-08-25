@@ -3006,3 +3006,235 @@ resource the page actually asks for**, and no exceptions.
 - **Live scrub, all five** — thumb 0.75 / 0.50 / 0.25 → film t **1.25 / 2.50 /
   3.75** on every plant, against a `growth-<that plant>.mp4`. Home returns t 0,
   growth faded out, still film back at −184. Five identical tables.
+
+---
+
+# Revision 30 — the resolve moves on top of the film, Profile is rebuilt, and the films get half a second lighter
+
+## 1 — The video→page gradient, on BOTH screens
+
+It was a band **under** the film — `#C8C8BC` at the film's own bottom row
+resolving to `--bg` over 88px, sitting below it on Personality & Settings and
+painted as `.pdbg`'s background on Plant Detail. `458:65` and `441:421` move it
+**on top of the film**, and both carry the same fill:
+
+```
+linear-gradient(180deg, rgba(237,238,233,0) 16.837%, #EDEEE9 50%)
+```
+
+Transparent page to 16.837%, full page by 50%, solid the rest. It reads as the
+page arriving over the film rather than as a strip under it — and it retires the
+one seam this prototype could never make clean, because `#C8C8BC` was Vlad's
+film's bottom row and the other four plants' bottom rows are not that colour.
+
+**Plant Detail — the anchor is the film's own bottom edge, and all three states
+say so.** `428:1782` has the film at −184 (bottom 811) with the rect at 723…811;
+`441:633` and `444:18` have it at 0 (bottom 995) with the rect at 907…995. So
+`.pdresolve` is given the **film's own box** — same `left`, same `width`, same
+`aspect-ratio` — plus the same Y transform on the same 420ms curve as
+`.pdvid-still`. Its bottom edge is then the film's bottom edge by construction
+rather than by arithmetic, and the two glide together with no second number to
+keep in sync. `.pdbg` loses its gradient and goes flat `--bg`.
+
+**Personality & Settings — a −70px margin, and the content does not move.**
+`440:330` — the one state whose film is drawn at the size the cover rule
+actually produces — puts the rect at 592…680 against a film bottom of 662: 70
+up into the film, 18 past it. `.psfade` gets `margin:-70px -5px 0`, so it tracks
+the stage's bottom edge through every scroll position for free. The content is
+then re-lapped from −154 to **−84** (`PS_LAP`), because the stage plus the
+resolve's overhang now runs to 680 rather than 750 — "Personality" still opens
+at 596, exactly where `440:330` opens it.
+
+- **`438:96` draws the same 88px band at −60/+28 of its own film bottom, not
+  −70/+18.** The rest state is the one measured from: it is the state the screen
+  opens in and the only one whose film is drawn to the rule. 10px of
+  hand-placement is not a second behaviour.
+- **No `z-index` on any of the three.** `.psstage`, `.psfade` and `.pscontent`
+  are all positioned, so they paint in DOM order, which is the order the mockup
+  stacks them — film, resolve, settings on top of both. The first attempt gave
+  `.psfade` a `z-index:1` and it half-dissolved the "Personality" header;
+  `440:330` renders that header fully legible ON the film.
+
+## 2 — The preset chips scroll the chosen one into view
+
+The row is 774px against a 386px screen, so tapping a chip that is half off the
+edge selected something you could not read. Tapping now scrolls it fully in,
+smoothly, with **24px of clearance** — the chips' own side padding, so a
+revealed chip sits exactly one pad from the edge rather than flush against it.
+Both edges, from the same two lines: if the chip's right runs past the viewport,
+scroll to put it there; if its left runs before, scroll to that.
+
+**Measured with `getBoundingClientRect` against the row, not `offsetLeft`.**
+`.pschips` is not positioned, so `offsetParent` is the content column and
+`offsetLeft` would be measuring the wrong box entirely.
+
+## 3 — The bubble stays, and one gate stays with it
+
+The 2.6s preview timer is gone: the bubble is simply the plant now, on screen
+the whole time the plant is. `sampleLine()` still builds the line from the live
+slider values, so it *answers* each change instead of *appearing* for each one.
+`poke`/`hush` and the two `onPointerDown` handlers that fed them went with it.
+
+**The depth gate survives, and that is a call.** The brief asks for the bubble to
+be always visible **over the video** and names exactly one thing to remove —
+"the personality-editing-only show/hide logic". `PS_TALK_MAX` is not that: it
+hides the bubble once the film has scrolled out from under it. The mockups back
+it — `438:96` draws the bubble on the film, while `441:425` and `441:497`, the
+two states scrolled past the film, do not draw it at all. Pinned at `top:115`
+with nothing behind it, it lands on the "General" heading, which is the one
+outcome neither reading of the brief wants. Verified: opacity 1 at rest, 0 at
+scroll 600, 1 again on return.
+
+## 4 — The Activity toggles
+
+**The stretched switch was a selector, not a size.** `.psqtop > div{flex:1 1
+auto}` was written for the card's text column — but the switch is a bare `<div>`
+too, and `.psqtop > div` (0,1,1) outranks `.toggle` (0,1,0), so it handed the
+switch `flex:1 1 auto` and the switch grew to fill the row. Fixed at both ends:
+the text column got a class of its own (`.psqtxt`) so the child selector stops
+matching the switch, and `.toggle` states `flex:0 0 50px` instead of `0 0 auto`,
+so its width is its own property rather than something a parent gets a vote on.
+Measured after: both switches **50×28** with **22×22** knobs, identical.
+
+**Quiet hours collapses like Auto-watering, because it is the same card.** With
+the switch off there is no window to state and nothing to customise, so the
+subtitle, the hairline and "Customise" all withdraw and the card falls to title
++ switch. `.pdautomore`'s exact pattern and deliberately its exact numbers —
+`max-height` over a known height, 200ms, `overflow:hidden` for the BFC. Two
+blocks rather than one, because the subtitle lives inside the title column (so
+the switch stays centred on what is left) while the rule and the action sit
+under the whole row. Switching off also folds "Customise" away, which is what
+keeps the tail's height the fixed 51px its `max-height` is cut for.
+
+- **The subtitle gets room for two lines (60px, not 40).** On a 386px device it
+  takes them: 254px of body copy into a 228px column, where the 402px frame it
+  was drawn on gives 294. Body copy wrapping is fine.
+- **`.psrowcard` gave up its 12px gap.** The serif TITLE wrapping is *not* fine,
+  and "Plants talk to each other" lost its single line to that gap on the new
+  Profile screen. Both mockups run the title box from 24 to the switch's own
+  left edge at 318 with nothing between them, so 0 is also the drawn value.
+
+## 5 — Profile, rebuilt on 460:144
+
+Measured after, every number against the mockup's own: identity card **161**,
+"Chat settings" **296**, switch card **362** (74 tall), "Message frequency"
+**450**, the three options **484** (95 tall), language cards **685** and **794**
+(95 each), Log out **929** (50). The rhythm is one pair of numbers — **40px**
+between sections, **14px** inside one — and it holds everywhere.
+
+**Three of the four blocks are cards this app already owns**, so the screen is
+assembled rather than drawn: `.psrowcard` for the switch row, `.psqt`/`.psqsub`
+for identity and the two language rows, and — the one worth naming — the
+**auto-watering option card** for message frequency. `460:167` is the same 95px
+pill on the same 5px gap with the same `--sage` fill, the same 22/16 pair inside
+it and the same "best choice" on the middle one. It is the same control; it is
+now literally the same code.
+
+Calls:
+
+- **`460:145` carries a still of the pot and is not built.** The frame renders
+  flat `#EDEEE9` over every inch of it — a hidden layer, not a background.
+- **The row descriptions are gone** ("They comment on each other, not just you",
+  "Buttons, menus and screens"), and so is the `prototype · v0.3` line. The
+  mockup states the current VALUE under each title instead — "English", "5
+  plants" — which is the more useful thing for a settings row to say, and it
+  ends at Log out.
+- **Log out is `--card` at radius 28 in `#E39B84`**, the coral the palette
+  already carries as Mary's second gradient stop. Not a `--sage` Save: it is the
+  only destructive thing on the screen.
+- **Navigation is unchanged.** In from the dashboard avatar, out via the
+  chevron; "5 plants" still opens the plants list; both language rows still open
+  the picker and still write back.
+
+## 6 — The films
+
+`ffmpeg` (9.0.1, via Homebrew) → H.264, `-preset slow`, `-pix_fmt yuv420p`,
+`-an`, `-movflags +faststart`. **73MB → 9.7MB, 13.3% of what was there.**
+
+| file | before | after | |
+|---|---:|---:|---:|
+| growth-felix.mp4   | 3 131 957 | 1 030 314 | 32.9% |
+| growth-gosha.mp4   | 9 178 205 | 1 236 498 | 13.5% |
+| growth-mary.mp4    | 10 792 430 | 1 360 530 | 12.6% |
+| growth-vera.mp4    | 2 907 278 | 1 089 665 | 37.5% |
+| growth-vlad.mp4    | 4 202 689 | 1 177 069 | 28.0% |
+| settings-felix.mp4 | 4 860 948 | 406 709 | 8.4% |
+| settings-gosha.mp4 | 3 385 027 | 246 748 | 7.3% |
+| settings-mary.mp4  | 5 082 138 | 595 675 | 11.7% |
+| settings-vera.mp4  | 4 112 656 | 262 508 | 6.4% |
+| settings-vlad.mp4  | 4 103 578 | 340 127 | 8.3% |
+| still-felix.mp4    | 3 918 223 | 298 547 | 7.6% |
+| still-gosha.mp4    | 4 192 598 | 339 012 | 8.1% |
+| still-mary.mp4     | 6 474 550 | 876 276 | 13.5% |
+| still-vera.mp4     | 4 448 436 | 363 317 | 8.2% |
+| still-vlad.mp4     | 5 237 172 | 527 081 | 10.1% |
+
+**The scrub fix is the GOP, and it was the whole bug.** Every original growth
+file carried **one keyframe for its entire 5.04 seconds** — so seeking to t=4.5
+meant decoding 108 frames forward from frame 0, every time. `-g 6 -keyint_min 6
+-sc_threshold 0` at 24fps puts a keyframe every **0.25s**: 21 of them per file.
+
+Measured with `requestVideoFrameCallback` — time from writing `currentTime` to
+the browser actually presenting a frame, ten seeks scattered across the film:
+
+|  | median | mean | worst |
+|---|---:|---:|---:|
+| original, 1 keyframe | 116ms | 113ms | **217ms** |
+| optimized, 0.25s GOP | 20ms | 19ms | 25ms |
+
+The *shape* matters as much as the number. The original's cost tracks distance
+from t=0 — 217ms at t=4.5 against 29ms at t=0.6 — which is exactly what "decode
+from the one keyframe" looks like, and exactly what made scrubbing feel like it
+was dragging. The optimized file is **flat**: 8.8ms at t=4.5, 24.5ms at t=1.2.
+Still and settings films loop rather than seek, so they keep a normal GOP and
+take the size win instead.
+
+Calls:
+
+- **Resolution is unchanged — 976×2124 and 1292×1604/1340×1544 — and the brief's
+  own escape hatch is why.** It asks for "roughly 720px height (or the display
+  size actually needed)", and the display size actually needed is larger than
+  the source already: on a 386px device the detail film draws 439×955 CSS, i.e.
+  **878×1910** at DPR 2, against a 976×2124 source. The settings film draws
+  691×857 CSS → **1488×1714**, against a 1292×1604 source that is *already
+  below* it. Downscaling to 720 would have put every film under one device
+  pixel per source pixel at DPR 1. The savings came from CRF instead, and they
+  were there to take: the originals ran **8.3 Mbps**.
+- **CRF 26 for the loops, 24 for the growth films.** The growth films pay for
+  their dense keyframes in bits, so they get the quality budget back. SSIM
+  against the originals: **0.9969** (growth-vlad), **0.9933** (still-mary),
+  **0.9946** (settings-mary).
+- **`-an` is stated though the sources carry no audio track.** It costs nothing
+  and it means the command says what the output is rather than what the input
+  happened to be.
+- **`preload="auto"` on the growth video was already there** (rev 24) and stays,
+  now with a file a fifth of the size behind it.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, DPR 2. **No console
+errors and no exceptions on any screen; no broken images anywhere.**
+
+- **Plant Detail resolve** — `.pdresolve` box equals `.pdvid-still` box in both
+  states: `(2,−195) 382×831` at rest with `translate3d(0,−184px,0)`, `(2,−11)
+  382×831` with `translate3d(0,0,0)` after the hand-over. Gradient
+  `rgba(237,238,233,0) 16.837% → rgb(237,238,233) 50%`, 88px, and `.pdbg`'s own
+  background-image is now `none`.
+- **Settings resolve** — stage `0…662`, resolve `592…680`, content opens at
+  **596**. All three the mockup's own numbers.
+- **Chips** — Grump (cut off right) → row scrolls to 119, chip lands 24px clear
+  of the right edge; Sassy → 440, the row's own maximum; Friendly → back to 0,
+  chip at the row's 5px pad. Both edges, smooth.
+- **Bubble** — `psbub` opacity **1** at rest, `psbub off` opacity **0** at
+  scroll 600, **1** again on return.
+- **Toggles** — `.psrowcard` switch and `.psqtop` switch both **50×28**, knobs
+  both **22×22**.
+- **Quiet hours** — card **166 → 76** on toggle off (76 is Auto-watering's own
+  collapsed height), subtitle block 41 → 0, tail 51 → 0, the window presets
+  removed; **166** again on toggle on, with "Customise" folded shut.
+- **Profile** — the full geometry table above; language picker round-trip writes
+  **Русский** back onto the card; "5 plants" opens the list (5 cards); two
+  chevrons return to the dashboard.
+- **Films, all five plants** — thumb 0.75 / 0.50 / 0.25 → film t **1.25 / 2.50 /
+  3.75**, growth layer at opacity 1, home restoring t 0 and the still film at
+  −184. Unchanged by the re-encode.
