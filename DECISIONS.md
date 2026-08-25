@@ -3238,3 +3238,26 @@ errors and no exceptions on any screen; no broken images anywhere.**
 - **Films, all five plants** — thumb 0.75 / 0.50 / 0.25 → film t **1.25 / 2.50 /
   3.75**, growth layer at opacity 1, home restoring t 0 and the still film at
   −184. Unchanged by the re-encode.
+
+## Shipped
+
+Commit `fc0c36e` → `origin/main`, Vercel production
+`dpl_Gj7TU7NcN3NuzYYW3WYH7CJW2W9o`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site, **no console errors and no exceptions**:
+
+- **Films served at their new weight** — `growth-mary.mp4` **1 360 530**,
+  `still-mary.mp4` **876 276**, `settings-vlad.mp4` **340 127** bytes, i.e. the
+  optimized encodes and not a stale cache.
+- **Live scrub, all five plants** — thumb 0.75 / 0.50 / 0.25 → film t **1.25 /
+  2.50 / 3.75** against each plant's own `growth-<id>.mp4`; home returns t 0 with
+  the still film back at −184.
+- **Settings resolve** — `rgba(237,238,233,0) 16.837% → rgb(237,238,233) 50%`,
+  the stage at 0…662 and the resolve at 592…680.
+- **Bubble** — `psbub`, opacity **1**, at rest.
+- **Toggles** — both **50×28** with **22×22** knobs; the Quiet-hours card **166**
+  open.
+- **Profile** — identity **161**, "Chat settings" **296**, switch card **362**,
+  "Message frequency" **450**, options **484**, language cards **685** / **794**,
+  Log out **929**. Every number the mockup's.
