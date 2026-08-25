@@ -40,7 +40,7 @@
     --input:#FFFAFA;         /* composer pill                         (344:74)  */
     --ava:#D9D9D9;           /* avatar placeholder                    (344:92)  */
     /* character-coded bubbles */
-    --c-margo:#BCCAD7;       /* muted blue-grey        (Ellipse 19 fill) */
+    --c-mary:#BCCAD7;        /* muted blue-grey        (Ellipse 19 fill) */
     --c-felix:#E3D2CA;       /* dusty terracotta       (Ellipse 20 fill) */
     --c-gosha:#E0D3B8;       /* DERIVED: warm sand/ochre — third tone     */
     --c-vera:#CBD5C9;        /* DERIVED: soft sage-grey                   */
@@ -49,7 +49,7 @@
     /* plants-overview card fills — two-stop gradients from the mockup (364:585),
        each running from the character's tint into that pot's glow colour */
     --g-felix:linear-gradient(126.35deg,#E7D1C9 38.007%,#E2F7CF 115.19%);
-    --g-margo:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
+    --g-mary:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
     --g-gosha:linear-gradient(126.35deg,#D6D0BA 38.007%,#C3F5EE 115.19%);
     /* Vera's start stop was re-read off the current mockup (364:1078) — dusty
        pink, not the sage-grey the earlier frame carried */
@@ -744,7 +744,9 @@
 
   /* ── the video stage ──────────────────────────────────────────────────────
      662px tall: the mockup's own film bottom edge at rest, which is also where
-     the gradient starts. The film is settings-vlad.mp4, 1340×1544 (0.86788).
+     the gradient starts. The film is settings-<plant>.mp4 — 1340×1544 (0.86788)
+     for Vlad, whom the mockup was drawn from, 1292×1604 for the other four. The
+     ratio below is Vlad's as the default; every screen writes its own inline.
 
      The film is anchored by its BOTTOM — that edge is the seam with the
      gradient and it must never move — and its SIZE is written by syncVid() on
@@ -753,7 +755,7 @@
   .psstage{position:relative;height:662px;margin:0 -5px;overflow:hidden}
   .psvid{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
     display:block;border:0;pointer-events:none;
-    aspect-ratio:1340 / 1544;background:transparent}
+    aspect-ratio:1340 / 1544;background:transparent}   /* overridden inline */
   /* 441:421 — the same vertical resolve the detail screen uses, from the film's
      own bottom row into the page: #C8C8BC → --bg over 88px, no hard edge. */
   .psfade{height:88px;margin:0 -5px;flex:0 0 auto;
@@ -1248,7 +1250,7 @@ const PLANTS = [
     diaryNote:"Grew a brand new leaf. Pretty proud of myself.",
   },
   {
-    id:"margo", name:"Margot the Monstera", species:"Monstera", persona:"Drama queen",
+    id:"mary", name:"Mary the Cannabis", species:"Cannabis", persona:"Drama queen",
     emotion:"thirsty", growth:58, lastWatered:"Yesterday, 07:00", light:"Medium",
     reservoir:12, autoOn:true, schedule:"Every 2 days", amount:"High",
     bondLevel:3, bondPct:45, bondTitle:"Getting close",
@@ -1297,8 +1299,8 @@ const plantById = (id) => PLANTS.find(p=>p.id===id) || PLANTS[0];
 const NOTIFS = [
   { id:"n1", plant:"felix", emo:"urgent",  kind:"urgent", time:"just now",
     text:"Felix needs a look — soggy soil and a cold draught" },
-  { id:"n2", plant:"margo", emo:"thirsty", kind:"need",   time:"10 min ago",
-    text:"Margot's reservoir is empty — she'd love a refill" },
+  { id:"n2", plant:"mary", emo:"thirsty", kind:"need",   time:"10 min ago",
+    text:"Mary's reservoir is empty — she'd love a refill" },
   { id:"n3", plant:"gosha", emo:"low-light", kind:"need", time:"2 h ago",
     text:"Gosha needs more light — a brighter spot would do it" },
 ];
@@ -1324,7 +1326,7 @@ const MILESTONES = [
    and they thank you. Message flags:
      cross:true  → the plant-to-plant banter thread, including the user's reply to it
                    (hidden when "plants talk to each other" is off, leaving Felix's
-                   news, the congratulations and Margot's alert — still coherent)
+                   news, the congratulations and Mary's alert — still coherent)
      urgent:true → carries the inline "Check what happened" CTA into the alert flow
      rx          → reactions, [emoji, count]; everyone reacts to everyone */
 const CHAT_INIT = [
@@ -1332,7 +1334,7 @@ const CHAT_INIT = [
     text:"New leaf today! The pot's already taking pictures — get my good side 🌿",
     rx:[["💚",2],["🎉",1]] },
   { who:"me",    at:"09:04", text:"Congrats, Felix! Looking great", rx:[["🌿",1]] },
-  { who:"margo", at:"09:06", cross:true,
+  { who:"mary",  at:"09:06", cross:true,
     text:"Wait — nobody told me there was a photoshoot?! I would have turned my leaves.",
     rx:[["😂",2]] },
   { who:"gosha", at:"09:09", cross:true,
@@ -1340,7 +1342,7 @@ const CHAT_INIT = [
     rx:[["💅",1],["😂",1]] },
   { who:"me",    at:"09:11", cross:true,
     text:"Calm down, Gosha. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
-  { who:"margo", at:"17:30", urgent:true,
+  { who:"mary",  at:"17:30", urgent:true,
     text:"Something's off — my soil's soggy and it's cold by this window. Can you take a look?" },
 ];
 
@@ -1455,7 +1457,7 @@ const VOICES = [
   { k:"Playful", d:"Cheeky and full of fun" },
 ];
 const SPECIES = [
-  "Ficus","Monstera","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
+  "Ficus","Cannabis","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
   "Fern","Succulent","Orchid","Spider plant","Rubber plant","Philodendron","Calathea",
   "ZZ plant","Jade plant","Bamboo","English ivy","Lavender","Rosemary","Mint","Parlour palm",
 ];
@@ -1664,11 +1666,11 @@ function IconMore(){
   </svg>;
 }
 
-/* Character-coded bubble fills. Margot + Felix are Figma values; the other three
+/* Character-coded bubble fills. Mary + Felix are Figma values; the other three
    are derived in the same muted register (see DECISIONS.md). Literal hex, not the
    CSS vars — these are painted into an SVG data URI, which cannot read them. */
 const BUBBLE = {
-  margo:"#BCCAD7", felix:"#E3D2CA", gosha:"#E0D3B8",
+  mary:"#BCCAD7",  felix:"#E3D2CA", gosha:"#E0D3B8",
   vera:"#CBD5C9",  basil:"#D3D0DC", me:"#FFFFFF",
 };
 
@@ -1720,7 +1722,7 @@ const WATER = (function(){
    exactly on the 37.81px avatar circle and its plant overhangs above, as designed. */
 const AVATAR = {
   felix:{ src:"assets/avatar-felix.png",  w:38, h:47,    l:0,  t:-9  },
-  margo:{ src:"assets/avatar-margot.png", w:51, h:65.81, l:-5, t:-28 },
+  mary: { src:"assets/avatar-mary.png",   w:63, h:70,    l:-13,t:-32 },
   gosha:{ src:"assets/avatar-gosha.png",  w:39, h:42.81, l:0,  t:-5  },
   // the user's own avatar (Figma 360:552) — a plain circle crop, no overhang
   me:   { src:USER_AVATAR, w:37.81, h:37.81, l:0, t:0, round:true },
@@ -1826,7 +1828,7 @@ function GardenChat({focus, open, onCollapse}){
     setText("");
     setMsgs(m=>[...m,{who:"me",text:t,at:"now"}]);
     setTimeout(()=>setMsgs(m=>[...m,
-      {who:"margo",at:"now",text:"love it when you message us 💚"}]),400);
+      {who:"mary",at:"now",text:"love it when you message us 💚"}]),400);
   };
 
   return <>
@@ -1851,7 +1853,7 @@ function GardenChat({focus, open, onCollapse}){
                 style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
             </div>
             <div className="gbub" style={{backgroundImage:
-              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[m.who]||BUBBLE.margo))}}>
+              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[m.who]||BUBBLE.mary))}}>
               {!isMe && <div className="gmeta">
                 <b>{p.name.split(" ")[0]}</b><span>{m.at}</span>
               </div>}
@@ -1941,16 +1943,24 @@ const TL = MILESTONES.map(m=>m.stage.toLowerCase());
    other way round it would grow as you scrubbed into the past, which is the one
    thing that must not happen.
 
-   Vlad's films play for every plant. This screen is the prototype's sample
-   plant detail whichever card opened it, and there is exactly one plant with
-   footage; the map is the seam where per-plant films would land. */
-const FILM = { still:"assets/video/still-vlad.mp4",
-               growth:"assets/video/growth-vlad.mp4" };
+   EVERY plant now has its own three films, named by id — the map that used to
+   be the seam is now the real thing. FILM_HAVE is what assets/video actually
+   holds; an id outside it falls back to Vlad, who is the plant every one of
+   these frames was drawn from and so the only honest stand-in.
 
-/* Personality & Settings has its own film (446:93). Same plant, its own take:
-   a still, breathing portrait with the pot's face lit, framed for a stage that
-   scrolls away rather than for a scrub rail. */
-const PS_FILM = "assets/video/settings-vlad.mp4";
+   All fifteen files agree with what the geometry above assumes: still- and
+   growth- are 976×2124 / 5.042s to the frame, exactly like Vlad's, so the
+   framings, the scrub mapping and the direction all carry over untouched. */
+const FILM_HAVE     = ["felix","mary","gosha","vera","vlad"];
+const FILM_FALLBACK = "vlad";
+const filmId  = (id)=> FILM_HAVE.indexOf(id) >= 0 ? id : FILM_FALLBACK;
+const filmSrc = (id,kind)=> "assets/video/" + kind + "-" + filmId(id) + ".mp4";
+const filmFor = (id)=> ({ still:filmSrc(id,"still"), growth:filmSrc(id,"growth") });
+
+/* Personality & Settings has its own film per plant (446:93). Same plant, its
+   own take: a still, breathing portrait with the pot's face lit, framed for a
+   stage that scrolls away rather than for a scrub rail. */
+const psFilm = (id)=> filmSrc(id,"settings");
 
 /* the two stage framings, straight off the mockup's own "still 1" rects */
 const PD_Y     = { still:-184, growth:0 };   // 428:1782 / 437:90
@@ -2048,6 +2058,7 @@ function PlantDetail({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"vlad");
   const e = EMO[p.emotion] || EMO.neutral;
+  const film = filmFor(p.id);          // this plant's own two films
   const last = TL.length - 1;
 
   const [pos,setPos]   = useState(1);        // 0…1 along the timeline; 1 = "now"
@@ -2354,10 +2365,10 @@ function PlantDetail({params}){
         the screen. Two films live here: the idle loop, which carries the Y
         animation, and the growth film above it, which only ever fades. */}
     <div className="pdbg" ref={bgEl}>
-      <video className="pdvid pdvid-still" ref={stillV} src={FILM.still}
+      <video className="pdvid pdvid-still" key={film.still} ref={stillV} src={film.still}
         muted loop autoPlay playsInline preload="auto"
         style={{transform:"translate3d(0,"+sy+"px,0)"}}/>
-      <video className="pdvid pdvid-grow" ref={growV} src={FILM.growth}
+      <video className="pdvid pdvid-grow" key={film.growth} ref={growV} src={film.growth}
         muted playsInline preload="auto" onLoadedMetadata={onGrowMeta}
         style={{opacity:gOn?1:0}}/>
       {/* four masked backdrop-filters that ramp into one another; syncBlur()
@@ -2609,11 +2620,21 @@ const PS_LAP   = 154;
 
    This is also what keeps the pinned title readable: at rest the serif sits
    above the canopy, and by the time scrolling would drag the canopy up into it
-   the zoom has already pulled the whole plant down out of the way. */
-const PS_AR       = 1340/1544;   // 0.86788
+   the zoom has already pulled the whole plant down out of the way.
+
+   The cover rule takes the FILM's aspect ratio as its input, and the settings
+   films are not all one shape: Vlad's is 1340×1544 (0.86788), the other four
+   are 1292×1604 (0.80549). So PS_AR is looked up per plant rather than fixed —
+   pinning Vlad's ratio on everyone would stretch four films out of shape, which
+   is the one thing "identical mechanics per plant" cannot mean. The arithmetic
+   above is unchanged; only its one input moves. */
+const PS_AR_BY_ID = { felix:1292/1604, mary:1292/1604, gosha:1292/1604,
+                      vera: 1292/1604, vlad:1340/1544 };
+const psAr        = (id)=> PS_AR_BY_ID[filmId(id)];
 const PS_ZOOM     = 0.295;       // extra zoom over cover, at rest
 const PS_ZOOM_END = 200;         // …spent by here
-const PS_VID_W0   = PS_STAGE * PS_AR * (1 + PS_ZOOM);   // 744px, the first paint
+// the first paint — 744px on Vlad, 691px on the taller four
+const psVidW0     = (ar)=> PS_STAGE * ar * (1 + PS_ZOOM);
 
 /* The scrim's ramp, both ends read off the states rather than chosen.
 
@@ -2645,6 +2666,7 @@ const PS_VOICES = ["Male","Female","Prefer not to choose"];
 function PlantSettings({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
+  const ar = psAr(p.id);               // this plant's settings film's own ratio
 
   const [name,setName]       = useState(p.name.split(" ")[0]);
   const [species,setSpecies] = useState(p.species);
@@ -2700,7 +2722,7 @@ function PlantSettings({params}){
     if(v && g){
       const vis = Math.max(0, PS_STAGE - t);
       const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
-      v.style.width = Math.max(g.clientWidth, vis * PS_AR * z).toFixed(1) + "px";
+      v.style.width = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
     }
     setDeep(t > PS_TALK_MAX);
   };
@@ -2725,9 +2747,9 @@ function PlantSettings({params}){
     <div className="psscroll" ref={scroller} onScroll={onScroll}>
 
       <div className="psstage" ref={stage}>
-        <video className="psvid" ref={vid} src={PS_FILM}
+        <video className="psvid" key={p.id} ref={vid} src={psFilm(p.id)}
           muted loop autoPlay playsInline preload="auto"
-          style={{width:PS_VID_W0.toFixed(1)+"px"}}/>
+          style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>
       </div>
       <div className="psfade"/>
 
@@ -3292,19 +3314,19 @@ function LangPick({params}){
    is absorbed by the empty gap between the text column and the pot.
      mockup (card top / card right edge)      -> card-relative
      felix  frame 185,135 258x218  card 135/397   win right -46, top   0  img 258 @   0,-40
-     margot frame 132,275 265x172  card 275/397   win right   0, top   0  img 363 @   0,-144
+     mary   frame 135,275 262x215  card 275/397   win right   0, top   0  img 358 @   0,-143
      gosha  frame 248,411 140x187  card 415/397   win right   9, top  -4  img 308 @ -88,-80
      vera   frame 173,555 224x227  card 555/397   win right   0, top   0  img 282 @   0,-79
      vlad   frame 184,651 267x267  card 695/397   win right -54, top -44  img 267 @   0,0
    Vera's frame now starts exactly on her card's top-left, so her render is fully
-   clipped by the card like Felix/Margot/Gosha. Vlad is the one that breaks out —
+   clipped by the card like Felix/Mary/Gosha. Vlad is the one that breaks out —
    his frame starts 44px ABOVE his card and runs 54px past its right edge, and he
    is the last card, which is what .plcard:last-child{overflow:visible} unlocks. */
 const SHOT = {
   felix:{ src:"assets/pot-felix.webp",  win:{w:258,h:218,right:-46,top:  0},
                                         img:{s:258,left:    0,top:-40  } },
-  margo:{ src:"assets/pot-margot.webp", win:{w:265,h:172,right:  0,top:  0},
-                                        img:{s:363,left:    0,top:-144 } },
+  mary: { src:"assets/pot-mary.webp",   win:{w:262,h:215,right:  0,top:  0},
+                                        img:{s:358,left:    0,top:-143 } },
   gosha:{ src:"assets/pot-gosha.webp",  win:{w:140,h:187,right:  9,top: -4},
                                         img:{s:308,left:-88.2,top:-80.2} },
   vera: { src:"assets/pot-vera.webp",   win:{w:224,h:227,right:  0,top:  0},

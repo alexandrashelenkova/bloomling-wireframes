@@ -2860,3 +2860,128 @@ Re-verified against the live site, **no console errors at all**:
   lit from Vlad's own data, Save at **5 / 744 / 376 × 50**.
 - **Round trip** — picking "5 days" and saving lands on Plant Detail with the
   card restated as **"Every 5th day at 7am"**.
+
+---
+
+# Revision 29 — Mary replaces Margot, and every plant gets its own films
+
+## 1 — Margot the Monstera → Mary the Cannabis
+
+**The id moved too: `margo` → `mary`.** It was tempting to leave it — an id is
+invisible — but the film files that arrived this pass are named
+`still-mary.mp4` / `growth-mary.mp4` / `settings-mary.mp4`, i.e. by plant id.
+Keeping `margo` would have meant a second, hand-maintained id→file table beside
+the one the ids already are. Renaming it makes `filmSrc()` a string join and
+nothing else. The rename carries `--c-margo`/`--g-margo`, `BUBBLE`, `AVATAR`,
+`SHOT`, the notification's `plant` key and the four chat `who`s with it.
+
+**"Mary the Cannabis", not "Mary".** Every screen already renders
+`name.split(" ")[0]`, so the long form is only ever read by the notifications
+list, where the two other plants read "Gosha the Cactus" and "Vera the Aloe".
+"Mary" alone would have made her the one entry in that list without a species.
+The My Plants card and the detail header still say **Mary**, as `428:1745` does.
+
+**The character is untouched.** Persona stays `Drama queen`, and her check-in,
+her reaction, her diary note and both chat lines are word-for-word what Margot
+said — none of them named her or her species, so none of them needed to change.
+The species picker's `"Monstera"` became `"Cannabis"` in place.
+
+**Her colours were already right.** Sampling `428:1745`'s Mary card gives
+`#B9CBD8` at the top-left, which is exactly the first stop of the gradient that
+was already `--g-margo`. So `--c-` and `--g-` were renamed and not re-valued —
+the mockup confirms the palette rather than replacing it.
+
+## 2 — The two Mary assets, and how they were measured
+
+**Pot render** — `458:18` inside `428:1745`. Frame **262×215** at (135, 275)
+against a card at 275 whose right edge is 397, so `win` is `right 0, top 0`, and
+the fill runs `w-[136.64%] / h-[166.51%] / top-[-66.51%]` → a **358** square at
+`0, −143`. Margot's was 265×172 with a 363 square at `0, −144`; the new frame is
+43px taller and the crop 5px shallower, which is the whole difference.
+
+**Chat avatar** — composed at 4× from `458:46`, not exported. Figma renders that
+frame against the section's dark board, so an export comes back with a grey
+backdrop baked in; the frame's own parts are cleaner. The recipe: white disc,
+then the source square scaled into its 90px box at (−13, −5), shown where the
+circle mask **or** the top band reaches. The frame is **63×70** and the circle
+sits at (13, 32), so `AVATAR.mary` is `w 63, h 70, l −13, t −32` — the same
+"negate the circle's position in the frame" rule the other three entries follow.
+
+**The recipe was checked before it was trusted.** Running it on Felix's own node
+(`364:1057`, frame 38×47, circle at (0, 9)) rebuilds the committed
+`avatar-felix.png` at exactly 152×188 and visually identically — mean absolute
+difference 9.9/255 per channel, all of it resampling. So Mary's avatar is
+produced the same way the existing set was.
+
+`pot-margot.webp` and `avatar-margot.png` are deleted; nothing references them.
+
+## 3 — Every plant now plays its own films
+
+`assets/video/` holds **all fifteen files** — `still`/`growth`/`settings` for
+felix, mary, gosha, vera and vlad. **Nothing is missing, so the fallback never
+fires in this build**; `FILM_FALLBACK = "vlad"` and `FILM_HAVE` stay in anyway,
+because the honest stand-in for a plant with no footage is the plant every one
+of these frames was drawn from, and a missing file should degrade rather than
+render a black rectangle.
+
+`FILM`/`PS_FILM` — two frozen strings — became `filmFor(id)` and `psFilm(id)`
+over one `filmSrc(id, kind)` join. Plant Detail reads `filmFor(p.id)`,
+Personality & Settings reads `psFilm(p.id)`, and both `<video>`s carry a `key`
+on their src so a plant change swaps the element instead of mutating a playing
+one.
+
+**The scrub geometry needed nothing.** All ten still/growth files are
+**976×2124, 5.042s** — Vlad's exact shape and length — so `PD_Y`, the
+`t = (1 − pos) × duration` mapping and the 976/2124 aspect all carry over
+untouched.
+
+## 4 — The one real fork: the settings films are not all the same shape
+
+Vlad's `settings-vlad.mp4` is **1340×1544** (0.86788). The other four are
+**1292×1604** (0.80549) — taller and narrower.
+
+`PS_AR` is not a constant of the screen, it is the input to the cover rule
+(`width = visible-stage × AR × zoom`), and `.psvid` pins the same ratio in CSS.
+Left as Vlad's it would have **stretched four films by 7.7%** to fit a box cut
+for a fifth — which is the one thing "identical mechanics per plant" cannot
+mean. So `PS_AR` became `PS_AR_BY_ID` + `psAr(id)`, written inline on the
+element and read by `sync()`; the CSS value stays as the default. **The
+arithmetic is unchanged — only its one input moves.**
+
+What that buys, measured at rest: the stage is 336×662 and the film is 857 tall
+and bottom-anchored on **all five**. Only the width differs — 744 for Vlad, 691
+for the other four — which is exactly cover for each film's own ratio. The seam
+with `.psfade` does not move for anyone.
+
+## 5 — Left alone, deliberately
+
+- **`428:1745` labels Vlad "Aloe"; the app says "Bonsai".** His card render and
+  all three of his films are a bonsai, and the brief for this pass is Margot →
+  Mary. Noted, not touched.
+- **The updated avatar set (`364:1042`) also contains Vlad.** The chat casts
+  Felix, Mary, Gosha and the user and no one else, so wiring a fifth avatar
+  would add an unreachable entry. Only Mary's was taken.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, DPR 2. **No console
+errors and no exceptions on any screen, and no broken images anywhere.**
+
+- **My Plants** — five cards in the mockup's order Felix / Mary / Gosha / Vera /
+  Vlad. Mary reads chip **thirsty**, species **Cannabis**, name **Mary**,
+  surface `linear-gradient(126.35deg, rgb(185,203,216) 38.007%, rgb(227,155,132)
+  115.19%)`, render `pot-mary.webp` in a **262×215** window at `right 0 / top 0`
+  with a **358×358** fill at `0 / −143` — the measured Figma values, live.
+- **Chat + notifications** — both of Mary's bubbles and her avatar render; the
+  digest reads "Mary the Cannabis" and "Mary's reservoir is empty — she'd love a
+  refill", and tapping it still lands in the chat.
+- **Plant Detail, all five** — each loads its own pair. `still-<id>.mp4` and
+  `growth-<id>.mp4` for felix / mary / gosha / vera / vlad, every one reporting
+  **976×2124, 5.042s**, still film parked at **−184**.
+- **Live scrub, all five** — thumb 0.75 / 0.50 / 0.25 → growth film t **1.25 /
+  2.50 / 3.75** on every plant, growth layer at opacity 1. Home restores t 0,
+  growth hidden, still film back at −184. Identical numbers for all five.
+- **Personality & Settings, all five** — `settings-<id>.mp4`, intrinsic
+  1292×1604 for the four and 1340×1544 for Vlad, each drawn at its own ratio:
+  **691×857** and **744×857**, both bottom-anchored in the same 336×662 stage.
+  744 is the number rev 27 logged for this screen, unchanged.
