@@ -2985,3 +2985,24 @@ errors and no exceptions on any screen, and no broken images anywhere.**
   1292×1604 for the four and 1340×1544 for Vlad, each drawn at its own ratio:
   **691×857** and **744×857**, both bottom-anchored in the same 336×662 stage.
   744 is the number rev 27 logged for this screen, unchanged.
+
+## Shipped
+
+Commit `c99d69a` → `origin/main`, Vercel production
+`dpl_2LrxX9K93NkGhedXAJC9Cbwpk2UN`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site. The only console entry on the whole run is
+the browser's own automatic `GET /favicon.ico` 404 — this prototype has never
+declared one, and rev 28's build 404s on it identically. **No 404 on any
+resource the page actually asks for**, and no exceptions.
+
+- **Assets** — `pot-mary.webp` and `avatar-mary.png` serve 200; all fifteen
+  films serve 206; `pot-margot.webp` is **404**, i.e. genuinely gone.
+- **Per-plant films** — Felix / Mary / Gosha / Vera / Vlad each load
+  `still-<id>` + `growth-<id>` at **976×2124, 5.042s** with the still film at
+  **−184**, and `settings-<id>` at **691×857** (1292×1604 source) or, for Vlad,
+  **744×857** (1340×1544).
+- **Live scrub, all five** — thumb 0.75 / 0.50 / 0.25 → film t **1.25 / 2.50 /
+  3.75** on every plant, against a `growth-<that plant>.mp4`. Home returns t 0,
+  growth faded out, still film back at −184. Five identical tables.
