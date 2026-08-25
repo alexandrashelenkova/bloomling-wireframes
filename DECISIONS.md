@@ -3425,3 +3425,25 @@ errors and no exceptions on any screen; no broken images anywhere.**
 - **The landing** — the new plant is in the chat (its line, wearing its species'
   avatar), in My Plants as a **sixth** card with that species' render and
   gradient, and its own detail screen plays that species' film.
+
+## Shipped
+
+Commit `015e18e` → `origin/main`, Vercel production
+`dpl_AW5EayKrNtNCSwPMbpQ6hoq9Ssv5`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site. `performance.getEntriesByType('resource')`
+reports **no 4xx on anything the page asks for**; the only console line on a
+cold load is the browser's own automatic `GET /favicon.ico`, which this
+prototype has never declared.
+
+- **`bt.mp4`** serves 200 at **170 052** bytes, decodes 976×2124, and is drawn
+  **402×874 from y 0** inside an 818-tall stage — the mockup frame's own
+  geometry, with the 33px either side clipped.
+- **Both settings screens** — label 150 / three-up 184 / label 319 / three-up
+  353 and 105px option cards on **each**, `.awsave` absent on **each**. "5 days"
+  lands on "Every 5th day at 7am"; 11pm + 9am lands on "Vlad stays silent from
+  11pm till 9am".
+- **The whole flow** walks: idle → searching → found (film) → connecting →
+  paired → viewfinder → reading → "We think it's a Ficus", every frame with the
+  mockup's own copy and actions.
