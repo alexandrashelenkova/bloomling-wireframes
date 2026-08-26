@@ -3938,3 +3938,15 @@ Headless Chrome over CDP, DPR 2. **No console errors; no broken images.**
   (81, 185), time right-aligned ending on the card's 24px inset, message at
   (81, 213), action at (81, 267).
 - **Taps** — the urgent row still opens the alert screen.
+
+## Shipped
+
+Commit `dcf650d` → `origin/main`, Vercel production
+`dpl_AvUyecnywuErpKkZU6cSFHcEpQix`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified live, identical to local: zero serif names, no `›` on the screen,
+all three cards **150px**, message `"Circular Std" 16px rgb(5,5,5)`, action
+`16px rgb(172,186,159)`, chip at (81, 185), time right-aligned, message at
+(81, 213), action at (81, 267), and the urgent row still opening the alert
+screen. The only console line is the browser's own `GET /favicon.ico`.
