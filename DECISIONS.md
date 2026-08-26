@@ -3744,3 +3744,123 @@ Re-verified against the live site, **no console errors**:
   at home, "Customise" opening Quiet hours.
 - **Final screen** — film top flush with the device top (**0**), title "Meet
   John".
+
+---
+
+# Revision 34 — the flow's last screen lifts, its character step grows an Activity block, and Notifications is rebuilt
+
+## 1 — "Meet …" film, 40px up
+
+The same `.apvid.up40` the pairing frames took in rev 33, for the same reason:
+once the film reached the top edge the pot sat low, with its base behind the
+button. One class, now on four screens.
+
+## 2 — The character step: no title, and Activity back
+
+**The title is gone and the chevron stays.** `PsShell` renders its `<h1>` only
+when it is given one, and `.plhead` states a `min-height:52px` so the head keeps
+the exact box the title used to give it — otherwise the chevron climbs 14px up
+the screen and stops lining up with every other screen in the app.
+
+**Activity is back, and that reverses rev 33.** It was dropped then on the
+reasoning that quiet hours are about living with a plant you already have; the
+brief asks for it, and setting the hours before the first evening is a
+perfectly sensible thing to want. It is the same `<ActivitySection>` — extracted
+from `PlantSettings` the way `PersonalitySection` and `PsShell` were, so both
+screens render one component: the Messages row, the Quiet-hours card with its
+subtitle, switch, rule and "Customise", the collapse to title + switch, and the
+stated 50px switch basis.
+
+Its two switches are the section's own state — nothing outside reads them, and
+pushing them up to two callers would be two copies of the same three lines. The
+**window** is the caller's, because that is what the Customise screen writes.
+
+**`AP_DRAFT` — the plant's own state before there is a plant.** Two things
+forced it:
+
+- **"Customise" has to write somewhere.** In the flow there is no plant, and
+  `plantById()` falls back to `PLANTS[0]` — so a tap on Customise would have
+  quietly rewritten *Felix's* evenings. `QuietConfig` now takes `id:"draft"` and
+  edits the draft instead, and the new plant inherits it at the end.
+- **The screen leaves and comes back.** Opening Customise remounts the character
+  step, and a name already typed evaporated on the trip — verified as a real
+  defect before the fix ("John stays silent…" came back as "Ficus stays
+  silent…"). The screen now opens from the draft and writes every change to it,
+  and `PairDevice` clears the draft on mount so a second run does not inherit
+  the first's answers.
+
+Verified end to end: name "John" typed, Customise → 11pm / 9am → back, the card
+restates **"John stays silent from 11pm till 9am"**, and after "Start caring"
+John's own Personality & Settings screen says the same thing.
+
+## 3 — Mary's last line stops being an alert
+
+`urgent:true` is off it, which takes the divider, the CTA and the navigation
+with it in one go — the shape and the link are both driven by that flag, so
+there was nothing to unpick. She now says *"Something feels a bit off today — my
+soil's soggy and it's chilly by this window."* Same observation, no ask. Her
+avatar, name, timestamp and bubble colour are untouched — the fill is Mary's own
+`#BCCAD7` again, because the alert shape was the only reason it was not.
+
+**The `urgent` mechanism stays in the renderer.** Nothing sets it now, but the
+shape it draws is still the one an urgent message would want, and deleting it
+would mean rebuilding it the next time one exists.
+
+## 4 — "Alert simulation" leaves the flow index
+
+Out of the index, not out of the app: the screens and the `alert` route are
+untouched and **Notifications' urgent row is still the way in**, which is where
+a thing you must act on belongs. It came off the list because the chat no longer
+offers a second door to it.
+
+## 5 — Notifications, rebuilt
+
+The header is the app's unified inner-screen one — bare chevron plus the
+Riccione title at the display size, landing at **(43, 69)**, the same place
+Profile and Auto-watering put theirs.
+
+The card is the canonical settings card carrying a notification: 24px of
+padding, and the serif name over muted body over a `--sage-soft` action, which
+is the same three type roles the Quiet-hours card sets and in the same order.
+Composition per the brief — avatar left; name, chip and time on one row with the
+time right-aligned to the card's own edge; the message under it; the way in
+under that.
+
+- **The avatars are the chat's**, from `AVATAR`/`lookOf()` — the same 37.81px
+  circle with the illustrated pot and its plant overhanging upwards, so a plant
+  looks the same wherever the app mentions it.
+- **The card does not clip that overhang.** Mary's leaves reach 32px above her
+  circle and about 8 of them clear the card, exactly as the plants list lets its
+  pot renders break their cards; `position:relative` plus DOM order puts each
+  card's overhang over the one above rather than under.
+- **Names are the first name only** — "Felix", "Mary", "Gosha". The long form
+  exists so the plants list can print a species line under it; here the species
+  is already in the avatar and usually in the sentence.
+- **The "Urgent" chip is the detail screen's mood chip**, drawn small and lit by
+  that emotion's own glow (`EMO.urgent`, `#F5AEA4`). A sage `.pill accent` would
+  have said "urgent" in the colour this app uses for *good*.
+- **Tap behaviour is unchanged** — the urgent row into the alert flow, the rest
+  into the chat focused on that plant. Both re-verified.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, DPR 2. **No console
+errors and no exceptions; no broken images anywhere.**
+
+- **Meeting film** — `apvid up40`, **−40** against the device top.
+- **Character step** — no `.pltitle`, chevron present, head still **52px**;
+  sections **Personality / General / Activity**; both switches **50×28**; labels
+  carry the typed name ("Messages from John", "John stays silent from…").
+- **Personality & Settings, unchanged by the extraction** — three sections, the
+  Quiet-hours card **166 → 76** on toggle off with the tail at `max-height:0`,
+  both switches 50×28, "Customise" opening Quiet hours.
+- **Dashboard** — Mary's last bubble: new text, **no `.glink`, no `.gline`**,
+  name "Mary" and time "17:30" intact, fill `#BCCAD7`. Zero `.glink`/`.gline` in
+  the whole chat.
+- **Flow index** — Add new plant | Dashboard | Notifications | Plant card |
+  Profile & settings. No Alert entry.
+- **Notifications** — title at **(43, 69) 279×52**; first card at **(5, 161)**,
+  326 wide; avatar at (29, 185) **38×38** from `avatar-felix/mary/gosha.png`;
+  name at (81, 185), chip at (132, 187), time right-aligned ending on the card's
+  own 24px inset; text at (81, 212); action at (81, 266). Urgent row → the alert
+  screen; Mary's row → the chat.

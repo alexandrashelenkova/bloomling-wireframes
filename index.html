@@ -240,7 +240,8 @@
      last one stands taller. 40px top corners only — every bottom is tucked under
      the next card. Cards paint in DOM order, which is what makes the stack read
      as a stack: no z-index anywhere, because nothing needs to escape any more. */
-  .plhead{display:flex;align-items:center;gap:5px;margin:13px -2px 0;flex:0 0 auto}
+  .plhead{display:flex;align-items:center;gap:5px;margin:13px -2px 0;flex:0 0 auto;
+    min-height:52px}   /* the title's own height, held when there is no title */
   .plback{width:24px;height:24px;flex:0 0 auto;cursor:pointer;opacity:.4;
     display:flex;align-items:center;justify-content:center}
   .plback:active{opacity:.75}
@@ -739,6 +740,40 @@
     font-size:var(--t-md);line-height:1.25;color:#E39B84;cursor:pointer}
   .pflogout:active{transform:translateY(1px)}
 
+  /* ══════════ NOTIFICATIONS ══════════
+     The canonical settings card, carrying a notification: 24px of padding and
+     the serif name over muted body over a --sage-soft action, which is the same
+     three type roles the Quiet-hours card sets and in the same order. The
+     avatar is the chat's own — the 37.81px circle with the illustrated pot and
+     its plant overhanging upwards.
+
+     The card does NOT clip that overhang. Mary's leaves reach 32px above her
+     circle and about 8 of them clear the card, exactly as the plants list lets
+     its pot renders break their cards; `position:relative` plus DOM order puts
+     each card's overhang over the card above it rather than under. */
+  .nfscreen{flex:1 1 auto;display:flex;flex-direction:column;
+    padding:8px 16px 24px;overflow-y:auto;overflow-x:hidden}
+  .nfscreen::-webkit-scrollbar{width:0}
+  .nflist{margin:40px -11px 0;display:flex;flex-direction:column;gap:5px;
+    flex:0 0 auto}
+  .nfcard{position:relative;display:flex;gap:14px;padding:24px;
+    background:var(--card);border-radius:var(--r-card);cursor:pointer}
+  .nfcard:active{background:var(--box)}
+  .nfbody{flex:1 1 auto;min-width:0}
+  /* name, chip and time on one row — the time right-aligned to the card's own
+     edge rather than floating beside the text */
+  .nfhead{display:flex;align-items:center;gap:8px}
+  .nftime{margin-left:auto;flex:0 0 auto;font-size:var(--t-sm);line-height:1.25;
+    color:rgba(5,5,5,.4);white-space:nowrap}
+  /* the mood chip the detail screen already uses, drawn small: an "Urgent" here
+     is the same statement its glowing pill makes there */
+  .nfchip{border:none;border-radius:24px;padding:2px 10px 4px;
+    font-size:var(--t-sm);line-height:1.25;color:#000;flex:0 0 auto}
+  .nftext{margin-top:1px;font-size:var(--t-md);line-height:1.25;
+    color:rgba(5,5,5,.4)}
+  .nfact{margin-top:14px;font-size:var(--t-md);line-height:1.25;
+    color:var(--sage-soft)}
+
   /* ══════════ ADD NEW PLANT (465:312) ══════════
      Five frames, one shape: the pot's own film full-bleed behind everything, a
      back chevron and nothing else at the top, a centred serif line at 187, an
@@ -778,9 +813,11 @@
   .apvid{position:absolute;left:50%;top:0;transform:translateX(-50%);
     height:874px;aspect-ratio:976 / 2124;
     display:block;border:0;background:transparent;pointer-events:none}
-  /* 40px up, on every frame that shows the PAIRING film — the pot sat low once
+  /* 40px up. On every frame that shows the PAIRING film — the pot sat low once
      the film reached the top edge, and the three frames carry one continuous
-     take, so shifting two of the three would make it jump on `ended`. */
+     take, so shifting two of the three would make it jump on `ended` — and on
+     the meeting screen, where the same 40px does the same job for the same
+     reason. */
   .apvid.up40{top:-40px}
   .aphead{position:relative;z-index:1;flex:0 0 auto;height:52px;margin:13px -2px 0;
     display:flex;align-items:center}
@@ -1590,7 +1627,10 @@ const MILESTONES = [
      cross:true  → the plant-to-plant banter thread, including the user's reply to it
                    (hidden when "plants talk to each other" is off, leaving Felix's
                    news, the congratulations and Mary's alert — still coherent)
-     urgent:true → carries the inline "Check what happened" CTA into the alert flow
+     urgent:true → carries an inline "Check what happened" CTA into the alert
+                   flow. Nothing sets it any more (see Mary's last line); the
+                   mechanism stays because the shape it draws is still the one
+                   an urgent message would want.
      rx          → reactions, [emoji, count]; everyone reacts to everyone */
 const CHAT_INIT = [
   { who:"felix", at:"09:02",
@@ -1605,8 +1645,13 @@ const CHAT_INIT = [
     rx:[["💅",1],["😂",1]] },
   { who:"me",    at:"09:11", cross:true,
     text:"Calm down, Gosha. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
-  { who:"mary",  at:"17:30", urgent:true,
-    text:"Something's off — my soil's soggy and it's cold by this window. Can you take a look?" },
+  /* No longer `urgent`. It was the only message in the app that carried a
+     divider and a CTA into the alert flow, and a plant that files a support
+     ticket is not the character this chat is written for — she mentions it and
+     leaves it with you. The alert flow is still reached from Notifications,
+     which is where a thing you must act on belongs. */
+  { who:"mary",  at:"17:30",
+    text:"Something feels a bit off today — my soil's soggy and it's chilly by this window." },
 ];
 
 /* ───────────────── PERSONALITY MODEL (single source of truth) ─────────────────
@@ -2151,27 +2196,48 @@ function GardenChat({focus, open, onCollapse}){
 
 /* NOTIFICATIONS — a digest of what needs the user offline. No checkboxes: the pot
    senses physical actions on its own, so there is nothing here to confirm. */
+/* ───────────────── NOTIFICATIONS ─────────────────
+   The digest of what needs the user OFFLINE, rebuilt on the canonical card: the
+   chat's own avatar, then name + chip + time on one row, the message under it,
+   and the way in under that. The type roles are the settings card's own — serif
+   name, muted body, --sage-soft action, in that order — so a notification reads
+   as the same object as everything else in the app rather than as a list item.
+
+   Names are the plant's FIRST name only. The full form ("Gosha the Cactus")
+   exists so the plants list can print a species line under it; here the species
+   is already in the avatar and usually in the sentence, and the row wants the
+   name the plant is called by. */
 function Notifications(){
   const nav = useNav();
-  return <div className="screen">
-    <Top title="Notifications" onBack={nav.back}/>
-    <div className="col">
+  return <div className="nfscreen">
+    <div className="plhead">
+      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+      <h1 className="pltitle">Notifications</h1>
+    </div>
+
+    <div className="nflist">
       {NOTIFS.map(n=>{
-        const p = plantById(n.plant);
+        const p  = plantById(n.plant);
+        const av = AVATAR[lookOf(n.plant)];
+        const e  = EMO[n.emo] || EMO.neutral;
         const urgent = n.kind==="urgent";
         // urgent → diagnosis flow; everything else → the chat, focused on that plant
         const open = ()=> urgent ? nav.go("alert") : nav.go("dashboard",{focus:p.id});
-        return <div key={n.id} className="card scard tap row" onClick={open}>
-          <Photo w={48} h={48} label="PIC" badge={n.emo}/>
-          <div className="grow">
-            <div className="row" style={{gap:6}}>
-              <b>{p.name}</b>
-              {urgent && <span className="pill accent">Urgent</span>}
-            </div>
-            <p className="muted" style={{marginTop:2}}>{n.text}</p>
-            <small className="muted">{urgent ? "See what happened ›" : "Open in the chat ›"}</small>
+        return <div key={n.id} className="nfcard" onClick={open}>
+          <div className={"gmava"+(av?" art":"")}>
+            {av && <img src={av.src} alt="" className={av.round?"round":null}
+              style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
           </div>
-          <small className="muted" style={{whiteSpace:"nowrap"}}>{n.time}</small>
+          <div className="nfbody">
+            <div className="nfhead">
+              <span className="psqt">{p.name.split(" ")[0]}</span>
+              {urgent && <span className="nfchip" style={{background:e.glow,
+                filter:"drop-shadow(0 0 10px "+e.glow+")"}}>Urgent</span>}
+              <span className="nftime">{n.time}</span>
+            </div>
+            <div className="nftext">{n.text}</div>
+            <div className="nfact">{urgent ? "See what happened \u203A" : "Open in the chat \u203A"}</div>
+          </div>
         </div>;
       })}
     </div>
@@ -2807,6 +2873,15 @@ const QT_TO   = [{k:"7am"}, {k:"8am",  best:true}, {k:"9am"}];
 /* PLANTS does not carry a window, and adding one to five rows to state the
    default twice over would be worse than defaulting here. */
 const quietOf = (p)=>({ from: p.quietFrom || "10pm", to: p.quietTo || "8am" });
+/* THE ADD PLANT DRAFT — the plant's own state before there is a plant to hang
+   it on. It exists because the character screen can leave and come back:
+   "Customise" opens the Quiet hours screen and returns, the screen remounts,
+   and a name you had already typed would evaporate on the trip. So the screen
+   reads its opening values from here and writes every change back, and the
+   window lives here too — without it "Customise" in the flow would fall through
+   plantById() and quietly rewrite Felix's evenings. Copied onto the real plant
+   when the flow finishes, cleared when it starts. */
+const AP_DRAFT = {};
 
 /* ── the labelled three-up both settings screens are built from (447:131) ────
    One component, so "the same design" is not a promise two screens have to keep
@@ -2858,7 +2933,8 @@ function WaterConfig({params}){
    absence of a Save. Reached from the Quiet hours card's "Customise". */
 function QuietConfig({params}){
   const nav = useNav();
-  const p = plantById((params&&params.id)||"felix");
+  const id = (params&&params.id)||"felix";
+  const p  = id==="draft" ? AP_DRAFT : plantById(id);
   const q0 = quietOf(p);
   const [from,setFrom] = useState(q0.from);
   const [to,setTo]     = useState(q0.to);
@@ -3039,6 +3115,44 @@ function PersonalitySection({preset, tune, onPick, onSlide, sec}){
    the film's width both change on every frame of a flick, so neither belongs in
    state. `deep` is the one exception and earns it: it is a boolean, so it only
    re-renders on the frame it actually flips. */
+/* ── THE ACTIVITY SECTION, ONE COMPONENT ────────────────────────────────────
+   Messages, and the Quiet-hours card with its subtitle, its switch, its rule
+   and its "Customise" — including the collapse to title + switch when the
+   switch goes off, and the stated 50px basis that stops a container's own
+   `> div` rule stretching it. Two screens render it: Personality & Settings,
+   and the Add Plant flow's character step.
+
+   Its two switches are its own state. Nothing outside the section reads them,
+   and pushing them up to two callers would be two copies of the same three
+   lines. The WINDOW is the caller's, because that is the thing the Customise
+   screen writes and the caller is what knows where to write it. */
+function ActivitySection({first, window:win, onCustomise, sec}){
+  const [msgs,setMsgs] = useState(true);
+  const [quiet,setQuiet] = useState(true);
+  return <div className={sec || "pssec"}>
+    <h2 className="pssech">Activity</h2>
+    <div className="psrowcard">
+      <b>Messages from {first}</b>
+      <Toggle on={msgs} onClick={()=>setMsgs(m=>!m)}/>
+    </div>
+    <div className="psquiet">
+      <div className="psqtop">
+        <div className="psqtxt">
+          <div className="psqt">Quiet hours</div>
+          <div className={"psqmore"+(quiet?"":" off")}>
+            <div className="psqsub">{first} stays silent from {win.from} till {win.to}</div>
+          </div>
+        </div>
+        <Toggle on={quiet} onClick={()=>setQuiet(v=>!v)}/>
+      </div>
+      <div className={"psqmore tail"+(quiet?"":" off")}>
+        <div className="psqdiv"/>
+        <div className="psqact" onClick={onCustomise}>Customise</div>
+      </div>
+    </div>
+  </div>;
+}
+
 function PsShell({filmId, title, line, children}){
   const nav = useNav();
   const ar  = psAr(filmId);
@@ -3093,7 +3207,10 @@ function PsShell({filmId, title, line, children}){
     <div className="pshead">
       <div className="plhead">
         <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
-        <h1 className="pltitle">{title}</h1>
+        {/* titleless is a real state — the flow's character step drops the line
+            and keeps the chevron. .plhead's min-height holds the 52px the title
+            used to give it, so the chevron does not climb the screen. */}
+        {title && <h1 className="pltitle">{title}</h1>}
       </div>
     </div>
     <div className={"psbub"+(deep?" off":"")}
@@ -3113,13 +3230,10 @@ function PlantSettings({params}){
   const [preset,setPreset]   = useState(personaByName(p.persona).k);
   const [tune,setTune]       = useState(personaByName(p.persona).defaults);
   const [voice,setVoice]     = useState("Male");
-  const [msgs,setMsgs]       = useState(true);
-  const [quiet,setQuiet]     = useState(true);
   /* the window itself lives on the plant now, written by the Customise screen
      and re-read here on every mount — the same round trip Auto-watering makes */
   const q = quietOf(p);
   const first = name.split(" ")[0] || "they";
-  const toggleQuiet = ()=>setQuiet(!quiet);
 
   /* ── the reaction bubble ──────────────────────────────────────────────────
      It used to be a PREVIEW that only surfaced while the character was being
@@ -3176,29 +3290,8 @@ function PlantSettings({params}){
         </div>
 
         {/* ── ACTIVITY ─────────────────────────────────────────────────── */}
-        <div className="pssec">
-          <h2 className="pssech">Activity</h2>
-          <div className="psrowcard">
-            <b>Messages from {first}</b>
-            <Toggle on={msgs} onClick={()=>setMsgs(m=>!m)}/>
-          </div>
-          <div className="psquiet">
-            <div className="psqtop">
-              <div className="psqtxt">
-                <div className="psqt">Quiet hours</div>
-                <div className={"psqmore"+(quiet?"":" off")}>
-                  <div className="psqsub">{first} stays silent from {q.from} till {q.to}</div>
-                </div>
-              </div>
-              <Toggle on={quiet} onClick={toggleQuiet}/>
-            </div>
-            <div className={"psqmore tail"+(quiet?"":" off")}>
-              <div className="psqdiv"/>
-              <div className="psqact"
-                onClick={()=>nav.go("quietConfig",{id:p.id})}>Customise</div>
-            </div>
-          </div>
-        </div>
+        <ActivitySection first={first} window={q}
+          onCustomise={()=>nav.go("quietConfig",{id:p.id})}/>
 
   </PsShell>;
 }
@@ -3288,6 +3381,8 @@ function PairDevice(){
   const nav = useNav();
   const [st,setSt] = useState("idle");   // idle → searching → found → connecting → done
   const btV = useRef(null);
+  // a second run through the flow must not inherit the first run's answers
+  useEffect(()=>{ for(const k in AP_DRAFT) delete AP_DRAFT[k]; },[]);
   useEffect(()=>{
     let t;
     if(st==="searching") t=setTimeout(()=>setSt("found"),1700);
@@ -3429,31 +3524,39 @@ function SpeciesList(){
    still applies if the file ever goes missing.
 
    WHICH SECTIONS SURVIVE, and this is the call:
-     Personality  in full, per the brief — chips, scroll-to-selected, sliders.
-     General      TRIMMED to name + voice, not dropped. Dropping it whole would
-                  leave the flow with no way to name the plant, and the next
-                  screen greets it by name and the app files it under one — so
-                  "not needed here" cannot have meant that. The species row IS
+     Personality  in full — chips, scroll-to-selected, sliders.
+     General      TRIMMED to name + voice. Dropping it whole would leave the
+                  flow with no way to name the plant, and the next screen greets
+                  it by name and the app files it under one. The species row IS
                   dropped: the screen before this one just decided it.
-     Activity     dropped whole. Message toggles and quiet hours are about
-                  living with a plant you already have.
-   The mockups stop at the photo step, so there is nothing in them to follow
-   here either way. */
+     Activity     in full, as of rev 34 — the same <ActivitySection>, on a draft
+                  window (AP_QUIET) that the new plant inherits when the flow
+                  finishes. Rev 33 dropped it on the reasoning that quiet hours
+                  are about living with a plant you already have; reversed,
+                  because the brief asks for it and because setting the hours
+                  before the first evening is a perfectly sensible thing to want.
+   There is no title: the chevron alone tops the screen. */
 function CreateCharacter({params}){
   const nav = useNav();
   const species = (params&&params.species)||AP_SPECIES;
-  const [name,setName]       = useState("");
+  const preset0 = AP_DRAFT.persona || PERSONALITIES.presets[0].k;
+  const [name,setName]       = useState(AP_DRAFT.name || "");
   const [editing,setEditing] = useState(false);
-  const [preset,setPreset]   = useState(PERSONALITIES.presets[0].k);
-  const [tune,setTune]       = useState(personaByName(PERSONALITIES.presets[0].k).defaults);
-  const [voice,setVoice]     = useState(PS_VOICES[2]);
-  const pick  = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); };
-  const slide = (key,v)=>setTune(t=>({...t,[key]:v}));
+  const [preset,setPreset]   = useState(preset0);
+  const [tune,setTune]       = useState(AP_DRAFT.tune || personaByName(preset0).defaults);
+  const [voice,setVoice]     = useState(AP_DRAFT.voice || PS_VOICES[2]);
+  /* every change writes through to the draft, so the trip out to "Customise"
+     and back finds the screen exactly as it was left */
+  const rename = (v)=>{ AP_DRAFT.name = v; setName(v); };
+  const pick   = (k)=>{ const d = personaByName(k).defaults;
+                        AP_DRAFT.persona = k; AP_DRAFT.tune = d;
+                        setPreset(k); setTune(d); };
+  const slide  = (key,v)=>setTune(t=>{ const n = {...t,[key]:v}; AP_DRAFT.tune = n; return n; });
+  const setV   = (v)=>{ AP_DRAFT.voice = v; setVoice(v); };
   const commit = ()=>setEditing(false);
   const finalName = name.trim() || species;
 
-  return <PsShell filmId={AP_CREATE_FILM} title="Name and nature"
-    line={sampleLine(preset,tune)}>
+  return <PsShell filmId={AP_CREATE_FILM} line={sampleLine(preset,tune)}>
 
     <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
 
@@ -3463,7 +3566,7 @@ function CreateCharacter({params}){
       <h2 className="pssech">General</h2>
       <div className="psfield" onClick={()=>setEditing(true)}>
         {editing
-          ? <input autoFocus value={name} onChange={e=>setName(e.target.value)}
+          ? <input autoFocus value={name} onChange={e=>rename(e.target.value)}
               onBlur={commit} onKeyDown={e=>e.key==="Enter"&&commit()}/>
           : <b style={name?null:{opacity:.4}}>{name || "Your "+species.toLowerCase()}</b>}
         <span className="psedit"><IconEdit/></span>
@@ -3471,10 +3574,14 @@ function CreateCharacter({params}){
       <div className="psvoice">
         {PS_VOICES.map(v=>(
           <div key={v} className={"psvopt"+(voice===v?" on":"")}
-            onClick={()=>setVoice(v)}>{v}</div>
+            onClick={()=>setV(v)}>{v}</div>
         ))}
       </div>
     </div>
+
+    {/* the settings screen's Activity section, on the flow's own draft window */}
+    <ActivitySection first={finalName.split(" ")[0]} window={quietOf(AP_DRAFT)}
+      onCustomise={()=>nav.go("quietConfig",{id:"draft"})}/>
 
     <div className="apacts" style={{marginTop:"40px"}}>
       <button className="actbtn"
@@ -3497,6 +3604,7 @@ const addNewPlant = ({name, species, preset, voice})=>{
     emotion:persona.faces.base, growth:4, lastWatered:"Just now", light:"Good",
     reservoir:100, autoOn:true, schedule:"Every 2 days", amount:"Medium",
     bondLevel:1, bondPct:6, bondTitle:"Just met",
+    quietFrom:AP_DRAFT.quietFrom, quietTo:AP_DRAFT.quietTo,
     checkin:persona.lines.base, reaction:persona.lines.warm,
     diaryNote:"Day one. New pot, new window, new person.",
   });
@@ -3512,7 +3620,7 @@ function FirstMeeting({params}){
   const preset  = (params&&params.preset)||PERSONALITIES.presets[0].k;
   const voice   = (params&&params.voice)||PS_VOICES[2];
   const start = ()=>{ addNewPlant({name,species,preset,voice}); nav.go("dashboard"); };
-  return <ApStep onBack={nav.back} film={filmSrc(lookFor(species),"still")}
+  return <ApStep onBack={nav.back} film={filmSrc(lookFor(species),"still")} filmUp
     title={"Meet "+name}
     actions={<button className="actbtn" onClick={start}>Start caring</button>}>
     <div className="apbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
@@ -3793,7 +3901,9 @@ const FLOWS = [
   { label:"Dashboard",          path:[["dashboard"]] },   // = hero + Windowsill chat
   { label:"Notifications",      path:[["notifs"]] },
   { label:"Plant card",         path:[["plant",{id:"vlad"}]] },   // Vlad: the films are his
-  { label:"Alert simulation",   path:[["alert"]] },
+  /* "Alert simulation" is out of the index, not out of the app: the screens and
+     the route stay, and Notifications' urgent row is still the way in. It came
+     off the list because the chat no longer offers a second door to it. */
   { label:"Profile & settings", path:[["profile"]] },
 ];
 function FlowIndex({cur}){
