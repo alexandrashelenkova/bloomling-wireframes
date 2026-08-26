@@ -3630,3 +3630,95 @@ automatic `GET /favicon.ico`, which this prototype has never declared.
   at 240×320 from a 720×1075 source.
 - **Plant Detail** — `.pdresolve` absent, `.pdbg` background-image `none`, the
   four blur layers ramping 8 / 14 / 26 / 48px.
+
+---
+
+# Revision 33 — the flow's films find the top edge, and its character step becomes the real screen
+
+## 1 — The pairing film, 40px up
+
+`.apvid.up40`, applied to **all three frames that show it** — found, connecting
+and paired — not the two the brief names. They carry one continuous take across
+one persistent `<video>` element, so shifting two of the three would make the pot
+jump on `ended`, which is the one moment of that screen anybody watches.
+
+## 2 — "Take a photo of your plant"
+
+The button on the paired frame. It is the only button on the screen and it now
+says what it takes a photo *of*.
+
+## 3 — The character step IS Personality & Settings
+
+Not "the same design" — the same construction. `PsShell` came out of
+`PlantSettings` and holds everything on that screen which is not a settings
+**section**: the film stage and the cover rule that sizes it, the resolve, the
+scrim, the pinned nav, the plant's bubble, and the one rAF-coalesced scroll read
+that drives all four. Both screens render it, so there is no copy of any of it
+left to drift.
+
+What the flow gets, for free and by construction: the pot breathing behind the
+chips, the line coming off it as you move a slider, the film shrinking under the
+cover rule as you scroll, the scrim arriving as the content reaches the title,
+and the bubble withdrawing when the film has gone.
+
+**The film is Felix's**, per the brief — `settings-felix.mp4`, the app's
+reference pot, because the plant being set up has no footage of its own and the
+flow has not yet decided whose it borrows. It routes through
+`psFilm()`/`filmId()`, so the standing fallback rule still applies.
+
+**Which sections survive, and this is the call the brief asked to be logged:**
+
+- **Personality** — in full, as asked: chips, scroll-to-selected, sliders card.
+- **General — trimmed to name + voice, not dropped.** Dropping it whole would
+  leave the flow with no way to name the plant, and the very next screen greets
+  it by name ("Meet John") and the app files it under one. "Not needed here"
+  cannot have meant that. The **species row is** dropped — the screen before this
+  one just decided it, and offering to re-edit it here would undo that step.
+- **Activity — dropped whole.** Message toggles and quiet hours are about living
+  with a plant you already have; there is nothing to be quiet about yet.
+
+The mockups stop at the photo step, so there is nothing in them to follow here
+either way.
+
+The title is **"Name and nature"** rather than "Personality & Settings": the
+shell is the same, but the pinned line should say which step of the flow you are
+on, and this one sets exactly those two things.
+
+## 4 — The final screen's film reaches the top edge
+
+It was not reaching it, and the cause was one word. `.apscreen` carried
+`overflow:hidden`, so `.apbg`'s `top:-48px` was simply cut off and **every** film
+in this flow started a status bar's height below the top of the device, with a
+band of flat page above it. `.apscreen` is now `overflow:visible` and `.apbg`
+does the clipping — the detail screen's exact arrangement, and the same fix rev
+32 made for `.camscreen` after the same mistake.
+
+Measured, sampling the column just inside the phone's left edge at the device's
+first rows: **before** `rgb(237,238,233)` — flat `--bg` — for the first 16px,
+then the film; **after** the film's own `rgb(208,202,191)` from the very first
+row. Applied to the whole flow rather than the one screen, because it is one
+shell and the mockups draw every film from the frame's own y 0.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, DPR 2. **No console
+errors and no exceptions; no broken images anywhere.**
+
+- **Pairing film** — `apvid up40` at **y −40** relative to the device top on
+  found, connecting and paired alike; the button reads **"Take a photo of your
+  plant"**.
+- **Character step** — `.psscreen` shell, `settings-felix.mp4`, stage
+  **336×662**, film **691×857** at rest (Felix's own 1292×1604 ratio through the
+  cover rule), the resolve gradient present, the bubble live at opacity 1 and
+  following the preset (tapping "Drama queen" swaps the line and re-tunes the
+  sliders to 50/84/84), sections **Personality** and **General**, six chips,
+  three sliders, the three voice options.
+- **Personality & Settings, unchanged by the extraction** — Vlad's own
+  `settings-vlad.mp4` at **744×857**, all three sections, resolve at top 592
+  height 88, content opening at **596**; scrolled to 200 the film is 401 wide,
+  at 600 the scrim is solid and the bubble is at opacity 0, and home restores
+  744 and 1. "Customise" still opens Quiet hours.
+- **Final screen** — film top flush with the device top (0), title "Meet John".
+- **End to end** — pair → camera → shutter → result → name + preset + voice →
+  meeting → Dashboard, with "John" in the chat and a sixth card in My Plants.
+  Back steps out of the machine to idle, then out of the flow to My Plants.

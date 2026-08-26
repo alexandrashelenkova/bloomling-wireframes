@@ -749,9 +749,14 @@
      66px is what puts the headline on the mockup's 187: the head box ends at
      121 (8 of screen padding + 13 of margin + its own 52), which is where every
      other screen's title box ends too. */
+  /* overflow VISIBLE, and .apbg does the clipping — the detail screen's exact
+     arrangement. With the clip on the screen instead, .apbg's -48 was simply
+     cut off and every film in this flow started a status bar's height below the
+     top edge, with a band of flat page above it. Now they are flush with the
+     top of the device and run behind the status bar, which is what "full-bleed"
+     has meant everywhere else in this app. */
   .apscreen{flex:1 1 auto;position:relative;display:flex;flex-direction:column;
-    padding:8px 16px 40px;overflow:hidden;background:var(--bg)}
-  /* the film reaches back over the status bar, like the detail screen's stage */
+    padding:8px 16px 40px;overflow:visible;background:var(--bg)}
   .apbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
     background:var(--bg);z-index:0}
   /* bt.mp4 is 976×2124 and there is no window to place it in: drawn at the
@@ -773,6 +778,10 @@
   .apvid{position:absolute;left:50%;top:0;transform:translateX(-50%);
     height:874px;aspect-ratio:976 / 2124;
     display:block;border:0;background:transparent;pointer-events:none}
+  /* 40px up, on every frame that shows the PAIRING film — the pot sat low once
+     the film reached the top edge, and the three frames carry one continuous
+     take, so shifting two of the three would make it jump on `ended`. */
+  .apvid.up40{top:-40px}
   .aphead{position:relative;z-index:1;flex:0 0 auto;height:52px;margin:13px -2px 0;
     display:flex;align-items:center}
   .aptitle{position:relative;z-index:1;flex:0 0 auto;margin:66px auto 0;
@@ -3018,10 +3027,85 @@ function PersonalitySection({preset, tune, onPick, onSlide, sec}){
   </div>;
 }
 
+/* ── THE PERSONALITY & SETTINGS SHELL, ONE COMPONENT ───────────────────────
+   Everything on that screen that is not a settings SECTION: the film stage and
+   the cover rule that sizes it, the resolve, the scrim, the pinned nav and the
+   plant's bubble — plus the single rAF-coalesced scroll read that drives all
+   four. Personality & Settings renders its three sections into it; the Add
+   Plant flow renders the one section that exists before a plant is yours. Two
+   screens, one construction, and no copy of it to drift.
+
+   One read per frame, written straight to the nodes — the scrim's opacity and
+   the film's width both change on every frame of a flick, so neither belongs in
+   state. `deep` is the one exception and earns it: it is a boolean, so it only
+   re-renders on the frame it actually flips. */
+function PsShell({filmId, title, line, children}){
+  const nav = useNav();
+  const ar  = psAr(filmId);
+  const scroller = useRef(null);
+  const scrim    = useRef(null);
+  const vid      = useRef(null);
+  const stage    = useRef(null);
+  const sraf     = useRef(0);
+  const [deep,setDeep] = useState(false);
+  const sync = ()=>{
+    sraf.current = 0;
+    const s = scroller.current, k = scrim.current, v = vid.current, g = stage.current;
+    if(!s) return;
+    const t = s.scrollTop;
+    if(k) k.style.opacity =
+      Math.max(0, Math.min(1, (t - PS_SCRIM_IN) / (PS_SCRIM_OUT - PS_SCRIM_IN)));
+    /* the film covers what is left of the stage, times a zoom that eases out
+       over the first 200px — see PS_ZOOM. Width floors at the stage's own, so
+       once cover would make the film narrower than the screen it simply crops. */
+    if(v && g){
+      const vis = Math.max(0, PS_STAGE - t);
+      const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
+      v.style.width = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
+    }
+    setDeep(t > PS_TALK_MAX);      // the film has left the bubble's own box
+  };
+  const onScroll = ()=>{
+    if(!sraf.current) sraf.current = requestAnimationFrame(sync);
+  };
+  useEffect(()=>{
+    sync();
+    return ()=>{ if(sraf.current) cancelAnimationFrame(sraf.current); };
+  },[]);
+
+  return <div className="psscreen">
+
+    {/* 1 — the scroller: the film, its resolve, and the sections, in that order */}
+    <div className="psscroll" ref={scroller} onScroll={onScroll}>
+      <div className="psstage" ref={stage}>
+        <video className="psvid" key={filmId} ref={vid} src={psFilm(filmId)}
+          muted loop autoPlay playsInline preload="auto"
+          style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>
+      </div>
+      <div className="psfade"/>
+      <div className="pscontent">{children}</div>
+    </div>
+
+    {/* 2 — the scrim: nothing at rest, solid once the content is under the title */}
+    <div className="psscrim" ref={scrim} aria-hidden="true"/>
+
+    {/* 3 — the pinned nav, and the plant's reaction bubble beside it */}
+    <div className="pshead">
+      <div className="plhead">
+        <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+        <h1 className="pltitle">{title}</h1>
+      </div>
+    </div>
+    <div className={"psbub"+(deep?" off":"")}
+      style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
+      {line}
+    </div>
+  </div>;
+}
+
 function PlantSettings({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
-  const ar = psAr(lookOf(p.id));       // this plant's settings film's own ratio
 
   const [name,setName]       = useState(p.name.split(" ")[0]);
   const [species,setSpecies] = useState(p.species);
@@ -3056,61 +3140,14 @@ function PlantSettings({params}){
   const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); };
   const slide = (key,v)=>setTune(t=>({...t,[key]:v}));
 
-  /* ── the scroll states ────────────────────────────────────────────────────
-     One read per frame, rAF-coalesced, and written straight to the nodes — the
-     scrim's opacity and the film's width both change on every frame of a flick,
-     so neither belongs in state. `deep` is the one exception and earns it: it
-     is a boolean, so it only re-renders on the frame it actually flips. */
-  const scroller = useRef(null);
-  const scrim    = useRef(null);
-  const vid      = useRef(null);
-  const stage    = useRef(null);
-  const sraf     = useRef(0);
-  const [deep,setDeep] = useState(false);
-  const sync = ()=>{
-    sraf.current = 0;
-    const s = scroller.current, k = scrim.current, v = vid.current, g = stage.current;
-    if(!s) return;
-    const t = s.scrollTop;
-    if(k) k.style.opacity =
-      Math.max(0, Math.min(1, (t - PS_SCRIM_IN) / (PS_SCRIM_OUT - PS_SCRIM_IN)));
-    /* the film covers what is left of the stage, times a zoom that eases out
-       over the first 200px — see PS_ZOOM. Width floors at the stage's own, so
-       once cover would make the film narrower than the screen it simply crops. */
-    if(v && g){
-      const vis = Math.max(0, PS_STAGE - t);
-      const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
-      v.style.width = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
-    }
-    setDeep(t > PS_TALK_MAX);      // the film has left the bubble's own box
-  };
-  const onScroll = ()=>{
-    if(!sraf.current) sraf.current = requestAnimationFrame(sync);
-  };
-  useEffect(()=>{
-    sync();
-    return ()=>{ if(sraf.current) cancelAnimationFrame(sraf.current); };
-  },[]);
-
   const commit = ()=>setEditing("");
   const field = (kind, value, set)=> editing===kind
     ? <input autoFocus value={value} onChange={e=>set(e.target.value)}
         onBlur={commit} onKeyDown={e=>e.key==="Enter"&&commit()}/>
     : <b>{value}</b>;
 
-  return <div className="psscreen">
-
-    {/* 1 — the scroller: the film, its resolve, and the settings, in that order */}
-    <div className="psscroll" ref={scroller} onScroll={onScroll}>
-
-      <div className="psstage" ref={stage}>
-        <video className="psvid" key={p.id} ref={vid} src={psFilm(lookOf(p.id))}
-          muted loop autoPlay playsInline preload="auto"
-          style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>
-      </div>
-      <div className="psfade"/>
-
-      <div className="pscontent">
+  return <PsShell filmId={lookOf(p.id)} title="Personality &amp; Settings"
+    line={sampleLine(preset,tune)}>
 
         {/* ── PERSONALITY ──────────────────────────────────────────────── */}
         <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
@@ -3163,24 +3200,7 @@ function PlantSettings({params}){
           </div>
         </div>
 
-      </div>
-    </div>
-
-    {/* 2 — the scrim: nothing at rest, solid once settings are under the title */}
-    <div className="psscrim" ref={scrim} aria-hidden="true"/>
-
-    {/* 3 — the pinned nav, and the plant's reaction bubble beside it */}
-    <div className="pshead">
-      <div className="plhead">
-        <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
-        <h1 className="pltitle">Personality &amp; Settings</h1>
-      </div>
-    </div>
-    <div className={"psbub"+(deep?" off":"")}
-      style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
-      {sampleLine(preset,tune)}
-    </div>
-  </div>;
+  </PsShell>;
 }
 
 /* ───────────────── ADD NEW PLANT (465:312) ─────────────────
@@ -3213,6 +3233,9 @@ const AP_CAM_FILM = "assets/video/add-plant.mp4";
    playback state to carry across, and it cannot end up a frame off the one the
    shutter froze. 72KB against a video element. */
 const AP_PHOTO    = "assets/photo-addplant.webp";
+/* whose settings film the character step opens on — Felix, the app's reference
+   pot, because the plant being set up has none of its own yet */
+const AP_CREATE_FILM = "felix";
 
 /* the ellipsis that shows something is happening — see .apdots */
 const Dots = ()=> <span className="apdots"><i>.</i><i>.</i><i>.</i></span>;
@@ -3225,10 +3248,10 @@ const LOOK_BY_SPECIES = { Ficus:"felix", Cannabis:"mary", Cactus:"gosha",
                           Aloe:"vera", Bonsai:"vlad" };
 const lookFor = (species)=> LOOK_BY_SPECIES[species] || "felix";
 
-function ApStep({onBack, film, filmRef, filmProps, title, sub, children, actions, inflow}){
+function ApStep({onBack, film, filmRef, filmProps, filmUp, title, sub, children, actions, inflow}){
   return <div className="apscreen">
     <div className="apbg" aria-hidden="true">
-      {film && <video className="apvid" key={film} ref={filmRef} src={film}
+      {film && <video className={"apvid"+(filmUp?" up40":"")} key={film} ref={filmRef} src={film}
         muted playsInline preload="auto" {...(filmProps || {loop:true, autoPlay:true})}/>}
     </div>
     <div className="aphead">
@@ -3295,19 +3318,20 @@ function PairDevice(){
   if(st==="searching") return <ApStep onBack={back}
     title={<>Searching for devices<Dots/></>}/>;
 
-  if(st==="found") return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps}
+  if(st==="found") return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps} filmUp
     title="Pot found nearby"
     actions={<>
       <button className="actbtn" onClick={connect}>Connect</button>
       <button className="actbtn ghost" onClick={()=>setSt("searching")}>Search again</button>
     </>}/>;
 
-  if(st==="connecting") return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps}
+  if(st==="connecting") return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps} filmUp
     title={<>Connecting<Dots/></>}/>;
 
-  return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps}
+  return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps} filmUp
     title="Your pot is paired and online"
-    actions={<button className="actbtn" onClick={()=>nav.go("capture")}>Take a photo</button>}/>;
+    actions={<button className="actbtn"
+      onClick={()=>nav.go("capture")}>Take a photo of your plant</button>}/>;
 }
 
 /* Step 2 — the camera (417:1591). A full-bleed viewfinder and a shutter, and
@@ -3393,54 +3417,62 @@ function SpeciesList(){
   </div>;
 }
 
-/* Step 4 — the character. Name, personality, voice. Every control is the
-   settings screen's own — .psfield, <PersonalitySection> and the .psvoice grid
-   — so the thing you set up on day one is not merely like the thing you edit
-   later, it is the same code rendering it.
-   Rev 31 left the sliders out here, on the reasoning that fine-tuning belongs
-   to a character you have already met. Reversed: the brief asks for the whole
-   section, and one shared component is the only way to be sure the two screens
-   cannot drift apart again. */
+/* Step 4 — the character, on the Personality & Settings screen itself.
+   Not "the same design": the same shell (<PsShell> — film, resolve, scrim,
+   pinned nav, bubble) around the same <PersonalitySection>. What you set up on
+   day one is the screen you will edit it on, down to the pot breathing behind
+   the chips and the line coming off it as you move a slider.
+
+   THE FILM IS FELIX'S, by instruction: this plant has no footage of its own and
+   the flow has not yet decided whose it borrows, so it opens on the app's
+   reference pot. It routes through psFilm()/filmId(), so the standing fallback
+   still applies if the file ever goes missing.
+
+   WHICH SECTIONS SURVIVE, and this is the call:
+     Personality  in full, per the brief — chips, scroll-to-selected, sliders.
+     General      TRIMMED to name + voice, not dropped. Dropping it whole would
+                  leave the flow with no way to name the plant, and the next
+                  screen greets it by name and the app files it under one — so
+                  "not needed here" cannot have meant that. The species row IS
+                  dropped: the screen before this one just decided it.
+     Activity     dropped whole. Message toggles and quiet hours are about
+                  living with a plant you already have.
+   The mockups stop at the photo step, so there is nothing in them to follow
+   here either way. */
 function CreateCharacter({params}){
   const nav = useNav();
   const species = (params&&params.species)||AP_SPECIES;
-  const [name,setName]     = useState("");
-  const [preset,setPreset] = useState(PERSONALITIES.presets[0].k);
-  const [tune,setTune]     = useState(personaByName(PERSONALITIES.presets[0].k).defaults);
-  const [voice,setVoice]   = useState(PS_VOICES[2]);
+  const [name,setName]       = useState("");
+  const [editing,setEditing] = useState(false);
+  const [preset,setPreset]   = useState(PERSONALITIES.presets[0].k);
+  const [tune,setTune]       = useState(personaByName(PERSONALITIES.presets[0].k).defaults);
+  const [voice,setVoice]     = useState(PS_VOICES[2]);
   const pick  = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); };
   const slide = (key,v)=>setTune(t=>({...t,[key]:v}));
+  const commit = ()=>setEditing(false);
   const finalName = name.trim() || species;
 
-  return <div className="pfscreen">
-    <div className="aphead">
-      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
-    </div>
-    <h1 className="aptitle">Give them a name and a nature</h1>
+  return <PsShell filmId={AP_CREATE_FILM} title="Name and nature"
+    line={sampleLine(preset,tune)}>
 
-    <div className="apbody">
-      <div className="apsec">
-        <h2 className="pssech">Name</h2>
-        <div className="psfield">
-          <input value={name} onChange={e=>setName(e.target.value)}
-            placeholder={"Your "+species.toLowerCase()}/>
-          <span className="psedit"><IconEdit/></span>
-        </div>
+    <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
+
+    {/* the settings screen's General row and voice grid, less the species it
+        has already been told */}
+    <div className="pssec">
+      <h2 className="pssech">General</h2>
+      <div className="psfield" onClick={()=>setEditing(true)}>
+        {editing
+          ? <input autoFocus value={name} onChange={e=>setName(e.target.value)}
+              onBlur={commit} onKeyDown={e=>e.key==="Enter"&&commit()}/>
+          : <b style={name?null:{opacity:.4}}>{name || "Your "+species.toLowerCase()}</b>}
+        <span className="psedit"><IconEdit/></span>
       </div>
-
-      {/* the settings screen's own section, not a copy of it — chips, the
-          scroll-to-selected, and the three sliders, from one component */}
-      <PersonalitySection sec="apsec" preset={preset} tune={tune}
-        onPick={pick} onSlide={slide}/>
-
-      <div className="apsec">
-        <h2 className="pssech">Voice</h2>
-        <div className="psvoice">
-          {PS_VOICES.map(v=>(
-            <div key={v} className={"psvopt"+(voice===v?" on":"")}
-              onClick={()=>setVoice(v)}>{v}</div>
-          ))}
-        </div>
+      <div className="psvoice">
+        {PS_VOICES.map(v=>(
+          <div key={v} className={"psvopt"+(voice===v?" on":"")}
+            onClick={()=>setVoice(v)}>{v}</div>
+        ))}
       </div>
     </div>
 
@@ -3448,7 +3480,7 @@ function CreateCharacter({params}){
       <button className="actbtn"
         onClick={()=>nav.go("meeting",{name:finalName,species,preset,voice})}>Say hello</button>
     </div>
-  </div>;
+  </PsShell>;
 }
 
 /* The flow ends by actually adding the plant. PLANTS and CHAT_INIT are this
