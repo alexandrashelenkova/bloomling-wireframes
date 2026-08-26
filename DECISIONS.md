@@ -3593,8 +3593,9 @@ errors and no exceptions on any screen; no broken images anywhere.**
 - **Connect** — t 0 paused on arrival and still 0 a beat later; 1.71 → 3.71
   playing; 5.04 paused and `ended`, title "Your pot is paired and online".
 - **Camera** — screen 336×770, film **585×874** at x −125 (centred) and y −48
-  (behind the status bar), shutter **84×84** centred at (168, 761) i.e. 23px off
-  the foot, chevron at (14, 37).
+  (behind the status bar), shutter **84×84** at (126, 663) i.e. its box 23px off
+  the foot and its centre **65px** off it, which is `472:315`'s own clearance
+  (874 − 809). Chevron at (14, 37).
 - **Shutter** — t **2.918** of 2.958, paused, loop off, overlay up with
   "Recognising your plant…".
 - **Result** — "Looks like it's a Ficus", **no** `.apsub`, the photo at 240×320
@@ -3607,3 +3608,25 @@ errors and no exceptions on any screen; no broken images anywhere.**
 - **End to end** — pair → camera → shutter → result → name + preset → meeting →
   Dashboard, with the new plant in the chat and a sixth card in My Plants. Back
   steps out of the machine to idle, then out of the flow to My Plants.
+
+## Shipped
+
+Commit `00cdaa0` → `origin/main`, Vercel production
+`dpl_B5vDmV3eCwvQjcKAGNuvqCvMCaSo`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site. The only console line is the browser's own
+automatic `GET /favicon.ico`, which this prototype has never declared.
+
+- **Assets** — `add-plant.mp4` **855 388** bytes, `photo-addplant.webp`
+  **72 366**, both 200.
+- **Dots** — three `<i>`, `apdot1` / `apdot2` / `apdot3`, 1.8s each.
+- **Connect** — held at **t 0 paused**, then 1.71 → 3.71 playing, then **5.04
+  paused and `ended`** with the title on "Your pot is paired and online".
+- **Camera** — film 585×874 at (−125, −48), shutter 84×84 at (126, 663),
+  chevron at (14, 37); the shutter freezes the film at **t 2.918 of 2.958**,
+  paused with the loop off, and raises "Recognising your plant…".
+- **Result** — "Looks like it's a Ficus", no grey helper line, the frozen photo
+  at 240×320 from a 720×1075 source.
+- **Plant Detail** — `.pdresolve` absent, `.pdbg` background-image `none`, the
+  four blur layers ramping 8 / 14 / 26 / 48px.
