@@ -3447,3 +3447,163 @@ prototype has never declared.
 - **The whole flow** walks: idle → searching → found (film) → connecting →
   paired → viewfinder → reading → "We think it's a Ficus", every frame with the
   mockup's own copy and actions.
+
+---
+
+# Revision 32 — the pairing film becomes the wait, the camera arrives, and the detail screen loses its band
+
+## 1 — The working ellipsis
+
+One dot, two, three, then all three go and it starts again: 450ms a step, 1.8s a
+cycle, on `ease-in-out` so each one arrives rather than snaps.
+
+**Opacity, not content.** The three dots are always in the line, so its width
+never changes and the centred serif headline never jumps as the animation runs —
+which is the whole reason not to do this by rewriting `textContent`. Three
+keyframe sets rather than one plus `animation-delay`, because each dot appears
+at its own moment but they all leave together, and a single set cannot say that.
+
+**Applied to all three progress lines**, not just the one asked for: "Searching
+for devices", "Connecting" and "Recognising your plant" are the same sentence in
+three places, and a loader that animates on one of them and not the others reads
+as a bug.
+
+## 2 — The pairing film IS the connecting animation
+
+It used to loop as decoration beside a 1.6s timer. Now it holds on its **first
+frame** while the pot is merely found, plays **once** when Connect is pressed,
+and its own `ended` is what advances the screen to "Your pot is paired and
+online", where it stays frozen on its **last frame**. The wait is the pot's own
+five seconds of LED rather than a number someone chose, and this component has
+one fewer constant than it did.
+
+One element across all three film frames — same `src`, same `key`, so React
+keeps it — which is what makes "press Connect on the film that is already
+showing you its first frame" true rather than approximately true.
+
+- **"Connecting" keeps its own frame**, which the brief does not require. The
+  text has to say something true while those five seconds run, and `465:286`
+  already decided what.
+- **Back rewinds.** Leaving the machine pauses the film and returns it to 0, so
+  coming back in finds the first frame again rather than wherever you left.
+
+Measured: held at **t 0, paused** on arrival; **t 1.71 → 3.71** while
+connecting; **t 5.04, paused, ended** with the title changed.
+
+## 3 — The camera (417:1591)
+
+A full-bleed viewfinder and a shutter, and nothing else — the mockup draws no
+chrome at all. `add-plant.mp4` plays it, muted, `playsInline`, no controls,
+**sized by HEIGHT to the mockup frame's own 874** and centred: 874 × 1176/1756 =
+585.4, which is `472:319`'s own width to half a pixel. Same rule the pairing film
+follows, same reason — it keeps every vertical the mockup drew on a device that
+is proportionally taller.
+
+- **The viewfinder needs its own clipping box.** `472:319` starts at the frame's
+  y 0, i.e. behind the status bar, so `.cambg` is that box (`top:-48`,
+  `overflow:hidden`) and `.camscreen` must NOT clip, exactly as `.pdbg` is one
+  for the detail screen's film. The first pass clipped at the screen and the
+  film simply started 48px too low.
+- **The shutter is bottom-anchored**, at the 65px the mockup leaves under it
+  (874 − 809), not at an absolute 809. The device is 818 against an 874 frame,
+  so a top-anchored 809 hangs it off the bottom edge — which is exactly what the
+  first pass did.
+- **The chevron is added back.** The mockup draws none; a flow you cannot back
+  out of is not a flow. White with a drop shadow, because what is behind it is a
+  photograph.
+
+## 4 — Shutter → freeze → recogniser
+
+One gesture, three effects: kill the loop (or the freeze wraps to 0), pause, and
+seek to `duration − 0.04`. The recogniser raises over the frozen frame for 1.8s.
+It is the app's own `.spin` geometry in white on a 45% scrim, because what it
+sits on is a photograph and a sage ring on a page tint would vanish into it.
+Measured after the tap: **t 2.918 of 2.958, paused, loop off**.
+
+## 5 — The result
+
+"Looks like it's a Ficus", and the grey helper line is gone — the two buttons
+under it already say what the choices are.
+
+**The photo is `add-plant.mp4`'s last frame exported once, not a live `<video>`
+seeked to its end.** A still is what this screen actually shows; it survives the
+screen change with no playback state to carry across, it cannot end up a frame
+off the one the shutter froze, and it is 72KB against a second video element.
+The box becomes 240×320 and `object-fit:cover`, because a photograph has no
+transparent margin to sit politely inside one.
+
+The photo only exists for the species the recogniser returns by default. A
+manual override lands on `create` directly, so the mismatch never appears.
+
+## 6 — The personality step is the personality section
+
+Not "the same design" — the same component. `PersonalitySection` owns the chips
+row, the scroll-the-chosen-one-into-view, and the three sliders, and both
+Personality & Settings and the Add Plant flow render it.
+
+**This reverses rev 31**, which shipped the flow with chips and no sliders on the
+reasoning that fine-tuning belongs to a character you have already met. The brief
+says otherwise, and one shared component is the only way to be sure the two
+screens cannot drift apart again — which was rev 31's own argument for the chips,
+applied properly.
+
+Measured on both screens: the same six chips, the same `.pscard`, the same three
+sliders reading **Warmth / Drama / Chattiness**, the same defaults (84 / 50 / 84
+for Friendly), and the reveal scrolling the row identically.
+
+*Six presets, not eight — the brief's number again. `PERSONALITIES.presets` is
+the single source of truth both screens read, and `440:356` draws six.*
+
+## 7 — Plant Detail loses the band
+
+Rev 30 laid 88px of transparent-into-page over the film's bottom edge, welded to
+it by the film's own box and transform. It is **removed**. As the cards climb the
+film it reads as a second, competing edge over the one the progressive blur is
+already softening, and two treatments doing one job is one too many. The blur is
+the whole of it now — four masked `backdrop-filter` layers at 8 / 14 / 26 / 48px,
+untouched.
+
+**Personality & Settings keeps its resolve.** That screen has no blur, so there
+the band IS the treatment rather than a rival to one — and `441:421` is still the
+mockup for it.
+
+## The film
+
+`add-plant.mp4` on the same terms as everything else in `assets/video`: H.264,
+`-preset slow`, CRF 26, `-an`, `+faststart`. **4 603 040 → 855 388 bytes
+(18.6%)**, SSIM **0.9869**, and it arrived with an audio track, now stripped.
+
+- **0.5s GOP (`-g 12` at 24fps).** The clip is seeked to its own end exactly
+  once, when the shutter freezes it, and a keyframe near there makes that
+  instant. Cheaper than the growth films' 0.25s because one seek is not a scrub.
+- **Resolution unchanged at 1176×1756.** Drawn 585×874, that is 1170×1748 at
+  DPR 2 — the source, near enough exactly.
+- **SSIM 0.9869 is lower than the pot films' 0.993–0.997 and that is expected**:
+  this is a real photographic scene with window detail and bokeh, where those
+  are a product render on a seamless background. Inspected at full size, no
+  visible artefacts.
+- `photo-addplant.webp`, the exported last frame: 720×1075, **72 366 bytes**.
+
+## Verification
+
+Headless Chrome over CDP, real `Input.dispatchMouseEvent`, DPR 2. **No console
+errors and no exceptions on any screen; no broken images anywhere.**
+
+- **Dots** — three `<i>`, three distinct keyframe names, 1.8s each.
+- **Connect** — t 0 paused on arrival and still 0 a beat later; 1.71 → 3.71
+  playing; 5.04 paused and `ended`, title "Your pot is paired and online".
+- **Camera** — screen 336×770, film **585×874** at x −125 (centred) and y −48
+  (behind the status bar), shutter **84×84** centred at (168, 761) i.e. 23px off
+  the foot, chevron at (14, 37).
+- **Shutter** — t **2.918** of 2.958, paused, loop off, overlay up with
+  "Recognising your plant…".
+- **Result** — "Looks like it's a Ficus", **no** `.apsub`, the photo at 240×320
+  from a 720×1075 source.
+- **Personality** — identical chips, card, slider labels and values on the
+  settings screen (`.pssec`) and in the flow (`.apsec`); tapping the sixth chip
+  scrolls the row to 440 and re-tunes the sliders to that preset.
+- **Plant Detail** — `.pdresolve` **absent**, `.pdbg` background-image **none**,
+  the four blur layers present and ramping 8 / 14 / 26 / 48px.
+- **End to end** — pair → camera → shutter → result → name + preset → meeting →
+  Dashboard, with the new plant in the chat and a sixth card in My Plants. Back
+  steps out of the machine to idle, then out of the flow to My Plants.

@@ -329,10 +329,10 @@
      top:-48px reaches back up over the status bar, which is what makes the
      bleed reach the actual top of the screen; .device's own overflow+radius
      clip it back to the phone. */
-  /* Whatever the film does not cover is simply the page. The resolve that used
-     to live here as this box's BACKGROUND — a #C8C8BC ramp painted UNDER the
-     film — is gone: 458:65 puts it ON TOP of the film instead, so it is its own
-     element now (see .pdresolve) and this layer is flat --bg. */
+  /* Whatever the film does not cover is simply the page. Nothing is painted
+     over the film's bottom edge here any more — rev 30's .pdresolve is gone
+     (see the note where it used to live), so the progressive blur under the
+     cards is this screen's whole treatment, exactly as it was before. */
   .pdbg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
     background:var(--bg);z-index:0}
 
@@ -362,31 +362,15 @@
      the still one in the stack, so a single opacity drives the cross-fade */
   .pdvid-grow{opacity:0;will-change:opacity;transition:opacity 180ms linear}
 
-  /* ── THE RESOLVE, ON TOP OF THE FILM (458:65) ─────────────────────────────
-     88px of transparent-into-page, laid OVER the film with its bottom edge on
-     the film's own bottom edge. All three states agree on that anchor and on
-     nothing else, which is what makes it the rule rather than a coincidence:
-     428:1782 has the film at -184 (bottom 811) and the rect at 723…811, while
-     441:633 and 444:18 have it at 0 (bottom 995) and the rect at 907…995.
+  /* ── WHERE THE RESOLVE USED TO BE (458:65) ────────────────────────────────
+     Rev 30 laid 88px of transparent-into-page over the film's bottom edge here,
+     welded to it by the film's own box and transform. It is removed: as the
+     cards climb the film the band reads as a second, competing edge over the
+     one the blur is already softening, and two treatments doing one job is one
+     too many. The progressive blur below is the whole of it now.
+     Personality & Settings keeps its resolve — that screen has no blur, and
+     there the band IS the treatment rather than a rival to one. */
 
-     So the resolve is given the FILM'S OWN BOX — same left, same width, same
-     aspect-ratio — and the same Y transform on the same 420ms curve as
-     .pdvid-still. Its bottom edge is then the film's bottom edge by
-     construction rather than by arithmetic, and the two glide together with no
-     second number to keep in sync. It runs 457px wide like the film and .pdbg
-     clips it back to the device; the gradient is vertical, so the overhang
-     costs nothing.
-
-     The stops are the mockup's own: transparent --bg to 16.837%, full --bg by
-     50%, solid the rest of the way. It reads as the page arriving over the
-     film's last 70px rather than as a band sitting under it. */
-  .pdresolve{position:absolute;left:-6.716%;top:0;width:113.681%;
-    aspect-ratio:976 / 2124;pointer-events:none;z-index:1;
-    transform:translate3d(0,0,0);will-change:transform;
-    transition:transform 420ms cubic-bezier(.33,.72,.26,1)}
-  .pdresolve::after{content:"";position:absolute;left:0;right:0;bottom:0;
-    height:88px;
-    background:linear-gradient(180deg,rgba(237,238,233,0) 16.837%,#EDEEE9 50%)}
   /* ── PROGRESSIVE BLUR UNDER THE CARDS ─────────────────────────────────────
      Four stacked backdrop-filters, each masked in over its own band, so the
      blur RAMPS instead of starting at an edge. Sibling backdrop-filters
@@ -836,6 +820,74 @@
   .apsec{margin-top:40px}
   .aplist{position:relative;z-index:1;margin:24px -11px 0;
     display:flex;flex-direction:column;gap:5px}
+  /* the recognised photo, when it is a photo rather than a render: 4:3 portrait
+     and cropped to fill, because a photograph has no transparent margin to sit
+     politely inside one */
+  .apshot.photo{width:240px;height:320px}
+  .apshot.photo img{object-fit:cover}
+
+  /* ── THE WORKING ELLIPSIS ─────────────────────────────────────────────────
+     One dot, two, three, then all three go and it starts again — 450ms a step,
+     1.8s a cycle. OPACITY, not content: the three dots are always in the line,
+     so its width never changes and the centred headline never jumps as the
+     animation runs. Three keyframe sets rather than one with delays, because
+     each dot appears at its own moment but they all leave together, which a
+     single set plus animation-delay cannot express. */
+  .apdots{display:inline}
+  .apdots i{font-style:normal;opacity:0;animation:apdot1 1.8s ease-in-out infinite}
+  .apdots i:nth-child(2){animation-name:apdot2}
+  .apdots i:nth-child(3){animation-name:apdot3}
+  @keyframes apdot1{0%{opacity:0} 8%,72%{opacity:1} 80%,100%{opacity:0}}
+  @keyframes apdot2{0%,25%{opacity:0} 33%,72%{opacity:1} 80%,100%{opacity:0}}
+  @keyframes apdot3{0%,50%{opacity:0} 58%,72%{opacity:1} 80%,100%{opacity:0}}
+
+  /* ══════════ CAMERA (417:1591) ══════════
+     A full-bleed viewfinder and a shutter, and nothing else — the mockup draws
+     no chrome at all. The film is sized by HEIGHT to the mockup frame's own 874
+     and centred, the same rule the pairing film follows and for the same
+     reason: it keeps every vertical the mockup drew on a device that is
+     proportionally taller. 874 × 1176/1756 = 585.4, which is 472:319's own
+     width to half a pixel. */
+  .camscreen{flex:1 1 auto;position:relative;overflow:visible}
+  /* the viewfinder reaches back over the status bar — 472:319 starts at the
+     frame's own y 0 — so it needs its own clipping box, exactly as .pdbg is
+     one for the detail screen's film. The screen itself must not clip, or the
+     -48 would simply be cut off. */
+  .cambg{position:absolute;left:0;right:0;top:-48px;bottom:0;overflow:hidden;
+    background:#000;z-index:0}
+  .camvid{position:absolute;left:50%;top:0;transform:translateX(-50%);
+    height:874px;aspect-ratio:1176 / 1756;display:block;border:0;
+    pointer-events:none}
+  /* 472:315/316 — a 70px white disc inside an 84px ring of 2px white, both
+     centred on the frame's 201 with the disc's own centre on 809. Anchored to
+     the BOTTOM, at the 65px the mockup leaves under it (874 − 809), not to the
+     top: the device is 818 tall against a 874 frame, so an absolute 809 would
+     hang the shutter off the bottom edge. 65 − 42 = 23. */
+  .camshutter{position:absolute;left:50%;bottom:23px;
+    transform:translateX(-50%);width:84px;height:84px;border-radius:50%;
+    padding:0;cursor:pointer;background:transparent;border:2px solid #FFF;
+    display:flex;align-items:center;justify-content:center;z-index:2}
+  .camshutter::after{content:"";width:70px;height:70px;border-radius:50%;
+    background:#FFF;transition:transform 120ms ease-out}
+  .camshutter:active::after{transform:scale(.88)}
+  /* the chevron the mockup does not draw and the flow cannot do without —
+     white, with a shadow, because what is behind it is a photograph */
+  .camback{position:absolute;left:14px;top:37px;width:24px;height:24px;
+    cursor:pointer;color:#FFF;z-index:2;
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));
+    display:flex;align-items:center;justify-content:center}
+  .camback:active{opacity:.6}
+  /* recognising — the app's own .spin geometry in white, so it reads on a
+     photograph, over a scrim that dims the frozen frame just enough to say the
+     viewfinder has stopped being live */
+  .camwait{position:absolute;left:0;right:0;top:-48px;bottom:0;z-index:2;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:20px;background:rgba(5,5,5,.45);color:#FFF;
+    font-size:var(--t-md);line-height:1.25;
+    text-shadow:0 1px 4px rgba(0,0,0,.5)}
+  .camwait > i{width:48px;height:48px;border-radius:50%;
+    border:3px solid rgba(255,255,255,.35);border-top-color:#FFF;
+    animation:spin .8s linear infinite}
 
   /* ══════════ PERSONALITY & SETTINGS — full-bleed (Figma 446:93) ══════════
      A 402×818 frame in the mockup against this file's 386×818 device, so every
@@ -2573,10 +2625,6 @@ function PlantDetail({params}){
       <video className="pdvid pdvid-grow" key={film.growth} ref={growV} src={film.growth}
         muted playsInline preload="auto" onLoadedMetadata={onGrowMeta}
         style={{opacity:gOn?1:0}}/>
-      {/* the resolve rides the still film's Y, so it stays welded to the film's
-          bottom edge through the -184 ⇄ 0 glide */}
-      <div className="pdresolve" aria-hidden="true"
-        style={{transform:"translate3d(0,"+sy+"px,0)"}}/>
       {/* four masked backdrop-filters that ramp into one another; syncBlur()
           writes the top edge from the cards' measured position */}
       <div className="pdblur" ref={blurEl} aria-hidden="true">
@@ -2917,6 +2965,59 @@ const PS_TALK_MAX = PS_STAGE - 163 - 89;          // 410
    this list is local to this screen rather than a change to the shared set. */
 const PS_VOICES = ["Male","Female","Prefer not to choose"];
 
+/* ── THE PERSONALITY SECTION, ONE COMPONENT ─────────────────────────────────
+   The chips row and the three sliders belong together, and two screens want
+   them: Personality & Settings, where you tune a character you have already
+   met, and the Add Plant flow, where you give it one. Rev 31 shipped the flow
+   with chips only, on the reasoning that the sliders are a later-refinement
+   affordance — the brief says otherwise, so rather than adding a second copy
+   that can drift, the section became one component and both screens render it.
+
+   The reveal lives here too, so "tapping a half-cut chip scrolls it fully into
+   view" is one implementation rather than two. The row is 774px against a 386px
+   screen; neither edge is special (the same two lines handle both) and 24px of
+   clearance is the chips' own side padding, so a revealed chip sits exactly one
+   pad from the edge rather than flush against it. Measured through
+   getBoundingClientRect against the row, not offsetLeft: .pschips is not
+   positioned, so offsetParent is the content column and offsetLeft would be
+   measuring the wrong box. */
+function PersonalitySection({preset, tune, onPick, onSlide, sec}){
+  const chipRow = useRef(null);
+  const reveal = (el)=>{
+    const row = chipRow.current;
+    if(!row || !el || !row.scrollTo) return;
+    const r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    const left  = row.scrollLeft + (r.left  - rr.left) - PS_CHIP_PAD;
+    const right = row.scrollLeft + (r.right - rr.left) + PS_CHIP_PAD;
+    let to = row.scrollLeft;
+    if(right > to + row.clientWidth) to = right - row.clientWidth;
+    if(left  < to)                   to = left;
+    to = Math.max(0, Math.min(to, row.scrollWidth - row.clientWidth));
+    if(Math.abs(to - row.scrollLeft) > 1) row.scrollTo({left:to, behavior:"smooth"});
+  };
+  return <div className={sec || "pssec"}>
+    <h2 className="pssech">Personality</h2>
+    <div className="pschips" ref={chipRow}>
+      {PERSONALITIES.presets.map(x=>(
+        <div key={x.k} className={"pschip"+(preset===x.k?" on":"")}
+          onClick={ev=>{ onPick(x.k); reveal(ev.currentTarget); }}>{x.k}</div>
+      ))}
+    </div>
+    <div className="pscard" style={{marginTop:"14px"}}>
+      {PERSONALITIES.sliders.map(sl=>(
+        <div className="psrow" key={sl.key}>
+          <div className="pslab">{sl.label}
+            <span>{wordFor(sl.words, tune[sl.key])}</span></div>
+          <input type="range" className="psrange" min="0" max="100" step="1"
+            value={tune[sl.key]} aria-label={sl.label}
+            onChange={e=>onSlide(sl.key, Number(e.target.value))}
+            style={{"--v": tune[sl.key] + "%"}}/>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
 function PlantSettings({params}){
   const nav = useNav();
   const p = plantById((params&&params.id)||"felix");
@@ -2954,28 +3055,6 @@ function PlantSettings({params}){
 
   const pick = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); };
   const slide = (key,v)=>setTune(t=>({...t,[key]:v}));
-
-  /* ── the chip row scrolls the chosen preset fully into view ───────────────
-     The row is 774px against a 386px screen, so tapping a chip that is half
-     off the edge selects something you cannot read. Neither edge is special —
-     the same two lines handle both — and 24px of clearance is the chips' own
-     side padding, so a revealed chip sits exactly one pad from the edge rather
-     than flush against it. Measured through getBoundingClientRect against the
-     row, not offsetLeft: .pschips is not positioned, so offsetParent is the
-     content column and offsetLeft would be measuring the wrong box. */
-  const chipRow = useRef(null);
-  const reveal = (el)=>{
-    const row = chipRow.current;
-    if(!row || !el || !row.scrollTo) return;
-    const r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
-    const left  = row.scrollLeft + (r.left  - rr.left) - PS_CHIP_PAD;
-    const right = row.scrollLeft + (r.right - rr.left) + PS_CHIP_PAD;
-    let to = row.scrollLeft;
-    if(right > to + row.clientWidth) to = right - row.clientWidth;
-    if(left  < to)                   to = left;
-    to = Math.max(0, Math.min(to, row.scrollWidth - row.clientWidth));
-    if(Math.abs(to - row.scrollLeft) > 1) row.scrollTo({left:to, behavior:"smooth"});
-  };
 
   /* ── the scroll states ────────────────────────────────────────────────────
      One read per frame, rAF-coalesced, and written straight to the nodes — the
@@ -3034,27 +3113,7 @@ function PlantSettings({params}){
       <div className="pscontent">
 
         {/* ── PERSONALITY ──────────────────────────────────────────────── */}
-        <div className="pssec">
-          <h2 className="pssech">Personality</h2>
-          <div className="pschips" ref={chipRow}>
-            {PERSONALITIES.presets.map(x=>(
-              <div key={x.k} className={"pschip"+(preset===x.k?" on":"")}
-                onClick={ev=>{ pick(x.k); reveal(ev.currentTarget); }}>{x.k}</div>
-            ))}
-          </div>
-          <div className="pscard" style={{marginTop:"14px"}}>
-            {PERSONALITIES.sliders.map(sl=>(
-              <div className="psrow" key={sl.key}>
-                <div className="pslab">{sl.label}
-                  <span>{wordFor(sl.words, tune[sl.key])}</span></div>
-                <input type="range" className="psrange" min="0" max="100" step="1"
-                  value={tune[sl.key]} aria-label={sl.label}
-                  onChange={e=>slide(sl.key, Number(e.target.value))}
-                  style={{"--v": tune[sl.key] + "%"}}/>
-              </div>
-            ))}
-          </div>
-        </div>
+        <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
 
         {/* ── GENERAL ──────────────────────────────────────────────────────
             The pencil is a real affordance: tapping the row (or the pencil)
@@ -3146,7 +3205,17 @@ function PlantSettings({params}){
    encyclopedia hung off a pairing flow, and nothing in these mockups has more
    than one idea on a screen. The manual list survives as the escape hatch. */
 
-const AP_FILM = "assets/video/bt.mp4";
+const AP_FILM     = "assets/video/bt.mp4";
+const AP_CAM_FILM = "assets/video/add-plant.mp4";
+/* The photo the recogniser "took" — add-plant.mp4's own last frame, exported
+   once rather than held on a live <video> seeked to its end. A still is what
+   the result screen actually shows, it survives the screen change with no
+   playback state to carry across, and it cannot end up a frame off the one the
+   shutter froze. 72KB against a video element. */
+const AP_PHOTO    = "assets/photo-addplant.webp";
+
+/* the ellipsis that shows something is happening — see .apdots */
+const Dots = ()=> <span className="apdots"><i>.</i><i>.</i><i>.</i></span>;
 
 /* What the recogniser returns in this prototype, and the plant whose render,
    avatar and film stand in for each species. A new plant has no art of its own,
@@ -3156,11 +3225,11 @@ const LOOK_BY_SPECIES = { Ficus:"felix", Cannabis:"mary", Cactus:"gosha",
                           Aloe:"vera", Bonsai:"vlad" };
 const lookFor = (species)=> LOOK_BY_SPECIES[species] || "felix";
 
-function ApStep({onBack, film, title, sub, children, actions, inflow}){
+function ApStep({onBack, film, filmRef, filmProps, title, sub, children, actions, inflow}){
   return <div className="apscreen">
     <div className="apbg" aria-hidden="true">
-      {film && <video className="apvid" key={film} src={film}
-        muted loop autoPlay playsInline preload="auto"/>}
+      {film && <video className="apvid" key={film} ref={filmRef} src={film}
+        muted playsInline preload="auto" {...(filmProps || {loop:true, autoPlay:true})}/>}
     </div>
     <div className="aphead">
       {onBack && <span className="plback" onClick={onBack} title="Back">
@@ -3177,19 +3246,44 @@ function ApStep({onBack, film, title, sub, children, actions, inflow}){
    The film (bt.mp4, the pot with its Bluetooth LED breathing) appears exactly
    where the mockups put the pot: on found, connecting and paired, and not on
    the two frames that have nothing to show yet.
+
+   AND IT IS NOW THE CONNECTING ANIMATION, not decoration. It holds on its first
+   frame while the pot is merely found, plays once — no loop — when Connect is
+   pressed, and its `ended` is what advances the screen to "paired and online",
+   where it stays frozen on its last frame. So the wait is the pot's own 5s of
+   LED rather than a timer that happens to run beside a loop, and there is one
+   fewer number in this component than there was.
+
+   "Connecting" still gets its own frame, which the brief does not require and
+   465:286 does draw: the text has to say something true while those 5 seconds
+   run, and the mockup already decided what.
+
    Back inside the machine returns to idle rather than leaving the flow — the
    chevron is drawn on every frame, and on four of them the thing behind you is
    the previous state, not the previous screen. */
 function PairDevice(){
   const nav = useNav();
   const [st,setSt] = useState("idle");   // idle → searching → found → connecting → done
+  const btV = useRef(null);
   useEffect(()=>{
     let t;
-    if(st==="searching")  t=setTimeout(()=>setSt("found"),1700);
-    if(st==="connecting") t=setTimeout(()=>setSt("done"),1600);
+    if(st==="searching") t=setTimeout(()=>setSt("found"),1700);
     return ()=>clearTimeout(t);
   },[st]);
-  const back = ()=> st==="idle" ? nav.back() : setSt("idle");
+  const back = ()=>{
+    const v = btV.current;
+    if(v){ v.pause(); v.currentTime = 0; }
+    return st==="idle" ? nav.back() : setSt("idle");
+  };
+  const connect = ()=>{
+    setSt("connecting");
+    const v = btV.current;
+    if(v){ v.currentTime = 0; const q = v.play(); if(q && q.catch) q.catch(()=>{}); }
+  };
+  /* one element across all three film frames — same src, same key — so pressing
+     Connect on "found" plays the very film that is already showing its first
+     frame, and "paired" is that same film left where it stopped. */
+  const filmProps = { loop:false, onEnded:()=>setSt("done") };
   const film = (st==="found"||st==="connecting"||st==="done") ? AP_FILM : null;
 
   if(st==="idle") return <ApStep onBack={back}
@@ -3198,53 +3292,78 @@ function PairDevice(){
     inflow
     actions={<button className="actbtn" onClick={()=>setSt("searching")}>Start searching</button>}/>;
 
-  if(st==="searching") return <ApStep onBack={back} title="Searching for devices…"/>;
+  if(st==="searching") return <ApStep onBack={back}
+    title={<>Searching for devices<Dots/></>}/>;
 
-  if(st==="found") return <ApStep onBack={back} film={film} title="Pot found nearby"
+  if(st==="found") return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps}
+    title="Pot found nearby"
     actions={<>
-      <button className="actbtn" onClick={()=>setSt("connecting")}>Connect</button>
+      <button className="actbtn" onClick={connect}>Connect</button>
       <button className="actbtn ghost" onClick={()=>setSt("searching")}>Search again</button>
     </>}/>;
 
-  if(st==="connecting") return <ApStep onBack={back} film={film} title="Connecting…"/>;
+  if(st==="connecting") return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps}
+    title={<>Connecting<Dots/></>}/>;
 
-  return <ApStep onBack={back} film={film} title="Your pot is paired and online"
+  return <ApStep onBack={back} film={film} filmRef={btV} filmProps={filmProps}
+    title="Your pot is paired and online"
     actions={<button className="actbtn" onClick={()=>nav.go("capture")}>Take a photo</button>}/>;
 }
 
-/* Step 2 — the photo. Two states on the pairing screen's own rhythm: an action,
-   then a progress line with nothing else on it, then the result on its own
-   screen so Back lands on the viewfinder rather than on a spinner. */
+/* Step 2 — the camera (417:1591). A full-bleed viewfinder and a shutter, and
+   nothing else: the mockup draws no chrome, and the only thing added back is
+   the chevron, because a flow you cannot back out of is not a flow.
+
+   The shutter does three things in one gesture — stops the loop, freezes the
+   film on its LAST frame, and raises the recogniser over it — so the frozen
+   frame IS the photograph, and the still the next screen shows is that same
+   frame exported. Nothing is captured at runtime and nothing can drift. */
 function CapturePhoto(){
   const nav = useNav();
-  const [st,setSt] = useState("frame");   // frame → reading → (push) identify
+  const [st,setSt] = useState("live");   // live → reading → (push) identify
+  const camV = useRef(null);
   useEffect(()=>{
     let t;
     if(st==="reading") t=setTimeout(()=>nav.go("identify"),1800);
     return ()=>clearTimeout(t);
   },[st]);
 
-  if(st==="reading") return <ApStep onBack={()=>setSt("frame")} title="Reading your photo…"/>;
+  const shoot = ()=>{
+    const v = camV.current;
+    if(v){
+      v.loop = false;                       // or the freeze would wrap to 0
+      v.pause();
+      if(v.duration) v.currentTime = Math.max(0, v.duration - 0.04);
+    }
+    setSt("reading");
+  };
 
-  return <ApStep onBack={nav.back} title="Now point it at your plant"
-    sub="Fit the whole plant in the frame — the species is read off the photo."
-    actions={<button className="actbtn" onClick={()=>setSt("reading")}>Take the photo</button>}>
-    <div className="apframe">Viewfinder</div>
-  </ApStep>;
+  return <div className="camscreen">
+    <div className="cambg" aria-hidden="true">
+      <video className="camvid" ref={camV} src={AP_CAM_FILM}
+        muted loop autoPlay playsInline preload="auto"/>
+    </div>
+    <span className="camback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+    {st==="live"
+      ? <button className="camshutter" onClick={shoot} aria-label="Take the photo"/>
+      : <div className="camwait"><i/><span>Recognising your plant<Dots/></span></div>}
+  </div>;
 }
 
 /* Step 3 — the read, handed back as one species to confirm or override. */
 function IdentifyPlant({params}){
   const nav = useNav();
   const species = (params&&params.species)||AP_SPECIES;
-  const shot = SHOT[lookFor(species)];
-  return <ApStep onBack={nav.back} title={"We think it's a "+species}
-    sub="Say yes and the pot sets itself up for one. Not right? Pick the species yourself."
+  /* The photo the shutter froze, not a render of the species: the screen is
+     showing you back what it just looked at, and the two must be the same
+     picture. It only has one for the plant it recognises by default — a manual
+     override lands on `create` directly, so the mismatch never appears. */
+  return <ApStep onBack={nav.back} title={"Looks like it's a "+species}
     actions={<>
       <button className="actbtn" onClick={()=>nav.go("create",{species})}>Yes, that's my plant</button>
       <button className="actbtn ghost" onClick={()=>nav.go("species")}>Choose the species myself</button>
     </>}>
-    {shot && <div className="apshot"><img src={shot.src} alt=""/></div>}
+    <div className="apshot photo"><img src={AP_PHOTO} alt=""/></div>
   </ApStep>;
 }
 
@@ -3274,30 +3393,23 @@ function SpeciesList(){
   </div>;
 }
 
-/* Step 4 — the character. Name, personality, voice, and nothing else: the
-   sliders belong to Personality & Settings, where you tune a character you have
-   already met. Every control here is that screen's own — .psfield, the .pschips
-   row with its scroll-the-chosen-one-into-view, and the .psvoice grid — so the
-   thing you set up on day one is visibly the thing you edit later. */
+/* Step 4 — the character. Name, personality, voice. Every control is the
+   settings screen's own — .psfield, <PersonalitySection> and the .psvoice grid
+   — so the thing you set up on day one is not merely like the thing you edit
+   later, it is the same code rendering it.
+   Rev 31 left the sliders out here, on the reasoning that fine-tuning belongs
+   to a character you have already met. Reversed: the brief asks for the whole
+   section, and one shared component is the only way to be sure the two screens
+   cannot drift apart again. */
 function CreateCharacter({params}){
   const nav = useNav();
   const species = (params&&params.species)||AP_SPECIES;
   const [name,setName]     = useState("");
   const [preset,setPreset] = useState(PERSONALITIES.presets[0].k);
+  const [tune,setTune]     = useState(personaByName(PERSONALITIES.presets[0].k).defaults);
   const [voice,setVoice]   = useState(PS_VOICES[2]);
-  const chipRow = useRef(null);
-  const reveal = (el)=>{
-    const row = chipRow.current;
-    if(!row || !el || !row.scrollTo) return;
-    const r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
-    const left  = row.scrollLeft + (r.left  - rr.left) - PS_CHIP_PAD;
-    const right = row.scrollLeft + (r.right - rr.left) + PS_CHIP_PAD;
-    let to = row.scrollLeft;
-    if(right > to + row.clientWidth) to = right - row.clientWidth;
-    if(left  < to)                   to = left;
-    to = Math.max(0, Math.min(to, row.scrollWidth - row.clientWidth));
-    if(Math.abs(to - row.scrollLeft) > 1) row.scrollTo({left:to, behavior:"smooth"});
-  };
+  const pick  = (k)=>{ setPreset(k); setTune(personaByName(k).defaults); };
+  const slide = (key,v)=>setTune(t=>({...t,[key]:v}));
   const finalName = name.trim() || species;
 
   return <div className="pfscreen">
@@ -3316,15 +3428,10 @@ function CreateCharacter({params}){
         </div>
       </div>
 
-      <div className="apsec">
-        <h2 className="pssech">Personality</h2>
-        <div className="pschips" ref={chipRow}>
-          {PERSONALITIES.presets.map(x=>(
-            <div key={x.k} className={"pschip"+(preset===x.k?" on":"")}
-              onClick={ev=>{ setPreset(x.k); reveal(ev.currentTarget); }}>{x.k}</div>
-          ))}
-        </div>
-      </div>
+      {/* the settings screen's own section, not a copy of it — chips, the
+          scroll-to-selected, and the three sliders, from one component */}
+      <PersonalitySection sec="apsec" preset={preset} tune={tune}
+        onPick={pick} onSlide={slide}/>
 
       <div className="apsec">
         <h2 className="pssech">Voice</h2>
