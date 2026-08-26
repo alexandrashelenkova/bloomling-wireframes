@@ -3864,3 +3864,27 @@ errors and no exceptions; no broken images anywhere.**
   name at (81, 185), chip at (132, 187), time right-aligned ending on the card's
   own 24px inset; text at (81, 212); action at (81, 266). Urgent row → the alert
   screen; Mary's row → the chat.
+
+## Shipped
+
+Commit `caf475c` → `origin/main`, Vercel production
+`dpl_HgFBFw2QhPoYRk7xU64HFw7ptCgg`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site. The only console line is the browser's own
+automatic `GET /favicon.ico`.
+
+- **Chat** — zero `.glink` and zero `.gline` anywhere; Mary's last bubble is a
+  plain one in her own fill.
+- **Flow index** — Add new plant | Dashboard | Notifications | Plant card |
+  Profile & settings.
+- **Notifications** — title **(43, 69) 279×52**, first card **(5, 161) 326**
+  wide, avatar **(29, 185) 38×38** from the three real avatar assets, name at
+  (81, 185), chip (132, 187), time right-aligned, text (81, 212), action
+  (81, 266); first names only.
+- **Character step** — no title, chevron kept, head **52px**, sections
+  **Personality / General / Activity**, both switches **50×28**, labels carrying
+  the typed name.
+- **Draft round trip** — Customise → 11pm / 9am → back restates "John stays
+  silent from 11pm till 9am", and after "Start caring" John's own Personality &
+  Settings says the same, on `settings-felix.mp4`.
