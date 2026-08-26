@@ -741,11 +741,15 @@
   .pflogout:active{transform:translateY(1px)}
 
   /* ══════════ NOTIFICATIONS ══════════
-     The canonical settings card, carrying a notification: 24px of padding and
-     the serif name over muted body over a --sage-soft action, which is the same
-     three type roles the Quiet-hours card sets and in the same order. The
-     avatar is the chat's own — the 37.81px circle with the illustrated pot and
-     its plant overhanging upwards.
+     The canonical settings card, carrying a notification: 24px of padding, a
+     meta line, the message, and a --sage-soft action. The avatar is the chat's
+     own — the 37.81px circle with the illustrated pot and its plant overhanging
+     upwards.
+
+     NO NAME ROW. The serif name said what the avatar already says and what the
+     sentence under it says again — three times in a 326px card. Losing it makes
+     the MESSAGE the primary line, which is the thing you are actually being
+     notified about, and the card drops from three type roles to two.
 
      The card does NOT clip that overhang. Mary's leaves reach 32px above her
      circle and about 8 of them clear the card, exactly as the plants list lets
@@ -760,17 +764,27 @@
     background:var(--card);border-radius:var(--r-card);cursor:pointer}
   .nfcard:active{background:var(--box)}
   .nfbody{flex:1 1 auto;min-width:0}
-  /* name, chip and time on one row — the time right-aligned to the card's own
-     edge rather than floating beside the text */
-  .nfhead{display:flex;align-items:center;gap:8px}
+  /* the meta line: the chip where there is one, and the time right-aligned to
+     the card's own edge rather than floating beside the message. min-height is
+     the chip's own 22, held on the cards that have no chip, so all three keep
+     the same internal rhythm and the avatars line up down the list. */
+  .nfmeta{display:flex;align-items:center;gap:8px;min-height:22px}
   .nftime{margin-left:auto;flex:0 0 auto;font-size:var(--t-sm);line-height:1.25;
     color:rgba(5,5,5,.4);white-space:nowrap}
   /* the mood chip the detail screen already uses, drawn small: an "Urgent" here
      is the same statement its glowing pill makes there */
   .nfchip{border:none;border-radius:24px;padding:2px 10px 4px;
     font-size:var(--t-sm);line-height:1.25;color:#000;flex:0 0 auto}
-  .nftext{margin-top:1px;font-size:var(--t-md);line-height:1.25;
-    color:rgba(5,5,5,.4)}
+  /* the message is the card now: the UI face at body size, in --ink rather than
+     the 40% grey it wore while a serif name was the headline above it. Not
+     --t-sm: it would come out smaller than the action link under it, which is
+     the wrong way round for the thing the card exists to say.
+     6px under the meta line rather than 1 — the 1 was a serif name's own
+     tight-set descender gap, and this is two separate lines of UI type. */
+  .nftext{margin-top:6px;font-size:var(--t-md);line-height:1.25;
+    color:var(--ink)}
+  /* no chevron: it is a link, not a disclosure, and the whole card is the tap
+     target anyway */
   .nfact{margin-top:14px;font-size:var(--t-md);line-height:1.25;
     color:var(--sage-soft)}
 
@@ -2203,10 +2217,10 @@ function GardenChat({focus, open, onCollapse}){
    name, muted body, --sage-soft action, in that order — so a notification reads
    as the same object as everything else in the app rather than as a list item.
 
-   Names are the plant's FIRST name only. The full form ("Gosha the Cactus")
-   exists so the plants list can print a species line under it; here the species
-   is already in the avatar and usually in the sentence, and the row wants the
-   name the plant is called by. */
+   The plant is named by its AVATAR and by its own sentence ("Felix needs a
+   look…", "Mary's reservoir is empty…"), so there is no name row: the message
+   is the card's first and primary line. `p` is still resolved because the tap
+   target needs its id. */
 function Notifications(){
   const nav = useNav();
   return <div className="nfscreen">
@@ -2229,14 +2243,13 @@ function Notifications(){
               style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
           </div>
           <div className="nfbody">
-            <div className="nfhead">
-              <span className="psqt">{p.name.split(" ")[0]}</span>
+            <div className="nfmeta">
               {urgent && <span className="nfchip" style={{background:e.glow,
                 filter:"drop-shadow(0 0 10px "+e.glow+")"}}>Urgent</span>}
               <span className="nftime">{n.time}</span>
             </div>
             <div className="nftext">{n.text}</div>
-            <div className="nfact">{urgent ? "See what happened \u203A" : "Open in the chat \u203A"}</div>
+            <div className="nfact">{urgent ? "See what happened" : "Open in the chat"}</div>
           </div>
         </div>;
       })}

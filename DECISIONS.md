@@ -3888,3 +3888,53 @@ automatic `GET /favicon.ico`.
 - **Draft round trip** — Customise → 11pm / 9am → back restates "John stays
   silent from 11pm till 9am", and after "Start caring" John's own Personality &
   Settings says the same, on `settings-felix.mp4`.
+
+---
+
+# Revision 35 — the notification card loses its name row and finds its headline
+
+## 1 — No chevrons on the action links
+
+"See what happened" and "Open in the chat", plain, in the same `--sage-soft`.
+The `›` was a disclosure marker on something that is not a disclosure — and the
+whole card is the tap target anyway, so it was pointing at a thing the arrow
+does not do.
+
+## 2 — The message becomes the card
+
+**The serif name row is gone.** It said what the avatar already says and what
+the sentence under it says again — "Felix", beside a picture of Felix, above
+"Felix needs a look…" — three times inside a 326px card. Dropping it makes the
+MESSAGE the first and primary line, which is the thing you are actually being
+notified about, and takes the card from three type roles to two.
+
+What each card now carries: avatar, a meta line, the message, the action.
+
+- **The message is `--t-md` in `--ink`**, the UI face at body size. Not `--t-sm`
+  despite "small" in the brief: at 13px it would come out *smaller than its own
+  action link* underneath, which is the wrong way round for the line the card
+  exists to say. The reading taken is "the regular UI size, not the serif
+  display one" — the contrast being drawn is against the name that just left.
+- **The chip and the timestamp share the meta line**, the time right-aligned to
+  the card's own 24px inset rather than floating beside the message.
+- **`.nfmeta` states `min-height:22px`** — the chip's own height, held on the two
+  cards that have no chip. Without it Felix's card would be 6px taller than the
+  others and the avatars would stop lining up down the list. All three now
+  measure **150px** exactly.
+- **6px under the meta line, not 1.** The 1 was the tight-set gap under a serif
+  name; two separate lines of UI type want air.
+
+`p` is still resolved in the row — the tap target needs its id — and both tap
+behaviours are unchanged.
+
+## Verification
+
+Headless Chrome over CDP, DPR 2. **No console errors; no broken images.**
+
+- **No serif names** — zero `.psqt` on the screen — and **no `›`** anywhere in it.
+- **Message** — `"Circular Std" 16px rgb(5,5,5)`; **action** — `16px
+  rgb(172,186,159)`, i.e. `--sage-soft`.
+- **All three cards 150px**, meta rows at y 185 / 340 / … each 22 tall, chip at
+  (81, 185), time right-aligned ending on the card's 24px inset, message at
+  (81, 213), action at (81, 267).
+- **Taps** — the urgent row still opens the alert screen.
