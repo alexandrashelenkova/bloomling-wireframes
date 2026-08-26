@@ -3722,3 +3722,25 @@ errors and no exceptions; no broken images anywhere.**
 - **End to end** — pair → camera → shutter → result → name + preset + voice →
   meeting → Dashboard, with "John" in the chat and a sixth card in My Plants.
   Back steps out of the machine to idle, then out of the flow to My Plants.
+
+## Shipped
+
+Commit `623a475` → `origin/main`, Vercel production
+`dpl_JCvncFkYEGhirbEw4itEkiUeUYZn`, aliased to
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified against the live site, **no console errors**:
+
+- **Pairing** — `apvid up40` at **y −40** vs the device top on found, connecting
+  and paired alike; the button reads "Take a photo of your plant".
+- **Character step** — the `.psscreen` shell on `settings-felix.mp4`, stage
+  336×662, film **691×857**, the resolve gradient, the live bubble, title "Name
+  and nature", sections **Personality / General**, six chips, three sliders,
+  three voice options. Tapping "Drama queen" swaps the line and re-tunes to
+  50 / 84 / 84.
+- **Personality & Settings** — untouched by the extraction: `settings-vlad.mp4`
+  at **744×857**, all three sections, resolve at 592/88, content at **596**,
+  film 401 wide at scroll 200, scrim solid and bubble gone at 600, both restored
+  at home, "Customise" opening Quiet hours.
+- **Final screen** — film top flush with the device top (**0**), title "Meet
+  John".
