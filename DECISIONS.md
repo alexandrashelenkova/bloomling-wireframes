@@ -3950,3 +3950,69 @@ all three cards **150px**, message `"Circular Std" 16px rgb(5,5,5)`, action
 `16px rgb(172,186,159)`, chip at (81, 185), time right-aligned, message at
 (81, 213), action at (81, 267), and the urgent row still opening the alert
 screen. The only console line is the browser's own `GET /favicon.ico`.
+
+---
+
+# Revision 36 — the dashboard opens on the hero
+
+Scope: the dashboard's default state only. Nothing else in the prototype was
+touched.
+
+## 1 — Expanded is now the state the screen arrives in
+
+`Dashboard`'s `open` starts at `true`. The screen opens on the full green hero —
+date, the serif display headline, "See your plants", the chat sitting below
+under its soft gradient — and the chat only takes the screen when the user asks
+for it: a tap or a scroll over the chat area, exactly the gesture that already
+collapsed it. Tapping the collapsed pill re-expands, unchanged.
+
+**Nothing about the animation moved.** `.dash.open` is the single class the whole
+hero is drawn from, so mounting with it already set paints the expanded state
+outright — no transition runs on entry, which is what "opens expanded" should
+look like (a hero that animated itself open on every arrival would read as a
+loading state). The 0.5s `--spring` collapse and the 0.38s `--soft` expand are
+untouched, as is the 520ms scroll-pin that keeps the stream on its newest
+message while the pane resizes.
+
+## 2 — "Every time", including the one case React would have kept
+
+A fresh arrival remounts `Dashboard` (`key={cur.screen+stack.length}` changes
+whenever the previous screen was a different one), so leaving the dashboard
+collapsed, walking into the plants list and coming back already lands expanded.
+The single exception is navigating **to** the dashboard while already sitting on
+it — same screen, same stack depth, same key, so the component survives with its
+state. A `useEffect` on `[params]` closes it: `nav.go`/`nav.jump` build a new
+params object on every call, so re-navigation re-expands, and the effect is a
+no-op on a plain re-render.
+
+Fork logged: this could have been done by forcing a remount from the router
+(a nav counter in the key). Rejected — that would reset *every* screen's state on
+every navigation to fix one screen's default, far outside this scope.
+
+## 3 — The notification path keeps the rule
+
+Arriving from a notification (`dashboard` + `focus`) also opens expanded. Taken
+literally from the brief — "always", "every time the dashboard is
+opened/navigated to" — rather than carving out an exception nobody asked for.
+It costs nothing: `GardenChat` scrolls to the focused message on mount and the
+hero's scroll-pin explicitly skips when a focus target exists, so the message is
+already in place behind the hero and the first tap on the chat reveals it exactly
+where it should be.
+
+## Verification
+
+Headless Chrome over CDP, 402×874 at DPR 2. **No console errors, no broken
+images** (7/7 loaded).
+
+- **Initial load** — `.dash.open`; surface at y 85 h **434**, headline **44.7px**
+  Riccione centred at y 206, date "Wednesday, 2nd September" at opacity **.4**,
+  CTA "See your plants" at opacity **1** y 335, chat pushed to y **519** with the
+  52px sheet gradient on it.
+- **Wheel over the chat** — collapses: `.dash` loses `open`, surface back to the
+  74px pill, date and CTA to opacity 0, chat back to y 85 full height.
+- **Tap the pill** — expands again, surface h 434, CTA opacity 1.
+- **Collapse → plants list → Dashboard** — returns **expanded** (`screen dash
+  open`, date .4, CTA 1).
+- **Re-nav while already on a collapsed dashboard** — `"screen dash"` →
+  `"screen dash open"`, the case §2 exists for.
+- **Notification → "Open in the chat"** — lands on `screen dash open`.

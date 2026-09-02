@@ -2071,7 +2071,18 @@ function todayLabel(){
    refilled or the plant was moved — so there is no to-do list anywhere here. */
 function Dashboard({params}){
   const nav = useNav();
-  const [open,setOpen] = useState(false);
+  /* The dashboard ALWAYS opens on the expanded hero — the full green block with
+     the date, the display headline and "See your plants", the chat peeking below.
+     The chat only takes the screen once the user asks for it (a tap or a scroll
+     over the chat area). Because .dash.open is the class the whole hero is drawn
+     from, mounting with it already set paints the expanded state outright — no
+     transition runs on entry; the collapse/expand animation is untouched. */
+  const [open,setOpen] = useState(true);
+  /* ...and it applies on EVERY arrival, not just the first. A fresh navigation
+     hands us a new `params` object (nav.go/jump build one each time), so this
+     re-expands even in the one case React keeps the component mounted: hitting
+     "Dashboard" while already sitting on a collapsed dashboard. */
+  useEffect(()=>{ setOpen(true); },[params]);
   return <div className={"screen dash"+(open?" open":"")}>
 
     <div className="gunder"/>
