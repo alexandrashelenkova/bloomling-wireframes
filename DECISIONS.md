@@ -4016,3 +4016,16 @@ images** (7/7 loaded).
 - **Re-nav while already on a collapsed dashboard** — `"screen dash"` →
   `"screen dash open"`, the case §2 exists for.
 - **Notification → "Open in the chat"** — lands on `screen dash open`.
+
+## Shipped
+
+Commit `192e56a` → `origin/main`, Vercel production
+`dpl_JE88WBs1Xe8q9RSmM9L4nbnCptfS`, serving
+**https://bloomling-wireframes.vercel.app** (URL unchanged).
+
+Re-verified live, identical to local: opens on `screen dash open` — surface
+h **434**, headline **44.7px** at y 206, date at opacity **.4**, CTA at opacity
+**1**, chat at y **519**; a wheel over the chat collapses it to the **74px** pill
+with the headline back at **22px** and the chat full height; tapping the pill
+re-expands; re-navigating to a collapsed dashboard returns `screen dash open`.
+No console output, 0 broken images of 7.
