@@ -4529,3 +4529,33 @@ plant cards, all three notifications and the Add Plant flow end to end.
   seeks 0–1ms; `add-plant.mp4` **1 447 459**.
 - **Back from the flow's first screen** — "Pair your pot & meet your new plant"
   → chevron → **"My Plants"**.
+
+## Shipped
+
+Commit `11ee5a9` → `origin/main`, Vercel production
+`dpl_4LoYK8Gv1shzkuAnzP6doDNQiN1c`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. The only console
+error is `/favicon.ico` 404, which this prototype has never shipped —
+pre-existing and unrelated.
+
+- **Films on the wire** (curl, definitive): `add-plant.mp4` **1 447 459**,
+  `growth-gosha.mp4` **1 266 690**, `add-plant-drama` **316 968**,
+  `add-plant-grump` **298 210**, `add-plant-cheerfull` **274 896**,
+  `add-plant-sassy` **314 648**. The new encodes, not a stale cache.
+- **Live scrub** — `growth-gosha.mp4` 976×2124 / 5.042s, four seeks scattered
+  across it at **18–27ms**, i.e. the 0.25s GOP behaving exactly as the original
+  pass measured (20ms median).
+- **Blobs** — travelling and clipped (`hidden`, radius 0 on the full-bleed hero).
+- **My Plants** — Felix / Mary / Gosha / Vera / **Vlad**, 135 / 275 / 415 / 555 /
+  695 at 192 / 192 / 192 / 192 / **227**; card radius **40px** and
+  `.plsurface` **40px**; 144px of scroll, top fade **0 → 1** on scroll.
+- **Deep links** — all three: hero **74px**, `Felix 18:04` / `Mary 17:52` /
+  `Gosha 16:02`, `gflash` running, 21 rows in the chat.
+- **Profile** — title **69** at rest and **69** scrolled; content 161 → −24;
+  scrim **0 → 1**.
+- **Presets** — `settings-felix` at rest, then drama / grump / cheerfull / sassy
+  / back to settings-felix, both layers always at identical 691px widths through
+  each dissolve.
+- **Flow** — "Pair your pot & meet your new plant" → chevron → **My Plants**.
