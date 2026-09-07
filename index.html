@@ -3501,7 +3501,18 @@ function PsShell({filmId, film, films, title, pinTitle, line, bubKey, children})
   const nav = useNav();
   const ar  = psAr(filmId);
   const url = film || psFilm(filmId);
-  const list = (films && films.length) ? films : [url];
+  /* THE VISIBLE FILM LEADS THE QUEUE. Five elements mounted at once are five
+     parallel downloads, and on a cold cache the browser finishes them roughly in
+     DOM order — so with the default sitting last in the set, the one film
+     actually on screen was the last to arrive and the stage was blank while four
+     invisible ones loaded ahead of it. The list is therefore rotated once, at
+     mount, to put whichever film is active first. Held in state rather than
+     recomputed: re-sorting on every switch would shuffle the DOM nodes for no
+     benefit, since by then they are all loaded. */
+  const [list] = useState(()=>{
+    const base = (films && films.length) ? films : [url];
+    return base.indexOf(url) >= 0 ? [url].concat(base.filter(x=>x!==url)) : [url];
+  });
   const scroller = useRef(null);
   const scrim    = useRef(null);
   const vids     = useRef({});
@@ -3717,10 +3728,9 @@ const AP_PRESET_FILM = {
   "Sassy":       "assets/video/add-plant-sassy.mp4",
 };
 const apPresetFilm = (k)=> AP_PRESET_FILM[k] || psFilm(AP_CREATE_FILM);
-/* Every film the step can reach, deduped and in a stable order — PsShell mounts
-   the whole set at once and preloads it, so this list IS the preload. The
-   default goes last so the four presets, which are the ones a tap can ask for,
-   start their fetch first. */
+/* Every film the step can reach — PsShell mounts the whole set at once and
+   preloads it, so this list IS the preload. Order does not matter here: PsShell
+   rotates whichever film is active to the front of its own mount order. */
 const AP_PRESET_FILMS = Object.values(AP_PRESET_FILM).concat([psFilm(AP_CREATE_FILM)]);
 
 /* the ellipsis that shows something is happening — see .apdots */

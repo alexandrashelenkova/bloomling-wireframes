@@ -4739,8 +4739,18 @@ mounted elements are one decoder and four still frames. The incoming film
 restarts at `currentTime = 0` — the character has just changed, so the take
 should begin again rather than join in progress.
 
-Verified on the step: all five at `readyState 4`, four paused at opacity 0, one
-playing at 1.
+**And the visible film leads the queue.** Caught on the first live run with the
+cache disabled: five elements mounted at once are five parallel downloads, the
+browser finishes them roughly in DOM order, and the default film was last in the
+set — so the one film actually on screen was the last to arrive (`readyState 0`,
+`0x0`) while four invisible ones loaded ahead of it. PsShell now rotates
+whichever film is active to the front of its own mount order, once, at mount.
+Held in state rather than recomputed: re-sorting on every switch would shuffle
+DOM nodes for no benefit, since by then they are all loaded.
+
+Verified on the step, cache disabled: **0.9s** after arriving, all five at
+`readyState 4` and 720×894, the active one first in the DOM, four paused at
+opacity 0 and one playing at 1.
 
 ## 6 — "Add plant" in the pinned bar
 
