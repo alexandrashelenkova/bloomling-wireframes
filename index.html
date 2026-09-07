@@ -291,17 +291,24 @@
     cursor:pointer;color:var(--serif-ink);overflow:hidden;
     border-radius:40px 40px 0 0;box-shadow:0 -4px 60px rgba(61,61,61,.2);
     animation:plrise .46s var(--soft) both}
-  .plsurface{position:absolute;inset:0;transition:filter .18s var(--soft)}
+  /* border-radius:inherit is load-bearing, not tidiness. The card's radius only
+     rounds anything while the card CLIPS, and the last card is `overflow:visible`
+     so its plant can break out — which left its 40px bottom corners doing
+     nothing at all and the gradient ending in two square ones. Rounding the
+     surface itself makes the corners the card's own property rather than a
+     side effect of its overflow. The pot render is a sibling and stays unclipped,
+     which is the point. */
+  .plsurface{position:absolute;inset:0;border-radius:inherit;
+    transition:filter .18s var(--soft)}
   .plcard:first-child{margin-top:0;box-shadow:none}
   .plcard:active .plsurface{filter:brightness(.965)}
   /* The last card is FINISHED, not stretched: Figma 438:169 is a 392x227
      rounded-rectangle with all four corners at 40 and the same -4/60 shadow,
      ending 40px above the foot of the frame. It is also the only card that lets
-     its plant break out past its own top edge — 438:174 starts 55px above the
-     card and runs 58px past its right — which is Vera's again now that she is
-     last. Her render is exactly 282 tall against a 227 card and a -55 top, so
-     it finishes flush on the card's bottom edge and the rounded corners stay
-     clean even with overflow open. */
+     its plant break out past its own top edge, which is Vlad's privilege again
+     now that he is back at the bottom of the list; Vera is clipped to her own
+     card like everyone else. The bottom corners survive the open overflow
+     because the radius is on .plsurface, not on the card's clip. */
   .plcard:last-child{height:227px;border-radius:40px;overflow:visible}
   /* mood chip — a soft filled pill, no outline. Figma (403:1345) fills it white
      and drops the WHOLE chip to 40%, so the fill and the word wash back into the
@@ -740,9 +747,29 @@
      → card 362, card 436 → label 450, label 470 → seg 484, card 780 → card
      794). -11px cancels the screen's 16 back to the 5px inset every card in
      this app is drawn on, exactly as .awbody does. */
-  .pfscreen{flex:1 1 auto;display:flex;flex-direction:column;
-    padding:8px 16px 24px;overflow-y:auto;overflow-x:hidden}
-  .pfscreen::-webkit-scrollbar{width:0}
+  /* Three layers, exactly the Personality & Settings arrangement (.psscroll /
+     .psscrim / .pshead), minus the film: the screen itself stops scrolling, the
+     content gets its own scroller underneath, and the chevron + "Profile" are
+     pinned on top with a gradient between them. */
+  .pfscreen{flex:1 1 auto;position:relative;overflow:hidden}
+  /* 73px of top padding is the pinned header's own box — the screen's 8px pad
+     plus .plhead's 13px margin and 52px min-height — so the first card lands on
+     the same 113 it did when the header was a flow item. */
+  .pfscroll{position:absolute;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
+    padding:73px 16px 24px}
+  .pfscroll::-webkit-scrollbar{width:0}
+  /* 441:566's treatment, re-measured for a one-line title: solid page colour
+     behind the header's own 73px, then the mockup's 120px dissolve — 193 in
+     total, solid to 37.8%. Its opacity is a scroll state and nothing else, so
+     there is none of it at rest. */
+  .pfscrim{position:absolute;left:0;right:0;top:0;height:193px;z-index:2;
+    pointer-events:none;opacity:0;
+    background:linear-gradient(180deg,var(--bg) 0,var(--bg) 37.8%,
+      rgba(237,238,233,0) 100%)}
+  .pfhead{position:absolute;left:0;right:0;top:0;z-index:3;padding:8px 16px 0;
+    pointer-events:none}
+  .pfhead .plback{pointer-events:auto}
   .pfbody{margin:40px -11px 0;flex:0 0 auto}
   .pfsec{margin-top:40px}
   /* identity (460:201/208) — 95px is 24 of padding round a 47px row: a 40px
@@ -1044,9 +1071,15 @@
      every scroll frame, because the two reference states say the film shrinks
      as well as scrolls. See PS_ZOOM for the rule and the arithmetic. */
   .psstage{position:relative;height:662px;margin:0 -5px;overflow:hidden}
+  /* Both layers share this box exactly — same anchor, same transform, same
+     inline width — so a crossfade is a pure opacity dissolve with nothing
+     moving underneath it. 260ms: long enough to read as a dissolve rather than
+     a cut, short enough that a preset chip still feels like a button. */
   .psvid{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
     display:block;border:0;pointer-events:none;
-    aspect-ratio:1340 / 1544;background:transparent}   /* overridden inline */
+    aspect-ratio:1340 / 1544;background:transparent;   /* overridden inline */
+    opacity:1;transition:opacity .26s ease}
+  .psvid.off{opacity:0}
   /* ── THE RESOLVE (441:421) ────────────────────────────────────────────────
      The same object the detail screen carries, and it moved the same way: no
      longer a band UNDER the film but 88px of transparent-into-page laid OVER
@@ -1286,22 +1319,33 @@
   .gblob.b{width:519px;height:519px;margin:-259.5px 0 0 -259.5px;
     background:#69C789;left:106.8%;top:-12.8%;
     animation:gdriftB 24s ease-in-out infinite}
-  /* Ambient, not decoration you can watch: 19s and 24s are coprime enough that
-     the pair never repeats a configuration inside a session, the travel is at
-     most 26px on a 265px circle sitting under a 50px blur (so the motion reads
-     as the light changing rather than as two objects moving), and ease-in-out
-     per segment means each blob is slowest at its waypoints. */
+  /* The amplitude is the whole of this. The first pass ran at =<26px of travel
+     and was verified to be genuinely animating — `getAnimations()` reported
+     `running`, the computed matrix advanced every frame, no reduced-motion, no
+     transform conflict — and it still read as completely still, because 26px on
+     a 519px circle under a 50px blur at 30% opacity is below the threshold at
+     which anything is visible at all. A blurred shape has no edge to track, so
+     the eye needs the whole WASH to move, not the shape.
+
+     So the travel is now a real fraction of the green block (386x434): up to
+     150px for the small circle and 120px for the large one, plus a slow swell
+     to 1.10/1.06, which under this much blur reads as the light breathing.
+     19s and 24s are unchanged and coprime enough that the pair never repeats a
+     configuration inside a session; ease-in-out per segment keeps each blob
+     slowest at its waypoints, so nothing ever appears to be travelling *to*
+     somewhere. Still ambient — just above the threshold of perception now
+     instead of below it. */
   @keyframes gdriftA{
-    0%  {transform:translate(0,0)}
-    25% {transform:translate(26px,-16px)}
-    50% {transform:translate(13px,19px)}
-    75% {transform:translate(-19px,7px)}
-    100%{transform:translate(0,0)}}
+    0%  {transform:translate(0,0) scale(1)}
+    25% {transform:translate(96px,-64px) scale(1.10)}
+    50% {transform:translate(150px,26px) scale(1)}
+    75% {transform:translate(52px,58px) scale(1.07)}
+    100%{transform:translate(0,0) scale(1)}}
   @keyframes gdriftB{
-    0%  {transform:translate(0,0)}
-    30% {transform:translate(-25px,21px)}
-    60% {transform:translate(-11px,-15px)}
-    100%{transform:translate(0,0)}}
+    0%  {transform:translate(0,0) scale(1)}
+    30% {transform:translate(-118px,74px) scale(1.06)}
+    60% {transform:translate(-58px,-46px) scale(1)}
+    100%{transform:translate(0,0) scale(1)}}
 
   /* sage underlay — only visible through the sheet's rounded corners once open */
   .gunder{position:absolute;inset:0;z-index:8;background:var(--sage);opacity:0;
@@ -1393,6 +1437,19 @@
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
     transition:top .5s var(--spring),height .5s var(--spring),
       background .5s ease-out,opacity .22s ease-out}
+
+  /* The deep-link flash. drop-shadow, NOT box-shadow: the bubble's shape is an
+     SVG blob painted as a background-image on a rectangular box, so box-shadow
+     would draw a rectangle around it and background-color would be hidden
+     underneath it. drop-shadow follows the rendered alpha, so the glow takes
+     the blob's own outline. ~2s: up in 440ms, held, and gone — it points, it
+     does not decorate. */
+  @keyframes gflash{
+    0%  {filter:drop-shadow(0 0 0 rgba(152,199,105,0)) brightness(1)}
+    22% {filter:drop-shadow(0 0 16px rgba(152,199,105,.85)) brightness(1.07)}
+    62% {filter:drop-shadow(0 0 16px rgba(152,199,105,.85)) brightness(1.07)}
+    100%{filter:drop-shadow(0 0 0 rgba(152,199,105,0)) brightness(1)}}
+  .grow-row.hot .gbub{animation:gflash 2s var(--soft) 1}
 
   /* message row — grey avatar circle + organic colour-coded bubble */
   .grow-row{display:flex;gap:5px;align-items:flex-start;margin-bottom:11px}
@@ -1667,13 +1724,20 @@ const PLANTS = [
     reaction:"Kind of you. I feel calm and cared for. Thank you.",
     diaryNote:"Meditated. Grew a little. Same thing, really.",
   },
+  {
+    id:"vlad", name:"Vlad", species:"Bonsai", persona:"Calm",
+    emotion:"content", growth:88, lastWatered:"Today, 06:30", light:"Bright",
+    /* "Every 2 days" rather than 3: 445:90 sets the Plant Detail card to "Every
+       2nd day at 7am" and 447:131 opens with "2 days" selected, so the two
+       mockups agree with each other and it was Vlad's row that was out of step.
+       He is the plant every one of these frames is drawn from. */
+    reservoir:71, autoOn:true, schedule:"Every 2 days", amount:"Low",
+    bondLevel:5, bondPct:84, bondTitle:"Old friends",
+    checkin:"Ninety years of patience, and still growing. Good morning to you.",
+    reaction:"Thank you. Slowly is how good things happen.",
+    diaryNote:"Held the same shape all day. That is the whole art.",
+  },
 ];
-/* VLAD IS NOT IN THE GARDEN. He was the fifth card, and the roster is Felix,
-   Mary, Gosha and Vera — which is also what puts Vera back at the bottom of My
-   Plants with the last card's break-out render. What stays behind is only his
-   ART: --g-vlad, SHOT.vlad, the five films in assets/video and the Bonsai entry
-   in LOOK_BY_SPECIES, so a Bonsai added through the Add Plant flow still has a
-   pot to wear. Removing the character is not the same as deleting the assets. */
 const plantById = (id) => PLANTS.find(p=>p.id===id) || PLANTS[0];
 /* A plant added through the Add Plant flow has no render, no avatar and no film
    of its own, so it carries `look` — the id of the plant whose art stands in for
@@ -1683,14 +1747,15 @@ const lookOf = (id) => { const x = PLANTS.find(p=>p.id===id); return (x && x.loo
 
 /* NOTIFICATIONS = a digest of what actually needs the user OFFLINE. Social chatter
    ("Felix says hi") belongs in the chat and is deliberately absent here. Every
-   row taps into the chat, focused on that plant's message — `kind` and `emo`
-   are gone with the urgent branch that was the only thing reading them. */
+   row deep-links into the chat: `msg` is the id of the CHAT_INIT message it
+   opens on, so the link lands on that exact bubble rather than on "the last
+   thing this plant said". */
 const NOTIFS = [
-  { id:"n1", plant:"felix", time:"just now",
+  { id:"n1", plant:"felix", time:"just now", msg:"m-felix-alert",
     text:"Felix needs a look — soggy soil and a cold draught" },
-  { id:"n2", plant:"mary",  time:"10 min ago",
+  { id:"n2", plant:"mary",  time:"10 min ago", msg:"m-mary-water",
     text:"Mary's reservoir is empty — she'd love a refill" },
-  { id:"n3", plant:"gosha", time:"2 h ago",
+  { id:"n3", plant:"gosha", time:"2 h ago", msg:"m-gosha-light",
     text:"Gosha needs more light — a brighter spot would do it" },
 ];
 
@@ -1721,7 +1786,36 @@ const MILESTONES = [
                    mechanism stays because the shape it draws is still the one
                    an urgent message would want.
      rx          → reactions, [emoji, count]; everyone reacts to everyone */
+/* The three messages a notification points at carry an `id`; nothing else needs
+   one. A notification's `msg` is that id, and GardenChat resolves it to a row,
+   scrolls to it and flashes it — see the deep-link block there.
+
+   The history above 09:02 is the morning: small talk in the three voices the
+   app has art for. Vera and Vlad are deliberately NOT in it — there is no
+   avatar asset for either, and a plain grey circle sitting between three
+   illustrated pots reads as a missing image rather than as a character. */
 const CHAT_INIT = [
+  { who:"felix", at:"07:12",
+    text:"Morning! The lights just came up and I am, once again, thrilled about it." },
+  { who:"gosha", at:"07:14", cross:true, text:"It's a lamp.", rx:[["😂",2]] },
+  { who:"felix", at:"07:15", cross:true,
+    text:"It's a SUNRISE, Gosha. Let me have this one." },
+  { who:"mary",  at:"07:31",
+    text:"I barely slept. The radiator made a NOISE at 3am and I have not recovered." },
+  { who:"me",    at:"07:40", text:"Morning everyone. Kettle's on.", rx:[["💚",2]] },
+  { who:"felix", at:"07:41", text:"Best sentence of the day so far." },
+  { who:"gosha", at:"08:02", cross:true,
+    text:"Someone opened the blind two inches. I'll allow it.", rx:[["😂",1]] },
+  { who:"mary",  at:"08:10",
+    text:"Two inches?! I am fighting for my LIFE over here and GOSHA gets two inches." },
+  { who:"gosha", at:"08:12", cross:true,
+    text:"You were watered on Tuesday.", rx:[["💅",2]] },
+  { who:"me",    at:"08:20", text:"You were, Mary. I have receipts." },
+  { who:"mary",  at:"08:21", text:"Receipts. In MY house.", rx:[["😂",3]] },
+  { who:"felix", at:"08:49", cross:true,
+    text:"For the record, I think everyone is doing great today. Even Gosha.",
+    rx:[["🌿",1],["😂",1]] },
+  { who:"gosha", at:"08:50", cross:true, text:"Don't." },
   { who:"felix", at:"09:02",
     text:"New leaf today! The pot's already taking pictures — get my good side 🌿",
     rx:[["💚",2],["🎉",1]] },
@@ -1734,13 +1828,23 @@ const CHAT_INIT = [
     rx:[["💅",1],["😂",1]] },
   { who:"me",    at:"09:11", cross:true,
     text:"Calm down, Gosha. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
-  /* No longer `urgent`. It was the only message in the app that carried a
-     divider and a CTA into the alert flow, and a plant that files a support
-     ticket is not the character this chat is written for — she mentions it and
-     leaves it with you. The alert flow is still reached from Notifications,
-     which is where a thing you must act on belongs. */
-  { who:"mary",  at:"17:30",
-    text:"Something feels a bit off today — my soil's soggy and it's chilly by this window." },
+  /* ── the three the notifications point at ────────────────────────────────
+     One per row of NOTIFS, in the order their timestamps put them, and each
+     one says in the plant's own voice what the notification says in the app's.
+     The soggy-soil-and-draught line used to be Mary's and is now Felix's,
+     because Felix's notification is the one that owns those symptoms — two
+     plants reporting the same complaint was the mismatch that made the old
+     `focus` deep link land on the wrong bubble.
+
+     None of them is `urgent`: that flag drew a divider and a CTA into the alert
+     flow, and a plant that files a support ticket is not the character this
+     chat is written for. It mentions the thing and leaves it with you. */
+  { who:"gosha", id:"m-gosha-light", at:"16:02", text:
+    "Not that it matters, but the sun moved off me hours ago. I'm not complaining. I'm reporting." },
+  { who:"mary",  id:"m-mary-water",  at:"17:52", text:
+    "URGENT BULLETIN: my reservoir is EMPTY. Bone dry. I'll be over here, wilting decoratively." },
+  { who:"felix", id:"m-felix-alert", at:"18:04", text:
+    "Sorry to be a bother — my soil's gone soggy and there's a proper cold draught by this window. Could you take a look?" },
 ];
 
 /* ───────────────── PERSONALITY MODEL (single source of truth) ─────────────────
@@ -2146,18 +2250,26 @@ function todayLabel(){
    refilled or the plant was moved — so there is no to-do list anywhere here. */
 function Dashboard({params}){
   const nav = useNav();
-  /* The dashboard ALWAYS opens on the expanded hero — the full green block with
-     the date, the display headline and "See your plants", the chat peeking below.
+  /* The dashboard opens on the expanded hero — the full green block with the
+     date, the display headline and "See your plants", the chat peeking below.
      The chat only takes the screen once the user asks for it (a tap or a scroll
      over the chat area). Because .dash.open is the class the whole hero is drawn
      from, mounting with it already set paints the expanded state outright — no
-     transition runs on entry; the collapse/expand animation is untouched. */
-  const [open,setOpen] = useState(true);
+     transition runs on entry; the collapse/expand animation is untouched.
+
+     ONE EXCEPTION, and it is the whole point of the exception: arriving with a
+     `focus` means a notification was tapped, and that tap asked for a specific
+     message in the chat. Landing on the hero would put the green block over the
+     thing the user just asked to see, so a deep link opens collapsed — the
+     compact pill, the chat full height, the message already scrolled to and
+     flashing. */
+  const deep = !!(params && params.focus);
+  const [open,setOpen] = useState(!deep);
   /* ...and it applies on EVERY arrival, not just the first. A fresh navigation
      hands us a new `params` object (nav.go/jump build one each time), so this
-     re-expands even in the one case React keeps the component mounted: hitting
-     "Dashboard" while already sitting on a collapsed dashboard. */
-  useEffect(()=>{ setOpen(true); },[params]);
+     re-evaluates even in the one case React keeps the component mounted:
+     hitting "Dashboard" while already sitting on a collapsed dashboard. */
+  useEffect(()=>{ setOpen(!(params && params.focus)); },[params]);
   return <div className={"screen dash"+(open?" open":"")}>
 
     <div className="gunder"/>
@@ -2211,8 +2323,22 @@ function GardenChat({focus, open, onCollapse}){
 
   // "plants talk to each other" is controlled from the profile's chat settings
   const shown = chatCross ? msgs : msgs.filter(m=>!m.cross);
-  // index of the message a notification pointed at, if any
-  const hot = focus ? shown.map(m=>m.who).lastIndexOf(focus) : -1;
+  /* The row a notification pointed at. `focus` is a MESSAGE id (NOTIFS.msg);
+     the fallback to "the last thing this plant said" is kept because the chat
+     grows at runtime — a plant added through the Add Plant flow posts a message
+     with no id of its own, and `focus` for it can only ever be a plant id. */
+  const hot = !focus ? -1
+    : (i=>i>=0?i:shown.map(m=>m.who).lastIndexOf(focus))(shown.findIndex(m=>m.id===focus));
+  /* the flash is a one-shot on arrival: ~2s of soft glow so the eye is taken to
+     the right bubble, then the chat is just the chat again. Cleared by a timer
+     rather than by the animation's end so nothing depends on the event firing. */
+  const [flash,setFlash] = useState(hot>=0);
+  useEffect(()=>{
+    if(hot<0) return;
+    setFlash(true);
+    const t = setTimeout(()=>setFlash(false), 2100);
+    return ()=>clearTimeout(t);
+  },[focus,hot]);
 
   useEffect(()=>{
     const el = scroller.current;
@@ -2257,7 +2383,8 @@ function GardenChat({focus, open, onCollapse}){
           const p = !isMe && plantById(m.who);
           const av = AVATAR[lookOf(m.who)];
           const shape = isMe ? "me" : (m.urgent ? "alert" : "them");
-          return <div key={i} className={"grow-row "+(isMe?"me":"them")+(m.rx?" rx":"")}
+          return <div key={i} className={"grow-row "+(isMe?"me":"them")+(m.rx?" rx":"")
+              +(flash && i===hot ? " hot" : "")}
             ref={i===hot ? target : null}>
             {/* a plant's avatar is the way from the chat into its card */}
             <div className={"gmava"+(av?" art":"")+(isMe?"":" tap")}
@@ -2328,7 +2455,7 @@ function Notifications(){
         const p  = plantById(n.plant);
         const av = AVATAR[lookOf(n.plant)];
         return <div key={n.id} className="nfcard"
-          onClick={()=>nav.go("dashboard",{focus:p.id})}>
+          onClick={()=>nav.go("dashboard",{focus:n.msg||p.id})}>
           <div className={"gmava"+(av?" art":"")}>
             {av && <img src={av.src} alt="" className={av.round?"round":null}
               style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
@@ -2472,7 +2599,7 @@ const PD_COLLAPSE = 420;
    paste: the cadence is the plant's own `schedule` ("Every 3 days") and the
    hour is the one every auto-watering in this prototype runs at, so the card
    states what is actually configured rather than what one mockup happened to
-   show. Vera, on "Every 5 days", therefore reads "Every 5th day at 7am". */
+   show. Vlad therefore reads "Every 2nd day at 7am". */
 const PD_WATER_HOUR = "7am";
 const ordinal = (n)=>{
   const t = n % 10, h = n % 100;
@@ -2487,7 +2614,7 @@ const scheduleLine = (pl)=>{
 
 function PlantDetail({params}){
   const nav = useNav();
-  const p = plantById((params&&params.id)||"felix");
+  const p = plantById((params&&params.id)||"vlad");
   const e = EMO[p.emotion] || EMO.neutral;
   const film = filmFor(lookOf(p.id));  // this plant's own two films
   const last = TL.length - 1;
@@ -3255,18 +3382,41 @@ function ActivitySection({first, window:win, onCustomise, sec}){
   </div>;
 }
 
-function PsShell({filmId, title, line, children}){
+/* PsShell takes either a plant (`filmId` -> settings-<id>.mp4) or an explicit
+   `filmUrl`, and CROSSFADES when that url changes: two stacked <video> layers
+   in the one stage, identically positioned, the incoming one held at opacity 0
+   until it says `canplay` and only then swapped. Waiting on the event is what
+   removes the flash — a hard `key` swap paints one frame of nothing while the
+   new file opens, which is exactly the black frame the brief rules out.
+
+   Every film this screen can show is 1292x1604 — the four settings films it
+   already used and all four add-plant-<preset> films — so one `ar` serves both
+   layers and the stage geometry never moves during a switch. */
+function PsShell({filmId, filmUrl, title, line, children}){
   const nav = useNav();
   const ar  = psAr(filmId);
+  const url = filmUrl || psFilm(filmId);
   const scroller = useRef(null);
   const scrim    = useRef(null);
-  const vid      = useRef(null);
+  const vidA     = useRef(null);
+  const vidB     = useRef(null);
   const stage    = useRef(null);
+  /* two slots and a pointer at the visible one. A change loads the new file
+     into the OTHER slot; `on` moves only once that slot can play. */
+  const [film,setFilm] = useState({a:url, b:null, on:"a"});
+  useEffect(()=>{
+    setFilm(f=>{
+      if((f.on==="a" ? f.a : f.b) === url) return f;
+      return f.on==="a" ? {a:f.a, b:url, on:"a"} : {a:url, b:f.b, on:"b"};
+    });
+  },[url]);
+  const ready = (slot)=> setFilm(f=>
+    (f.on===slot || (slot==="a" ? f.a : f.b) !== url) ? f : {...f, on:slot});
   const sraf     = useRef(0);
   const [deep,setDeep] = useState(false);
   const sync = ()=>{
     sraf.current = 0;
-    const s = scroller.current, k = scrim.current, v = vid.current, g = stage.current;
+    const s = scroller.current, k = scrim.current, g = stage.current;
     if(!s) return;
     const t = s.scrollTop;
     if(k) k.style.opacity =
@@ -3274,10 +3424,13 @@ function PsShell({filmId, title, line, children}){
     /* the film covers what is left of the stage, times a zoom that eases out
        over the first 200px — see PS_ZOOM. Width floors at the stage's own, so
        once cover would make the film narrower than the screen it simply crops. */
-    if(v && g){
+    if(g){
       const vis = Math.max(0, PS_STAGE - t);
       const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
-      v.style.width = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
+      const w   = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
+      // BOTH layers, or the incoming one arrives at the wrong size mid-scroll
+      if(vidA.current) vidA.current.style.width = w;
+      if(vidB.current) vidB.current.style.width = w;
     }
     setDeep(t > PS_TALK_MAX);      // the film has left the bubble's own box
   };
@@ -3294,9 +3447,12 @@ function PsShell({filmId, title, line, children}){
     {/* 1 — the scroller: the film, its resolve, and the sections, in that order */}
     <div className="psscroll" ref={scroller} onScroll={onScroll}>
       <div className="psstage" ref={stage}>
-        <video className="psvid" key={filmId} ref={vid} src={psFilm(filmId)}
-          muted loop autoPlay playsInline preload="auto"
-          style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>
+        {[["a",film.a,vidA],["b",film.b,vidB]].map(([slot,src,ref])=> src &&
+          <video key={slot+":"+src} ref={ref} src={src}
+            className={"psvid"+(film.on===slot ? "" : " off")}
+            muted loop autoPlay playsInline preload="auto"
+            onCanPlay={()=>ready(slot)}
+            style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>)}
       </div>
       <div className="psfade"/>
       <div className="pscontent">{children}</div>
@@ -3432,6 +3588,27 @@ const AP_PHOTO    = "assets/photo-addplant.webp";
    pot, because the plant being set up has none of its own yet */
 const AP_CREATE_FILM = "felix";
 
+/* The character step's film follows the PRESET, not the plant. Four of the six
+   presets have a film of their own; the other two fall back to this screen's
+   standing default, settings-felix.mp4, which is what it showed for every
+   preset until now.
+
+     Drama queen -> add-plant-drama       Cheerful -> add-plant-cheerfull
+     Grump       -> add-plant-grump       Sassy    -> add-plant-sassy
+     Friendly, Calm -> settings-felix (the default)
+
+   "cheerfull" is the file's own spelling and is left alone — renaming an asset
+   to fix a typo is how a working reference goes stale. The brief also names
+   Shy and Wise; PERSONALITIES has no such presets, so nothing maps to them and
+   the `|| default` covers them if they are ever added. */
+const AP_PRESET_FILM = {
+  "Drama queen": "assets/video/add-plant-drama.mp4",
+  "Grump":       "assets/video/add-plant-grump.mp4",
+  "Cheerful":    "assets/video/add-plant-cheerfull.mp4",
+  "Sassy":       "assets/video/add-plant-sassy.mp4",
+};
+const apPresetFilm = (k)=> AP_PRESET_FILM[k] || psFilm(AP_CREATE_FILM);
+
 /* the ellipsis that shows something is happening — see .apdots */
 const Dots = ()=> <span className="apdots"><i>.</i><i>.</i><i>.</i></span>;
 
@@ -3490,10 +3667,15 @@ function PairDevice(){
     if(st==="searching") t=setTimeout(()=>setSt("found"),1700);
     return ()=>clearTimeout(t);
   },[st]);
+  /* Backing out of the FIRST screen lands on My plants, not on wherever the
+     flow was opened from. "Add" on the plants list is the flow's front door and
+     the dashboard's own route into it goes through that list, so the plants
+     list is the one place backing out of "Add a plant" can mean; nav.back()
+     would instead return to the dashboard when the flow index put us here. */
   const back = ()=>{
     const v = btV.current;
     if(v){ v.pause(); v.currentTime = 0; }
-    return st==="idle" ? nav.back() : setSt("idle");
+    return st==="idle" ? nav.jump([["plantsList"]]) : setSt("idle");
   };
   const connect = ()=>{
     setSt("connecting");
@@ -3658,7 +3840,18 @@ function CreateCharacter({params}){
   const commit = ()=>setEditing(false);
   const finalName = name.trim() || species;
 
-  return <PsShell filmId={AP_CREATE_FILM} line={sampleLine(preset,tune)}>
+  /* Warm the four preset films into the HTTP cache the moment the step opens,
+     so the first tap on a chip is a cache hit rather than a network round trip.
+     fetch() rather than four hidden <video preload="auto"> elements: those
+     would spin up four more decoders for files that are not on screen, where
+     this costs one request each and nothing else. Failures are ignored on
+     purpose — a cold switch still works, it is just not instant. */
+  useEffect(()=>{
+    for(const u of Object.values(AP_PRESET_FILM)) fetch(u,{cache:"force-cache"}).catch(()=>{});
+  },[]);
+
+  return <PsShell filmId={AP_CREATE_FILM} filmUrl={apPresetFilm(preset)}
+    line={sampleLine(preset,tune)}>
 
     <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
 
@@ -3824,13 +4017,19 @@ function AlertDone(){
 function Profile(){
   const nav = useNav();
   const { chatCross, setChatCross, freq, setFreq, uiLang, convLang } = useApp();
+  /* The scrim's opacity is written straight onto the node rather than held in
+     state: it changes on every scroll frame and nothing else on this screen
+     depends on it, so a re-render per frame would be pure cost. Same shape as
+     PsShell's sync(). Full by 48px — the content starts immediately under the
+     header here, so the veil has to arrive as soon as anything moves. */
+  const scrim = useRef(null);
+  const onScroll = (e)=>{
+    const k = scrim.current;
+    if(k) k.style.opacity = Math.min(1, e.currentTarget.scrollTop / 48);
+  };
   return <div className="pfscreen">
 
-    <div className="plhead">
-      <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
-      <h1 className="pltitle">Profile</h1>
-    </div>
-
+    <div className="pfscroll" onScroll={onScroll}>
     <div className="pfbody">
 
       {/* identity — the plant count is still the way into the plants list */}
@@ -3876,6 +4075,16 @@ function Profile(){
 
       <button className="pflogout" onClick={()=>nav.go("dashboard")}>Log out</button>
     </div>
+    </div>
+
+    <div className="pfscrim" ref={scrim} aria-hidden="true"/>
+
+    <div className="pfhead">
+      <div className="plhead">
+        <span className="plback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
+        <h1 className="pltitle">Profile</h1>
+      </div>
+    </div>
   </div>;
 }
 
@@ -3917,14 +4126,17 @@ function LangPick({params}){
      felix  frame 185,135 258x218  card 135/397   win right -46, top   0  img 258 @   0,-40
      mary   frame 135,275 262x215  card 275/397   win right   0, top   0  img 358 @   0,-143
      gosha  frame 248,411 140x187  card 415/397   win right   9, top  -4  img 308 @ -88,-80
-     vera   frame 173,640 282x282  card 695/397   win right -58, top -55  img 282 @   0,0
-   Vera is the last card again, so she takes the last card's frame — 438:174,
-   the 282x282 one — rather than the clipped 224x227 she wore at slot four. It
-   starts 55px ABOVE her card and runs 58px past its right edge, which is what
-   .plcard:last-child{overflow:visible} unlocks, and it bottoms out exactly on
-   the 227px card's bottom edge (-55 + 282 = 227).
-   Vlad's row stays in the table with his render: he is out of the UI, not out
-   of the repo, and LOOK_BY_SPECIES still points Bonsai at his art. */
+     vera   frame 173,555 224x227  card 555/397   win right   0, top   0  img 282 @   0,-79
+     vlad   frame 184,651 267x267  card 695/397   win right -54, top -44  img 267 @   0,0
+   Vera's frame starts exactly on her card's top-left, so her render is fully
+   clipped by the card like Felix/Mary/Gosha. Vlad is the last card and the one
+   that breaks out — his frame starts 44px ABOVE his card and runs 54px past its
+   right edge, which is what .plcard:last-child{overflow:visible} unlocks. His
+   render is 267 tall against the finished card's 227, so with the frame's own
+   -44 top it bottoms out at 223 — 4px shy of the card's bottom edge, which is
+   what the pot's own shadow occupies anyway. His numbers are 415:1423's, not
+   438:174's: that node draws the aloe render standing in for him at slot five,
+   and a placeholder's crop is not a measurement of his art. */
 const SHOT = {
   felix:{ src:"assets/pot-felix.webp",  win:{w:258,h:218,right:-46,top:  0},
                                         img:{s:258,left:    0,top:-40  } },
@@ -3932,8 +4144,8 @@ const SHOT = {
                                         img:{s:358,left:    0,top:-143 } },
   gosha:{ src:"assets/pot-gosha.webp",  win:{w:140,h:187,right:  9,top: -4},
                                         img:{s:308,left:-88.2,top:-80.2} },
-  vera: { src:"assets/pot-vera.webp",   win:{w:282,h:282,right:-58,top:-55},
-                                        img:{s:282,left:    0,top:  0  } },
+  vera: { src:"assets/pot-vera.webp",   win:{w:224,h:227,right:  0,top:  0},
+                                        img:{s:282,left: -0.1,top:-78.9} },
   vlad: { src:"assets/pot-vlad.webp",   win:{w:267,h:267,right:-54,top:-44},
                                         img:{s:267,left:    0,top:  0  } },
 };
@@ -4017,7 +4229,7 @@ const FLOWS = [
   { label:"Add new plant",      path:[["pair"]] },
   { label:"Dashboard",          path:[["dashboard"]] },   // = hero + Windowsill chat
   { label:"Notifications",      path:[["notifs"]] },
-  { label:"Plant card",         path:[["plant",{id:"felix"}]] },  // any plant; every one has its own films
+  { label:"Plant card",         path:[["plant",{id:"vlad"}]] },   // Vlad: the films are his
   /* "Alert simulation" is out of the index, not out of the app: the screens and
      the route stay, and Notifications' urgent row is still the way in. It came
      off the list because the chat no longer offers a second door to it. */

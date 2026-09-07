@@ -4268,3 +4268,264 @@ Re-verified live over CDP, identical to local:
   card → Profile. The one console 404 seen in an early pass is
   `/favicon.ico`, which this prototype has never shipped; unrelated and
   pre-existing.
+
+---
+
+# Revision 38 — the drift becomes visible, Vlad comes back, the notification opens the message, and the flow's films follow the preset
+
+Seven fixes. Two of them were bugs I shipped in Rev 37 and both had the same
+shape: a thing that was *technically* correct and visually absent.
+
+## 1 — The hero circles were animating the whole time
+
+First thing done was to prove or disprove the suspects the brief lists, because
+"it doesn't move" and "the animation isn't running" are different faults with
+different fixes. Sampled over 10 seconds in the live page:
+
+- `getAnimations()` → `gdriftA:running` / `gdriftB:running`, `currentTime`
+  advancing 1500ms per 1500ms of wall clock.
+- `animation-play-state: running` on both.
+- The computed `matrix()` changed on every sample — `17.7,−10.9` → `25.7,−15.8`
+  → `24.5,−11.9` → `18.3,4.8` → `13.4,17.8`.
+- `prefers-reduced-motion` → `false`.
+- No competing `transform` (the circles are centred by negative margins for
+  exactly this reason) and `will-change` was not implicated.
+
+So the animation was never the fault. **The amplitude was.** Rev 37 capped the
+travel at 26px, and Rev 37's own note said it should "read as the light changing
+rather than as two objects moving" — that was the error of judgement. A 26px
+move on a 519px circle blurred by 50px at 30% opacity is below the threshold at
+which *anything* is visible: a blurred shape has no edge to track, so the eye
+needs the whole wash to move, not the shape.
+
+Fixed by giving it room. Travel is now a real fraction of the green block
+(386×434) and each circle also swells slightly, which under this much blur is
+what reads as light rather than as an object:
+
+| | travel x | travel y | scale |
+|---|---:|---:|---:|
+| A (265px `#98C769`) | **148px** | **118px** | 1.00 → 1.10 |
+| B (519px `#69C789`) | **102px** | **120px** | 1.00 → 1.06 |
+
+19s and 24s, `ease-in-out`, unchanged — still inside the brief's 15–25s and
+still slowest at every waypoint, so neither blob ever looks like it is
+travelling *to* somewhere. Measured against the previous pass by diffing two
+screenshots of the hero 5s apart: **max channel delta 24, mean 4.3** across the
+whole green block, where the old amplitude produced a difference you had to
+look for in a diff to find at all.
+
+Clipping is untouched and re-verified in both states: `.gblobs` is
+`overflow:hidden` with `border-radius:inherit`, so it reports radius **0** on the
+full-bleed hero and **36px** on the 358×74 pill, and the circles are still
+`z-index:0` inside a `z-12` surface, under every hero element.
+
+## 2 — My Plants
+
+### The bottom corners were a no-op
+
+`.plcard:last-child` carried `border-radius:40px` — the computed style said so —
+and the card still ended in two square corners. The reason is the line directly
+above it: `overflow:visible`, which the last card needs so its plant can break
+out past its top edge. **A border-radius only rounds anything while the element
+clips.** The gradient is on `.plsurface`, a plain inset child, and nothing was
+clipping it.
+
+Probed before: at 4px above the card's bottom edge the gradient ran flat from
+x=5 to x=372, corner to corner. Probed after: at that same row it starts at x=20
+and ends by x=360, and 4px lower it starts at x=40 — a proper 40px curve on both
+sides.
+
+The fix is `border-radius:inherit` on `.plsurface`, which makes the corners the
+card's own property instead of a side effect of its overflow. The pot render is
+a sibling and stays unclipped, which is the whole point of the open overflow.
+
+Fork logged: the alternative was `overflow:hidden` plus a negative-margin escape
+for the pot. Rejected — that re-solves a solved problem and would break the
+break-out on every future last card.
+
+### Vlad is back
+
+Restored exactly as he was, not re-derived: his `PLANTS` row (Bonsai, Calm,
+"Every 2 days", bond 5), the flow index's "Plant card" shortcut, `PlantDetail`'s
+`"vlad"` default id, and the water-schedule comment's worked example. `SHOT.vera`
+goes back to the clipped 224×227 window at slot four and `SHOT.vlad` keeps his
+own 267×267 at `right:-54, top:-44`.
+
+The last-card treatment from Rev 37 now applies to **his** card: 227px tall,
+40px on all four corners, 40px of breathing room below, `overflow:visible` so his
+bonsai breaks out over Vera's card.
+
+Fork logged, and it is a real one: node **438:174** puts a 282×282 frame at
+`right:-58, top:-55` in the last slot, which would bottom out flush on the 227px
+card, against Vlad's own 267×267 landing 4px shy of it. **415:1423's numbers
+win.** 438:138 draws the *aloe* render standing in for him at slot five — the
+same photo as slot four, one size up — so its crop is a placeholder's, not a
+measurement of his art, and the 4px is where his pot's own shadow sits anyway.
+
+Measured after: five cards at **135 / 275 / 415 / 555 / 695**, heights
+192 / 192 / 192 / 192 / **227**, 40px under the last, and **144px of scroll** —
+so the Rev 37 top gradient, which had 4px to work with on a four-plant list and
+was correctly never lit, now does real work at rest.
+
+## 3 — The notification opens the message, not the plant
+
+Three things had to change together.
+
+**The hero gets out of the way.** Rev 36 made the dashboard always open
+expanded, and Rev 36's §3 explicitly extended that to arrivals from a
+notification. That was wrong and this reverses it for that one case: a tap on a
+notification asks for a specific message, and landing on the full green block
+puts it over the thing the user just asked to see. `params.focus` now opens
+**collapsed** — the 74px pill, the chat at full height. Verified at hero height
+**74** for all three rows.
+
+**`focus` is a message id, not a plant id.** `NOTIFS` rows carry `msg`, and the
+three messages they point at carry a matching `id`. The old code resolved focus
+as "the last thing this plant said", which is a different question and was
+already answering it wrongly — see the copy fix below. The plant-id fallback is
+kept, because a plant added through the Add Plant flow posts a message with no
+id and can only ever be focused by plant.
+
+**The copy had to be made consistent first.** Felix's notification says "soggy
+soil and a cold draught" and the only message in the chat with those symptoms
+was **Mary's**. So the symptom line moves to Felix, whose notification owns it,
+and Mary gets her own reservoir line. Each of the three notifications now has
+exactly one message, in the plant's own voice:
+
+| notification | message |
+|---|---|
+| Felix, just now | `m-felix-alert` 18:04 — soggy soil, cold draught |
+| Mary, 10 min ago | `m-mary-water` 17:52 — "URGENT BULLETIN: my reservoir is EMPTY" |
+| Gosha, 2 h ago | `m-gosha-light` 16:02 — "the sun moved off me hours ago" |
+
+**The flash** is `drop-shadow`, not `box-shadow`, and that is not a preference:
+the bubble's shape is an SVG blob painted as a `background-image` on a
+rectangular box, so `box-shadow` would draw a rectangle around it and a
+`background-color` tint would be hidden underneath it. `drop-shadow` follows the
+rendered alpha and takes the blob's own outline. 2s — up in 440ms, held ~800ms,
+gone — cleared by a timer rather than by the animation's end event, so nothing
+depends on that event firing.
+
+**The chat gained a morning.** Thirteen messages above 09:02, in the three
+voices the brief names, with reactions through them; the chat is now **21
+messages and 1736px** of scroll, which is what makes the deep-link scroll
+visible at all.
+
+Fork logged: Vera and Vlad are deliberately **not** in the new history. There is
+no avatar asset for either — `AVATAR` has felix, mary, gosha and the user — and a
+plain grey placeholder circle sitting between three illustrated pots reads as a
+missing image, not as a character.
+
+## 4 — Profile pins its title
+
+Rebuilt on the Personality & Settings arrangement, minus the film: `.pfscreen`
+stops scrolling, `.pfscroll` carries the content underneath, `.pfscrim` sits
+between them and `.pfhead` is pinned on top with `pointer-events:none` and the
+chevron opted back in.
+
+The scrim is 441:566's treatment re-measured for a one-line title: solid page
+colour behind the header's own **73px** (8 of screen padding + 13 of `.plhead`
+margin + its 52px min-height), then the mockup's 120px dissolve — **193px** tall,
+solid to **37.8%**. Its opacity is written straight onto the node from
+`onScroll` rather than held in state, the same shape as `PsShell.sync()`, because
+it changes every frame and nothing else on the screen depends on it. Full by
+48px, not 419: there is no film here, the content starts immediately under the
+header, so the veil has to arrive as soon as anything moves.
+
+`.pfscroll`'s 73px of top padding puts the first card back on the same **161**
+(device) it was on before, so nothing else moved.
+
+## 5 — The two replaced films
+
+Re-encoded on the pipeline each one already had, not on one pipeline for both:
+
+| file | source | shipped | | GOP | CRF | SSIM |
+|---|---:|---:|---:|---|---:|---:|
+| `growth-gosha.mp4` | 2 520 377 | **1 266 690** | 50.3% | 0.25s (`-g 6`, 21 keyframes) | 24 | 0.9960 |
+| `add-plant.mp4` | 7 344 036 | **1 447 459** | 19.7% | 0.5s (`-g 12`, 11 keyframes) | 26 | 0.9874 |
+
+`growth-gosha` is scrubbed, so it takes the growth films' dense-GOP terms and
+the quality budget that pays for them; `add-plant` is seeked exactly once, when
+the shutter freezes it, so 0.5s is enough. Both `-preset slow`, `yuv420p`, `-an`,
+`+faststart`, resolution untouched (976×2124 and 1176×1756). Re-measured the
+thing the GOP exists for: ten seeks scattered across `growth-gosha` returned
+**0–1ms** to `seeked`.
+
+**No cache-busting was needed and none was added.** The filenames are not hashed
+or copied anywhere — `filmSrc()` builds `assets/video/<kind>-<id>.mp4` and that
+is the only path — and the deployment serves static assets as
+`cache-control: public, max-age=0, must-revalidate` with an ETag, so every
+request revalidates and a changed file returns fresh bytes. Verified by
+content-length on the wire rather than by trusting that: **1 447 459** for
+`add-plant.mp4` and **1 266 690** for `growth-gosha.mp4`.
+
+Worth recording because it cost a false alarm: an early local run reported
+`add-plant.mp4` at its **old** 855 388 bytes. That was the headless browser's own
+disk cache, not the server — `Network.setCacheDisabled` and the correct number
+came back. A stale byte count in a test is not evidence of a stale deploy.
+
+## 6 — The character step's film follows the preset
+
+    Drama queen -> add-plant-drama       Cheerful -> add-plant-cheerfull
+    Grump       -> add-plant-grump       Sassy    -> add-plant-sassy
+    Friendly, Calm -> settings-felix (this screen's standing default)
+
+`PERSONALITIES` has six presets, not the eight the brief lists — there is no Shy
+and no Wise — so nothing maps to those two and `|| psFilm(AP_CREATE_FILM)` covers
+them if they are ever added. **"cheerfull" is the file's own spelling and is left
+alone**: renaming an asset to fix a typo is how a working reference goes stale.
+
+**The crossfade is two layers and an event, not a `key` swap.** `PsShell` now
+holds two `<video>` slots and a pointer at the visible one; a change loads the
+new file into the *other* slot and the pointer moves only when that slot fires
+`canplay`. Waiting on the event is what removes the flash — a hard `key` swap
+paints one frame of nothing while the new file opens, which is exactly the black
+frame the brief rules out. 260ms opacity dissolve, both layers on the same
+anchor, transform and inline width (`sync()` writes to both, or the incoming one
+would arrive at the wrong size mid-scroll).
+
+Every film this screen can show is **1292×1604**, the four new ones included, so
+one aspect ratio serves both layers and the stage geometry never moves during a
+switch.
+
+Fork logged: preloading is four `fetch(url,{cache:"force-cache"})` calls on
+mount, not four hidden `<video preload="auto">` elements. Those would spin up
+four more decoders for files that are not on screen; this costs one request each
+and nothing else. Failures are swallowed on purpose — a cold switch still works,
+it is just not instant.
+
+## 7 — Backing out of the flow's first screen
+
+`nav.jump([["plantsList"]])` rather than `nav.back()`. "Add" on the plants list
+is the flow's front door and the dashboard's own route into it goes through that
+list, so the plants list is the one place backing out of "Add a plant" can mean;
+`nav.back()` would instead return to the dashboard whenever the flow index put
+us there.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`. **No console errors,
+no exceptions and no failed requests**, across every flow-index screen, all five
+plant cards, all three notifications and the Add Plant flow end to end.
+
+- **Blobs** — running and *visible*: travel 148×118 (A) and 102×120 (B), scale
+  1.00–1.10, hero screenshots 5s apart differing by max channel 24 / mean 4.3.
+  Clip `hidden`, radius 0 expanded / 36px collapsed.
+- **My Plants** — Felix / Mary / Gosha / Vera / **Vlad**; 135 / 275 / 415 / 555 /
+  695, last card 227 tall, `border-radius:40px`, `overflow:visible`, and
+  `.plsurface` now reporting **40px** too; 40px under it; **144px** of scroll,
+  top fade opacity 0 at rest → 1 scrolled → 0 back at top.
+- **Deep links** — all three: hero **74px**, hot row `Felix 18:04` /
+  `Mary 17:52` / `Gosha 16:02`, each fully inside the scroller's box, `gflash`
+  running, and **0** rows still flashing 2.4s later.
+- **Profile** — title top **69** at rest and **69** at scroll 185 (pinned);
+  content top 161 → −24 (scrolling); scrim 386×193, opacity **0 → 1 → 0**.
+- **Preset films** — `settings-felix` at rest, then Drama queen / Grump /
+  Cheerful / Sassy / Friendly each swapping to the right file. Sampled 120ms into
+  each switch: both layers present at complementary opacities (0.34/0.66,
+  0.45/0.55, 0.55/0.45), identical widths of 691, settling to 1/0. All four
+  preset files fetched on entering the step.
+- **Films** — `growth-gosha.mp4` **1 266 690** on the wire, 976×2124, 5.042s,
+  seeks 0–1ms; `add-plant.mp4` **1 447 459**.
+- **Back from the flow's first screen** — "Pair your pot & meet your new plant"
+  → chevron → **"My Plants"**.
