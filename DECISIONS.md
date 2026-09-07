@@ -4244,3 +4244,27 @@ run end to end.
 - **Regressions checked** — "Plant card" opens Felix; Vera's detail reads
   "Every 5th day at 7am" (the schedule sentence's worked example moved off Vlad
   with him).
+
+## Shipped
+
+Commit `0776586` → `origin/main`, Vercel production
+`dpl_HnZuva9EGLKwFo7tYVapyT97oTtj`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged, 200).
+
+Re-verified live over CDP, identical to local:
+
+- **Hero** — blob A `265px rgb(152,199,105) 0.3 blur(50px) gdriftA 19s`,
+  blob B `519px rgb(105,199,137) 0.3 blur(50px) gdriftB 24s`, both behind the
+  headline and CTA and clipped to the green in the collapsed pill too.
+- **My Plants** — Felix / Mary / Gosha / Vera; 135/192, 275/192, 415/192,
+  **555/227**; last card `border-radius:40px` `overflow:visible`, **40px**
+  under it; top fade at opacity **0** at scroll-top.
+- **Notifications** — 0 chips, three × "Open in the chat", link and time
+  baseline-aligned on one line, card 116px.
+- **Add Plant** — "Your pot is paired and online" in **2 lines**, 354px box,
+  y 187 → 291, clear of the pot.
+- **Network** — no failed requests and no broken images across Dashboard →
+  My Plants → Notifications → Add Plant (driven to the paired screen) → Plant
+  card → Profile. The one console 404 seen in an early pass is
+  `/favicon.ico`, which this prototype has never shipped; unrelated and
+  pre-existing.
