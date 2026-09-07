@@ -4827,3 +4827,34 @@ cards, all three notifications and the Add Plant flow end to end.
   entry and on every switch.
 - **Pinned title** — "Add plant", Riccione 22px, opacity 0 → **1** at scroll 662.
 - **Chips** — Grump at **80**; the ends clamped at scrollLeft 0 and 390.
+
+## Shipped
+
+Commits `e7638c0` + `d.. (load order)` → `origin/main`, Vercel production
+`dpl_FmF728yLjgw42XwKardRNsRH3cBT`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP **with the browser cache disabled**, so every film was
+fetched cold. **No console errors, no exceptions, no failed requests.**
+
+- **Films on the wire** (curl, definitive): `add-plant` **707 290**,
+  `add-plant-drama` **138 611**, `add-plant-grump` **136 474**,
+  `add-plant-cheerfull` **125 535**, `add-plant-sassy` **132 231**,
+  `settings-felix` **171 971**, `growth-vlad` **704 095**, `still-mary`
+  **487 438**, `bt` **92 656** — the new encodes, not a stale cache.
+- **1 Blobs** — `10s` / `13s`; layer at device top **0**, height **482**,
+  `overflow:hidden`.
+- **2 Chat** — 30 rows, alerts at **20 / 25 / 29**, the last row an alert.
+- **3 Stagger** — 160ms in: stack **0.65**, every card at **1**.
+- **Deep links** — rows **29 / 25 / 20**, hero **74px**, correct plant and time
+  on each.
+- **4 Camera** — live at t **2.45**, frozen at t **2.45**, paused; bar 386×2 on
+  `camscan 2.4s alternate`; sentence still at **433**.
+- **5 Priming** — all five films `readyState 4` at 720×894, the **active one
+  first** in the DOM and playing, the other four paused.
+- **6 Title** — "Add plant" at 22px, opacity **0** at scroll 0 and 660, **1** at
+  662.
+- **7 Chips** — Drama queen and Grump both land at exactly **80**; Friendly
+  clamps at `scrollLeft 0` (5) and Sassy at the row's max 390 (282).
+- **8 Bubble** — `psbubpop` on entry and on all four preset changes; each switch
+  sampled 140ms in shows two layers at complementary opacities.
