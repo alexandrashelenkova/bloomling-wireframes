@@ -273,15 +273,31 @@
     pointer-events:none;opacity:0;transition:opacity .22s ease-out;
     background:linear-gradient(180deg,var(--bg) 0%,rgba(237,238,233,0) 100%)}
   .plfade.on{opacity:1}
-  .pstack{display:flex;flex-direction:column}
+  .pstack{display:flex;flex-direction:column;animation:plstackin .32s ease-out both}
   /* Entry: the cards rise into place, each one a beat behind the one above.
      460ms on --soft (a deep ease-out that decelerates hard and does NOT
-     overshoot — a bounce here would fight the stack's weight) and a 70px
-     stagger step of 70ms, so the whole list has landed inside 700ms. It is a
-     mount animation, and every route into this screen mounts it fresh. */
+     overshoot — a bounce here would fight the stack's weight) and a stagger
+     step of 70ms, so the whole list has landed inside 700ms. It is a mount
+     animation, and every route into this screen mounts it fresh.
+
+     THE ALPHA IS ON THE GROUP, NOT ON THE CARDS, and that is the whole fix for
+     the bleed-through. Every card overlaps the one above it by 52px, and a card
+     at opacity .5 shows that card straight through the overlap — a double
+     exposure at four seams at once. Opacity on the PARENT is the one primitive
+     that does not do this: it renders the whole subtree into a single buffer
+     and applies the alpha to the result, so siblings composite against each
+     other at full opacity and only the finished stack fades against the page.
+     The cards themselves therefore animate transform ONLY, and stay opaque for
+     every frame they are on screen.
+
+     Fork logged: delaying each card's own opacity so it is solid before it
+     reaches its neighbour was the other option. Rejected — it only shrinks the
+     window in which the seams double-expose, and at 70ms of stagger there is no
+     window small enough. */
+  @keyframes plstackin{from{opacity:0} to{opacity:1}}
   @keyframes plrise{
-    from{opacity:0;transform:translateY(34px)}
-    to  {opacity:1;transform:translateY(0)}}
+    from{transform:translateY(44px)}
+    to  {transform:translateY(0)}}
   /* The card clips its own contents: a pot may not spill onto its neighbours.
      The radius and the shadow live on the CARD, not on the surface — an inner
      element's outward shadow would be eaten by this same overflow, while an
@@ -290,7 +306,8 @@
   .plcard{position:relative;flex:0 0 auto;height:192px;margin-top:-52px;
     cursor:pointer;color:var(--serif-ink);overflow:hidden;
     border-radius:40px 40px 0 0;box-shadow:0 -4px 60px rgba(61,61,61,.2);
-    animation:plrise .46s var(--soft) both}
+    animation:plrise .46s var(--soft) both;
+    backface-visibility:hidden}   /* keeps the transform off a half-pixel seam */
   /* border-radius:inherit is load-bearing, not tidiness. The card's radius only
      rounds anything while the card CLIPS, and the last card is `overflow:visible`
      so its plant can break out — which left its 40px bottom corners doing
@@ -997,17 +1014,38 @@
     filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));
     display:flex;align-items:center;justify-content:center}
   .camback:active{opacity:.6}
-  /* recognising — the app's own .spin geometry in white, so it reads on a
-     photograph, over a scrim that dims the frozen frame just enough to say the
-     viewfinder has stopped being live */
+  /* recognising — the same scrim as before, dimming the frozen frame just
+     enough to say the viewfinder has stopped being live. The 68px of top
+     padding is the round loader's old box (48px plus the column's 20px gap),
+     kept so the sentence stays exactly where it was built. */
   .camwait{position:absolute;left:0;right:0;top:-48px;bottom:0;z-index:2;
+    overflow:hidden;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:20px;background:rgba(5,5,5,.45);color:#FFF;
+    padding-top:68px;background:rgba(5,5,5,.45);color:#FFF;
     font-size:var(--t-md);line-height:1.25;
     text-shadow:0 1px 4px rgba(0,0,0,.5)}
-  .camwait > i{width:48px;height:48px;border-radius:50%;
-    border:3px solid rgba(255,255,255,.35);border-top-color:#FFF;
-    animation:spin .8s linear infinite}
+  /* THE SCAN BAR — Figma 540:239 "Rectangle 67": the full width of the frame,
+     2px tall, and a horizontal gradient that is transparent at both ends and
+     solid white across the middle fifth-to-four-fifths, so the line has no hard
+     end-caps against the photograph. The mockup draws it once, at y 531; it is
+     the moving part of the frame, so the sweep is ours.
+
+     `alternate` rather than a wrap-around: a bar that reappears at the top has
+     retraced its path, which is a spinner's logic, not a scanner's. ease-in-out
+     puts the slow moment at each turn, which is what a scan head does. 2.4s a
+     pass over an 818px screen is about 340px/s — brisk enough to read as
+     working, slow enough that the eye can follow the line. */
+  .camscan{position:absolute;left:0;right:0;top:0;height:2px;
+    background:linear-gradient(90deg,rgba(255,255,255,0) 0%,#FFF 20%,
+      #FFF 80%,rgba(255,255,255,0) 100%);
+    filter:drop-shadow(0 0 8px rgba(255,255,255,.55));
+    animation:camscan 2.4s ease-in-out infinite alternate}
+  /* `top`, not `translateY`: the sweep has to span the SCRIM's height and a
+     percentage translate would resolve against the bar's own 2px. `top` is a
+     percentage of the containing block, which is exactly the box being scanned. */
+  @keyframes camscan{
+    from{top:0}
+    to  {top:calc(100% - 2px)}}
 
   /* ══════════ PERSONALITY & SETTINGS — full-bleed (Figma 446:93) ══════════
      A 402×818 frame in the mockup against this file's 386×818 device, so every
@@ -1038,6 +1076,16 @@
   .pshead .plback{pointer-events:auto;margin-top:14px}
   /* the title wraps on its own; nowrap would push it off the screen */
   .pshead .pltitle{white-space:normal}
+  /* The flow's pinned name. The same serif face as every other screen title,
+     at --t-lg rather than --t-xl because it has to sit inside a 52px bar beside
+     the chevron rather than own a 104px header of its own — 13px of top margin
+     puts its line box's centre on the chevron's. It exists only once the film
+     is fully off screen; over the film there is no title at all, which is the
+     mockups' own rule for this flow. 180ms, the middle of the brief's band. */
+  .psptitle{flex:0 1 auto;margin-top:13px;font-size:var(--t-lg);line-height:1.18;
+    opacity:0;transform:translateY(-4px);pointer-events:none;
+    transition:opacity .18s ease-out,transform .18s ease-out}
+  .psptitle.on{opacity:1;transform:translateY(0)}
 
   /* ── the scrim under the nav ──────────────────────────────────────────────
      441:566: `#EDEEE9 → transparent` over 120px, sitting at y 176 — i.e. solid
@@ -1119,6 +1167,17 @@
     color:var(--ink);display:flex;align-items:center;justify-content:center;
     transform-origin:50% 0;
     transition:opacity 230ms ease-out,transform 230ms ease-out}
+  /* ARRIVING is the detail screen's own pop, verbatim (see .pdbubwrap): a soft
+     fade and a scale that overshoots 3.5% at 55% and settles. It runs on mount,
+     and again whenever React remounts this node — which is what `key={bubKey}`
+     is for, so a new personality gets a new bubble rather than a silent text
+     swap. LEAVING keeps the plain 230ms ease-out that .off brings with it, so
+     the two directions never borrow each other's curve. */
+  .psbub:not(.off){animation:psbubpop 300ms cubic-bezier(.22,1,.36,1) both}
+  @keyframes psbubpop{
+    0%  {opacity:0;transform:translateY(-8px) scale(.94)}
+    55% {opacity:1;transform:translateY(0)     scale(1.035)}
+    100%{opacity:1;transform:translateY(0)     scale(1)}}
   .psbub.off{opacity:0;transform:translateY(-8px) scale(.96)}
 
   /* ── the settings themselves ──────────────────────────────────────────────
@@ -1310,15 +1369,25 @@
      negative margins are half of each circle, which centres it on that point
      and leaves `transform` entirely free for the drift. */
   .gblobs{position:absolute;inset:0;overflow:hidden;border-radius:inherit;
-    z-index:0;pointer-events:none}
+    z-index:0;pointer-events:none;transition:top .38s var(--soft)}
+  /* The green does not start where .gsurface does. .device:has(.dash.open) paints
+     the sage behind the STATUS BAR too, so the block the user sees runs from the
+     very top of the screen — and the blob layer, clipped to a surface that starts
+     48px below it, was cutting the big circle off in a straight line along that
+     seam. Open, the layer reaches back up over those 48px.
+     It also makes the mockup's own numbers exact rather than close: the
+     percentages below were derived against Figma's 402x482 green area, which
+     INCLUDES the status bar, and were being applied to a 434px box. Now the box
+     is the full 482 they were measured on. */
+  .dash.open .gblobs{top:-48px;transition:top .5s var(--spring)}
   .gblob{position:absolute;border-radius:50%;opacity:.3;filter:blur(50px);
     will-change:transform}
   .gblob.a{width:265px;height:265px;margin:-132.5px 0 0 -132.5px;
     background:#98C769;left:21.5%;top:89.7%;
-    animation:gdriftA 19s ease-in-out infinite}
+    animation:gdriftA 10s ease-in-out infinite}
   .gblob.b{width:519px;height:519px;margin:-259.5px 0 0 -259.5px;
     background:#69C789;left:106.8%;top:-12.8%;
-    animation:gdriftB 24s ease-in-out infinite}
+    animation:gdriftB 13s ease-in-out infinite}
   /* The amplitude is the whole of this. The first pass ran at =<26px of travel
      and was verified to be genuinely animating — `getAnimations()` reported
      `running`, the computed matrix advanced every frame, no reduced-motion, no
@@ -1327,14 +1396,16 @@
      which anything is visible at all. A blurred shape has no edge to track, so
      the eye needs the whole WASH to move, not the shape.
 
-     So the travel is now a real fraction of the green block (386x434): up to
-     150px for the small circle and 120px for the large one, plus a slow swell
-     to 1.10/1.06, which under this much blur reads as the light breathing.
-     19s and 24s are unchanged and coprime enough that the pair never repeats a
-     configuration inside a session; ease-in-out per segment keeps each blob
-     slowest at its waypoints, so nothing ever appears to be travelling *to*
-     somewhere. Still ambient — just above the threshold of perception now
-     instead of below it. */
+     So the travel is a real fraction of the green block: up to 150px for the
+     small circle and 120px for the large one, plus a swell to 1.10/1.06, which
+     under this much blur reads as the light breathing.
+
+     10s and 13s, down from 19 and 24 — roughly twice the speed, so the wash is
+     now something you notice rather than something you catch. They stay coprime,
+     so the pair still never repeats a configuration inside a session, and
+     ease-in-out per segment keeps each blob slowest at its waypoints: nothing
+     ever appears to be travelling *to* somewhere, which is what would turn
+     ambient motion into an animation the eye has to follow. */
   @keyframes gdriftA{
     0%  {transform:translate(0,0) scale(1)}
     25% {transform:translate(96px,-64px) scale(1.10)}
@@ -1753,9 +1824,9 @@ const lookOf = (id) => { const x = PLANTS.find(p=>p.id===id); return (x && x.loo
 const NOTIFS = [
   { id:"n1", plant:"felix", time:"just now", msg:"m-felix-alert",
     text:"Felix needs a look — soggy soil and a cold draught" },
-  { id:"n2", plant:"mary",  time:"10 min ago", msg:"m-mary-water",
+  { id:"n2", plant:"mary",  time:"50 min ago", msg:"m-mary-water",
     text:"Mary's reservoir is empty — she'd love a refill" },
-  { id:"n3", plant:"gosha", time:"2 h ago", msg:"m-gosha-light",
+  { id:"n3", plant:"gosha", time:"4 h ago", msg:"m-gosha-light",
     text:"Gosha needs more light — a brighter spot would do it" },
 ];
 
@@ -1828,21 +1899,41 @@ const CHAT_INIT = [
     rx:[["💅",1],["😂",1]] },
   { who:"me",    at:"09:11", cross:true,
     text:"Calm down, Gosha. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
-  /* ── the three the notifications point at ────────────────────────────────
-     One per row of NOTIFS, in the order their timestamps put them, and each
-     one says in the plant's own voice what the notification says in the app's.
-     The soggy-soil-and-draught line used to be Mary's and is now Felix's,
-     because Felix's notification is the one that owns those symptoms — two
-     plants reporting the same complaint was the mismatch that made the old
-     `focus` deep link land on the wrong bubble.
+  /* ── the afternoon, and the three the notifications point at ─────────────
+     The three ids are SPREAD through the day rather than stacked at the end.
+     Three consecutive alerts read as a support queue, not as a group chat, and
+     a deep link that always lands two rows off the bottom never shows that it
+     travelled. So Gosha's sits at 13:47, Mary's at 17:12 and only Felix's is
+     last, with ordinary small talk between each pair — which is also what makes
+     the three deep links visibly different from one another.
+
+     NOTIFS' `time` strings were re-read off these positions ("4 h ago",
+     "50 min ago", "just now" against a chat whose now is 18:04); the ids and
+     therefore the mapping are untouched.
 
      None of them is `urgent`: that flag drew a divider and a CTA into the alert
      flow, and a plant that files a support ticket is not the character this
      chat is written for. It mentions the thing and leaves it with you. */
-  { who:"gosha", id:"m-gosha-light", at:"16:02", text:
+  { who:"me",    at:"11:05", text:"Off to lunch. Try not to stage a coup." },
+  { who:"mary",  at:"11:06",
+    text:"No promises. Bring something back with chlorophyll in it.", rx:[["😂",2]] },
+  { who:"gosha", id:"m-gosha-light", at:"13:47", text:
     "Not that it matters, but the sun moved off me hours ago. I'm not complaining. I'm reporting." },
-  { who:"mary",  id:"m-mary-water",  at:"17:52", text:
+  { who:"felix", at:"13:52", cross:true,
+    text:"Want me to shuffle left? I could shuffle left." },
+  { who:"gosha", at:"13:54", cross:true,
+    text:"You are in a pot, Felix.", rx:[["😂",3]] },
+  { who:"me",    at:"15:30",
+    text:"Back. Gosha, I'll move you after dinner.", rx:[["💚",1]] },
+  { who:"felix", at:"16:41",
+    text:"The afternoon light in here is genuinely spectacular. Just saying." },
+  { who:"mary",  id:"m-mary-water",  at:"17:12", text:
     "URGENT BULLETIN: my reservoir is EMPTY. Bone dry. I'll be over here, wilting decoratively." },
+  { who:"gosha", at:"17:14", cross:true,
+    text:"She says this every week.", rx:[["💅",1]] },
+  { who:"mary",  at:"17:15", cross:true, text:"And every week I am RIGHT." },
+  { who:"felix", at:"17:40",
+    text:"New leaf update: still there, still magnificent.", rx:[["🌿",2]] },
   { who:"felix", id:"m-felix-alert", at:"18:04", text:
     "Sorry to be a bother — my soil's gone soggy and there's a proper cold draught by this window. Could you take a look?" },
 ];
@@ -3265,9 +3356,6 @@ const psVidW0     = (ar)=> PS_STAGE * ar * (1 + PS_ZOOM);
 const PS_SCRIM_IN  = 200;
 const PS_SCRIM_OUT = 419;
 
-/* The chips' own side padding, and so the clearance a revealed chip keeps from
-   the screen edge — one pad, the same gap it would have from a neighbour. */
-const PS_CHIP_PAD = 24;
 
 /* How far down the page the bubble still makes sense. The bubble is the PLANT
    talking, so it goes when there is no plant left under it: 410 is the scroll
@@ -3287,26 +3375,33 @@ const PS_VOICES = ["Male","Female","Prefer not to choose"];
    affordance — the brief says otherwise, so rather than adding a second copy
    that can drift, the section became one component and both screens render it.
 
-   The reveal lives here too, so "tapping a half-cut chip scrolls it fully into
-   view" is one implementation rather than two. The row is 774px against a 386px
-   screen; neither edge is special (the same two lines handle both) and 24px of
-   clearance is the chips' own side padding, so a revealed chip sits exactly one
-   pad from the edge rather than flush against it. Measured through
-   getBoundingClientRect against the row, not offsetLeft: .pschips is not
-   positioned, so offsetParent is the content column and offsetLeft would be
-   measuring the wrong box. */
+   The reveal lives here too, so "tapping a chip scrolls it into place" is one
+   implementation rather than two. It is now a POSITION, not a clearance: the
+   tapped chip is parked exactly 80px from the left edge of the SCREEN, clamped
+   at both ends of the row. That is a stronger rule than the old "scroll just far
+   enough to uncover it" — every tap now lands the chip on the same spot, so the
+   row reads as a carousel with a slot rather than as a box that shuffles by
+   however much it had to. The clamp is what keeps the first and last chips
+   honest: neither can reach 80 without overscrolling, so they stop at the row's
+   own end and sit wherever that puts them.
+
+   Measured through getBoundingClientRect against the DEVICE, not offsetLeft:
+   80px is a screen position, .pschips is not positioned, and its offsetParent
+   is the content column — offsetLeft would be measuring the wrong box twice
+   over. */
+const PS_CHIP_LEFT = 80;
 function PersonalitySection({preset, tune, onPick, onSlide, sec}){
   const chipRow = useRef(null);
   const reveal = (el)=>{
     const row = chipRow.current;
     if(!row || !el || !row.scrollTo) return;
-    const r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
-    const left  = row.scrollLeft + (r.left  - rr.left) - PS_CHIP_PAD;
-    const right = row.scrollLeft + (r.right - rr.left) + PS_CHIP_PAD;
-    let to = row.scrollLeft;
-    if(right > to + row.clientWidth) to = right - row.clientWidth;
-    if(left  < to)                   to = left;
-    to = Math.max(0, Math.min(to, row.scrollWidth - row.clientWidth));
+    const dev = row.closest(".device");
+    if(!dev) return;
+    // how far the chip currently sits from where it should sit
+    const delta = el.getBoundingClientRect().left
+                - (dev.getBoundingClientRect().left + PS_CHIP_LEFT);
+    const to = Math.max(0, Math.min(row.scrollLeft + delta,
+                                    row.scrollWidth - row.clientWidth));
     if(Math.abs(to - row.scrollLeft) > 1) row.scrollTo({left:to, behavior:"smooth"});
   };
   return <div className={sec || "pssec"}>
@@ -3383,37 +3478,48 @@ function ActivitySection({first, window:win, onCustomise, sec}){
 }
 
 /* PsShell takes either a plant (`filmId` -> settings-<id>.mp4) or an explicit
-   `filmUrl`, and CROSSFADES when that url changes: two stacked <video> layers
-   in the one stage, identically positioned, the incoming one held at opacity 0
-   until it says `canplay` and only then swapped. Waiting on the event is what
-   removes the flash — a hard `key` swap paints one frame of nothing while the
-   new file opens, which is exactly the black frame the brief rules out.
+   `film`, and optionally the WHOLE SET this screen can show (`films`).
 
-   Every film this screen can show is 1292x1604 — the four settings films it
-   already used and all four add-plant-<preset> films — so one `ar` serves both
-   layers and the stage geometry never moves during a switch. */
-function PsShell({filmId, filmUrl, title, line, children}){
+   Every film in that set is mounted once, from the first paint, with
+   preload="auto" — and the switch is then nothing but an opacity crossfade
+   between elements that are already decoded. The previous build swapped a `src`
+   into one of two slots and waited on `canplay`; that is correct but it is
+   still a load, and a load is what the lag was. Priming the elements moves the
+   whole cost to the moment the step opens, where it is covered by the arrival,
+   and leaves the switch itself with nothing to do. Only the visible film plays;
+   the rest are paused after the fade, so five mounted elements are one decoder
+   and four still frames.
+
+   Every film this screen can show is 720x894 (settings-vlad's 720x830 aside, and
+   he is never in a set), so one `ar` serves every layer and the stage geometry
+   does not move during a switch.
+
+   `pinTitle` is the screen's name for the pinned bar, shown only once the film
+   is entirely off screen — see `titled`. `bubKey` re-pops the speech bubble when
+   it changes. */
+function PsShell({filmId, film, films, title, pinTitle, line, bubKey, children}){
   const nav = useNav();
   const ar  = psAr(filmId);
-  const url = filmUrl || psFilm(filmId);
+  const url = film || psFilm(filmId);
+  const list = (films && films.length) ? films : [url];
   const scroller = useRef(null);
   const scrim    = useRef(null);
-  const vidA     = useRef(null);
-  const vidB     = useRef(null);
+  const vids     = useRef({});
   const stage    = useRef(null);
-  /* two slots and a pointer at the visible one. A change loads the new file
-     into the OTHER slot; `on` moves only once that slot can play. */
-  const [film,setFilm] = useState({a:url, b:null, on:"a"});
+  /* the incoming film restarts from its own first frame — the character has
+     just changed, so the take should begin again rather than join in progress —
+     and the outgoing one is paused once the 260ms crossfade has covered it */
   useEffect(()=>{
-    setFilm(f=>{
-      if((f.on==="a" ? f.a : f.b) === url) return f;
-      return f.on==="a" ? {a:f.a, b:url, on:"a"} : {a:url, b:f.b, on:"b"};
-    });
+    const on = vids.current[url];
+    if(on){ on.currentTime = 0; const q = on.play(); if(q && q.catch) q.catch(()=>{}); }
+    const t = setTimeout(()=>{
+      for(const k in vids.current){ const v = vids.current[k]; if(v && k!==url) v.pause(); }
+    }, 300);
+    return ()=>clearTimeout(t);
   },[url]);
-  const ready = (slot)=> setFilm(f=>
-    (f.on===slot || (slot==="a" ? f.a : f.b) !== url) ? f : {...f, on:slot});
   const sraf     = useRef(0);
   const [deep,setDeep] = useState(false);
+  const [titled,setTitled] = useState(false);
   const sync = ()=>{
     sraf.current = 0;
     const s = scroller.current, k = scrim.current, g = stage.current;
@@ -3428,11 +3534,13 @@ function PsShell({filmId, filmUrl, title, line, children}){
       const vis = Math.max(0, PS_STAGE - t);
       const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
       const w   = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
-      // BOTH layers, or the incoming one arrives at the wrong size mid-scroll
-      if(vidA.current) vidA.current.style.width = w;
-      if(vidB.current) vidB.current.style.width = w;
+      // EVERY layer, or a hidden one arrives at the wrong size mid-scroll
+      for(const k in vids.current){ const v = vids.current[k]; if(v) v.style.width = w; }
     }
     setDeep(t > PS_TALK_MAX);      // the film has left the bubble's own box
+    /* the pinned title appears only when the film is ENTIRELY gone — vis hits 0
+       at exactly PS_STAGE, so that is the threshold, not a number near it */
+    setTitled(t >= PS_STAGE);
   };
   const onScroll = ()=>{
     if(!sraf.current) sraf.current = requestAnimationFrame(sync);
@@ -3447,11 +3555,10 @@ function PsShell({filmId, filmUrl, title, line, children}){
     {/* 1 — the scroller: the film, its resolve, and the sections, in that order */}
     <div className="psscroll" ref={scroller} onScroll={onScroll}>
       <div className="psstage" ref={stage}>
-        {[["a",film.a,vidA],["b",film.b,vidB]].map(([slot,src,ref])=> src &&
-          <video key={slot+":"+src} ref={ref} src={src}
-            className={"psvid"+(film.on===slot ? "" : " off")}
-            muted loop autoPlay playsInline preload="auto"
-            onCanPlay={()=>ready(slot)}
+        {list.map(src =>
+          <video key={src} ref={el=>{vids.current[src] = el;}} src={src}
+            className={"psvid"+(src===url ? "" : " off")}
+            muted loop playsInline preload="auto" autoPlay={src===url}
             style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>)}
       </div>
       <div className="psfade"/>
@@ -3469,9 +3576,11 @@ function PsShell({filmId, filmUrl, title, line, children}){
             and keeps the chevron. .plhead's min-height holds the 52px the title
             used to give it, so the chevron does not climb the screen. */}
         {title && <h1 className="pltitle">{title}</h1>}
+        {!title && pinTitle &&
+          <h1 className={"pltitle psptitle"+(titled?" on":"")}>{pinTitle}</h1>}
       </div>
     </div>
-    <div className={"psbub"+(deep?" off":"")}
+    <div key={bubKey} className={"psbub"+(deep?" off":"")}
       style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
       {line}
     </div>
@@ -3608,6 +3717,11 @@ const AP_PRESET_FILM = {
   "Sassy":       "assets/video/add-plant-sassy.mp4",
 };
 const apPresetFilm = (k)=> AP_PRESET_FILM[k] || psFilm(AP_CREATE_FILM);
+/* Every film the step can reach, deduped and in a stable order — PsShell mounts
+   the whole set at once and preloads it, so this list IS the preload. The
+   default goes last so the four presets, which are the ones a tap can ask for,
+   start their fetch first. */
+const AP_PRESET_FILMS = Object.values(AP_PRESET_FILM).concat([psFilm(AP_CREATE_FILM)]);
 
 /* the ellipsis that shows something is happening — see .apdots */
 const Dots = ()=> <span className="apdots"><i>.</i><i>.</i><i>.</i></span>;
@@ -3731,13 +3845,15 @@ function CapturePhoto(){
     return ()=>clearTimeout(t);
   },[st]);
 
+  /* Freeze on the frame that is ON SCREEN. It used to seek to the film's last
+     frame, which is what a shutter must never do: the picture you get has to be
+     the picture you were looking at when you pressed it. `loop = false` still
+     matters — without it the paused element would wrap to 0 if it were ever
+     resumed — but there is no seek any more, so the freeze is instant as well
+     as honest. */
   const shoot = ()=>{
     const v = camV.current;
-    if(v){
-      v.loop = false;                       // or the freeze would wrap to 0
-      v.pause();
-      if(v.duration) v.currentTime = Math.max(0, v.duration - 0.04);
-    }
+    if(v){ v.loop = false; v.pause(); }
     setSt("reading");
   };
 
@@ -3749,7 +3865,10 @@ function CapturePhoto(){
     <span className="camback" onClick={nav.back} title="Back"><IconChevronLeft/></span>
     {st==="live"
       ? <button className="camshutter" onClick={shoot} aria-label="Take the photo"/>
-      : <div className="camwait"><i/><span>Recognising your plant<Dots/></span></div>}
+      : <div className="camwait">
+          <i className="camscan" aria-hidden="true"/>
+          <span>Recognising your plant<Dots/></span>
+        </div>}
   </div>;
 }
 
@@ -3840,17 +3959,12 @@ function CreateCharacter({params}){
   const commit = ()=>setEditing(false);
   const finalName = name.trim() || species;
 
-  /* Warm the four preset films into the HTTP cache the moment the step opens,
-     so the first tap on a chip is a cache hit rather than a network round trip.
-     fetch() rather than four hidden <video preload="auto"> elements: those
-     would spin up four more decoders for files that are not on screen, where
-     this costs one request each and nothing else. Failures are ignored on
-     purpose — a cold switch still works, it is just not instant. */
-  useEffect(()=>{
-    for(const u of Object.values(AP_PRESET_FILM)) fetch(u,{cache:"force-cache"}).catch(()=>{});
-  },[]);
-
-  return <PsShell filmId={AP_CREATE_FILM} filmUrl={apPresetFilm(preset)}
+  /* No fetch() warm-up any more: PsShell now mounts all five films itself with
+     preload="auto", which downloads the same bytes AND leaves a decoded element
+     behind, where a fetch only filled the HTTP cache and every switch still had
+     to open the file. Two ways of downloading the same thing was one too many. */
+  return <PsShell filmId={AP_CREATE_FILM} film={apPresetFilm(preset)}
+    films={AP_PRESET_FILMS} pinTitle="Add plant" bubKey={preset}
     line={sampleLine(preset,tune)}>
 
     <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>

@@ -4559,3 +4559,261 @@ pre-existing and unrelated.
   / back to settings-felix, both layers always at identical 691px widths through
   each dissolve.
 - **Flow** — "Pair your pot & meet your new plant" → chevron → **My Plants**.
+
+---
+
+# Revision 39 — the hero clears the status bar, the alerts spread out, the stagger stops double-exposing, and the flow's films are primed rather than loaded
+
+## 1 — The hero circles
+
+**Speed.** 19s/24s → **10s/13s**. Still coprime, so the pair never repeats a
+configuration inside a session, and still `ease-in-out` per segment so each blob
+is slowest at its waypoints — nothing ever looks like it is travelling *to*
+somewhere, which is what would turn ambient motion into an animation the eye has
+to follow. Amplitude is unchanged; Rev 38 already fixed that.
+
+**The cut-off at the top was a mismatch between two definitions of "the green".**
+`.device:has(.dash.open)` paints the sage behind the **status bar** as well, so
+the block the user sees starts at device y 0 — but `.gsurface`, which the blob
+layer is clipped to, starts 48px lower, at the top of `.screen`. The big circle
+was being sliced along that seam in a dead-straight line.
+
+Fixed with one rule: `.dash.open .gblobs{top:-48px}`, so open, the layer reaches
+back up over those 48px and covers the whole 482px of green. The clip and the
+radius are unchanged and still `inherit`, so the collapsed pill is untouched.
+
+The fix also makes the mockup's own numbers *exact* rather than close. The blob
+positions are percentages derived against Figma's **402×482** green area — which
+includes the status bar — and they were being applied to a 434px box. The box is
+now the 482 they were measured on. Verified: layer top at device **0**, height
+**482**, `overflow:hidden`; collapsed, back inside the pill at 74px with its
+36px radius.
+
+## 2 — The three alert messages spread through the day
+
+They sat at rows 27, 28, 29 of 30 — three consecutive alerts read as a support
+queue, not as a group chat, and a deep link that always lands two rows off the
+bottom never shows that it travelled anywhere. Now:
+
+| | row | time |
+|---|---:|---|
+| `m-gosha-light` | 20 | 13:47 |
+| `m-mary-water` | 25 | 17:12 |
+| `m-felix-alert` | **29 (last)** | 18:04 |
+
+Five rows of small talk between the first two, four between the second and
+third, in the three established voices. Twelve messages added; the chat is now
+**30 rows**.
+
+`NOTIFS.time` was re-read off the new positions — "4 h ago", "50 min ago",
+"just now" against a chat whose now is 18:04. The `msg` ids and therefore the
+whole mapping are untouched, which is the point: the deep link is keyed on an id
+precisely so that moving a message cannot break it.
+
+## 3 — The entry stagger's double exposure
+
+Every card overlaps the one above by 52px, and a card at opacity .5 shows that
+card straight through the overlap — a double exposure at four seams at once.
+
+**The fix is that the alpha belongs to the group, not to the cards.** Opacity on
+a parent is the one primitive that does not do this: it renders the whole subtree
+into a single buffer and applies the alpha to the *result*, so siblings composite
+against each other at full opacity and only the finished stack fades against the
+page. So `.pstack` gets a 320ms group fade and `.plcard` animates **transform
+only** — 44px up, unchanged 460ms/70ms stagger — and stays opaque for every frame
+it is on screen.
+
+Measured 150ms in: stack opacity **0.59**, all five cards at opacity **1**, with
+transforms still staggered at 8 / 21 / 44 / 44 / 44px. Nothing translucent
+overlaps anything.
+
+Fork logged: delaying each card's own opacity so it is solid before it reaches
+its neighbour was the other option. Rejected — it only shrinks the window in
+which the seams double-expose, and at 70ms of stagger there is no window small
+enough.
+
+## 4 — The camera
+
+**The shutter freezes the frame you are looking at.** It used to seek to
+`duration - 0.04` — the film's last frame — which is the one thing a shutter must
+never do: the picture you get has to be the picture you pressed on. Now it is
+`loop = false; pause()` and nothing else, which is also instant, where the old
+seek was a decode. Verified: live at t **2.48**, frozen at t **2.48**, paused,
+loop off.
+
+Fork logged, and it is a real cost: `photo-addplant.webp` on the next screen is
+the exported **last** frame, so the still the recogniser shows is no longer
+guaranteed to be the frame that was frozen. Accepted — the film is a slow five
+second take of one static scene, so the two differ by very little, and "pause
+where you are" is the behaviour the brief asked for. The exact fix would be to
+capture the frozen frame to a canvas and hand that to `IdentifyPlant`; that is a
+change to a screen outside this brief's scope and is left for a revision that
+owns it.
+
+**The scan bar** is Figma **540:239** "Rectangle 67" — the full width of the
+frame, **2px** tall, `linear-gradient(90deg, rgba(255,255,255,0) 0%, #FFF 20%,
+#FFF 80%, rgba(255,255,255,0) 100%)`, so the line has no hard end-caps against
+the photograph. The mockup draws it once, at y 531; it is the moving part of the
+frame, so the sweep is ours: **2.4s, `ease-in-out`, `alternate`**.
+
+`alternate` rather than a wrap-around, deliberately: a bar that reappears at the
+top has retraced its path, which is a spinner's logic and not a scanner's, and
+`ease-in-out` puts the slow moment at each turn, which is what a scan head
+actually does. 818px in 2.4s is about 340px/s — brisk enough to read as working,
+slow enough that the eye can follow the line.
+
+Animated on `top`, not `translateY`: the sweep has to span the scrim's height,
+and a percentage translate resolves against the bar's own 2px.
+
+The dimming and the sentence are untouched, as asked. The round loader's box
+(48px plus the column's 20px gap) is preserved as 68px of top padding on the
+column, so the text stays exactly where it was — measured at **433**, which is
+also 540:243's own 432.
+
+## 5 — Every film re-encoded
+
+`scale=720:-2:flags=lanczos`, H.264 `-preset slow`, `yuv420p`, `-an`,
+`+faststart`. **13 002 501 → 6 990 015 bytes (53.8%).**
+
+| file | before | after | | terms |
+|---|---:|---:|---:|---|
+| growth-felix | 1 030 314 | 591 240 | 57.4% | CRF 24, 0.25s GOP |
+| growth-gosha | 1 266 690 | 683 199 | 53.9% | CRF 24, 0.25s GOP |
+| growth-mary | 1 360 530 | 816 436 | 60.0% | CRF 24, 0.25s GOP |
+| growth-vera | 1 089 665 | 615 276 | 56.5% | CRF 24, 0.25s GOP |
+| growth-vlad | 1 177 069 | 704 095 | 59.8% | CRF 24, 0.25s GOP |
+| still-felix | 298 547 | 156 998 | 52.6% | CRF 26 |
+| still-gosha | 339 012 | 191 490 | 56.5% | CRF 26 |
+| still-mary | 876 276 | 487 438 | 55.6% | CRF 26 |
+| still-vera | 363 317 | 202 140 | 55.6% | CRF 26 |
+| still-vlad | 527 081 | 273 171 | 51.8% | CRF 26 |
+| settings-felix | 406 709 | **171 971** | 42.3% | CRF 28, 0.5s GOP |
+| settings-gosha | 246 748 | 141 742 | 57.4% | CRF 28, 0.5s GOP |
+| settings-mary | 595 675 | 304 727 | 51.2% | CRF 28, 0.5s GOP |
+| settings-vera | 262 508 | 136 385 | 52.0% | CRF 28, 0.5s GOP |
+| settings-vlad | 340 127 | 180 910 | 53.2% | CRF 28, 0.5s GOP |
+| add-plant-drama | 316 968 | **138 611** | 43.7% | CRF 28, 0.5s GOP |
+| add-plant-grump | 298 210 | **136 474** | 45.8% | CRF 28, 0.5s GOP |
+| add-plant-cheerfull | 274 896 | **125 535** | 45.7% | CRF 28, 0.5s GOP |
+| add-plant-sassy | 314 648 | **132 231** | 42.0% | CRF 28, 0.5s GOP |
+| add-plant | 1 447 459 | 707 290 | 48.9% | CRF 26, 0.5s GOP |
+| bt | 170 052 | 92 656 | 54.5% | CRF 26 |
+
+The five films the personality step can switch between — the four presets plus
+its default — go from **1 611 191 to 704 822 bytes**, and that set is the one the
+brief was actually about.
+
+**"~720p" is read as 720 on the SHORT edge**, which for portrait video is the
+convention that means anything (720 lines on a 0.46 aspect would be 331px wide).
+So 976×2124 → 720×1566 and 1292×1604 → 720×894, aspect ratios preserved to
+within 0.03% — which matters, because `PS_AR_BY_ID` and the detail film's
+`aspect-ratio` are written as the *source* ratios and are still correct without
+being touched.
+
+This is the pass that reverses Rev 30's "resolution is unchanged" call, and the
+reason is that the brief now asks for it and the trade has changed: this is a
+prototype whose preset switching had to feel instant, and at DPR 2 the settings
+films draw 1382×1714 against a source that was already only 1292×1604. Going to
+720 puts them at 52% of the DPR-2 need instead of 93%. Logged as the deliberate
+cost of the responsiveness.
+
+SSIM against each source downscaled to the same 720 — i.e. the encoding loss at
+the target size, isolated from the downscale: **0.9939–0.9977** across the
+nineteen pot films, **0.9849** on `add-plant`, which is a real photographic scene
+with window detail and bokeh where the others are product renders on a seamless
+background. Dense keyframes re-verified: `growth-*` **21** each (0.25s at 24fps),
+`settings-*` and the presets **11** each.
+
+**Priming, not preloading.** The four preset films used to be warmed with
+`fetch(url,{cache:"force-cache"})` while the stage kept two `<video>` slots and
+swapped a `src` into the spare one, waiting on `canplay`. That is correct, and it
+is still a *load* on every switch — which is what the lag was. Now **PsShell
+mounts every film in the set at once**, from the first paint, with
+`preload="auto"`, and the switch is nothing but an opacity crossfade between
+elements that are already decoded. The `fetch` is gone with it: two ways of
+downloading the same bytes was one too many, and only one of them left a decoded
+element behind.
+
+Only the visible film plays; the rest are paused 300ms after the fade, so five
+mounted elements are one decoder and four still frames. The incoming film
+restarts at `currentTime = 0` — the character has just changed, so the take
+should begin again rather than join in progress.
+
+Verified on the step: all five at `readyState 4`, four paused at opacity 0, one
+playing at 1.
+
+## 6 — "Add plant" in the pinned bar
+
+Shown only when the film is **entirely** off screen. `sync()` already computes
+`vis = max(0, PS_STAGE - t)`, which reaches 0 at exactly `PS_STAGE`, so that is
+the threshold rather than a number near it.
+
+The same serif face as every other screen title, at `--t-lg` (22px) rather than
+`--t-xl` because it has to sit inside a 52px bar beside the chevron rather than
+own a 104px header; 13px of top margin puts its line box's centre on the
+chevron's. 180ms fade with a 4px lift, the middle of the brief's band.
+
+Measured: opacity **0** at scroll 0 / 400 / 660 (film bottom at device 662 / 262
+/ 2) and **1** at scroll 662, the frame the film bottom reaches 0.
+
+## 7 — The chips park at 80
+
+`reveal()` was a *clearance* rule — scroll just far enough to uncover the chip,
+keeping one 24px pad from the edge. It is now a **position**: the tapped chip is
+parked exactly **80px from the left edge of the screen**, clamped at both ends of
+the row. Stronger, because every tap lands the chip on the same spot, so the row
+reads as a carousel with a slot rather than as a box that shuffles by however
+much it had to.
+
+Measured against the **device**, not the row: 80 is a screen position, `.pschips`
+is not positioned, and its `offsetParent` is the content column, so `offsetLeft`
+would be measuring the wrong box twice over.
+
+Verified: Grump lands at exactly **80**. Friendly clamps at `scrollLeft 0` and
+sits at 5; Sassy and Cheerful clamp at the row's maximum `scrollLeft 390` and sit
+at 282 and 150 — neither can reach 80 without overscrolling, which is what the
+clamp is for. `PS_CHIP_PAD` is deleted; the clearance rule was its only reader.
+
+## 8 — The bubble pops
+
+`.psbub` gets the detail screen's own arrival, verbatim (`@keyframes psbubpop`,
+300ms on `cubic-bezier(.22,1,.36,1)`, a fade with a 3.5% overshoot at 55%). It
+runs on mount and again whenever the node remounts, which is what `key={bubKey}`
+is for: `bubKey` is the preset, so a new personality gets a new bubble rather
+than a silent text swap.
+
+The animation is on `:not(.off)` and the leaving transition stays on the base
+rule — the `.pdbubwrap` pattern — so the two directions never borrow each other's
+curve. Keying on the preset rather than on `line` is deliberate: `line` is
+`sampleLine(preset, tune)` and also changes when a slider crosses a threshold,
+which would re-pop the bubble mid-drag.
+
+Fork logged: the pop lands on Plant Settings too, since both screens share
+PsShell. Kept — it is the same object making the same entrance in both places,
+which is the argument the brief makes for matching the detail screen in the first
+place.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`. **No console errors,
+no exceptions, no failed requests** (bar the standing `/favicon.ico` 404 this
+prototype has never shipped) across every flow-index screen, all five plant
+cards, all three notifications and the Add Plant flow end to end.
+
+- **Blobs** — `10s` / `13s`; layer at device top **0**, height **482**,
+  `overflow:hidden`; collapsed, 74px tall with a 36px radius.
+- **Chat** — 30 rows, alerts at **20 / 25 / 29**, five and four rows apart, the
+  last row an alert.
+- **Deep links** — rows **29 / 25 / 20**, hero **74px**, each fully in view.
+- **Stagger** — 150ms in: stack **0.59**, cards **1 / 1 / 1 / 1 / 1**, transforms
+  8 / 21 / 44 / 44 / 44.
+- **Camera** — frozen at the live t (**2.48** of 5.04), paused, loop off; bar
+  2×386, Figma's gradient, `camscan 2.4s alternate ease-in-out`, sweeping
+  17.7% → 83.8%; sentence at **433**.
+- **Films** — every element 720-wide; scrub on `growth-vlad` **9–15ms**
+  (18–27ms before the pass).
+- **Preset step** — five films at `readyState 4`, one playing; switches sampled
+  140ms in show clean complementary opacities with no load wait; `psbubpop` on
+  entry and on every switch.
+- **Pinned title** — "Add plant", Riccione 22px, opacity 0 → **1** at scroll 662.
+- **Chips** — Grump at **80**; the ends clamped at scrollLeft 0 and 390.
