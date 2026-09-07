@@ -4029,3 +4029,218 @@ h **434**, headline **44.7px** at y 206, date at opacity **.4**, CTA at opacity
 with the headline back at **22px** and the chat full height; tapping the pill
 re-expands; re-navigating to a collapsed dashboard returns `screen dash open`.
 No console output, 0 broken images of 7.
+
+---
+
+# Revision 37 — the hero gets weather, Vlad leaves, the plants list scrolls under a fade, and the notification card levels out
+
+Four near-final polish passes, one per area of the brief: an animated background
+on the dashboard hero, My Plants rebuilt around a fixed header and a finished
+last card, the notification card's second line rebalanced, and one over-long
+headline in the Add Plant flow.
+
+## 1 — The hero's two blurred circles (Figma 516:63 / 516:64)
+
+Taken from the SVG exports rather than eyeballed off a screenshot, because the
+numbers are all in the file:
+
+| | Ellipse 45 (516:63) | Ellipse 46 (516:64) |
+|---|---|---|
+| diameter | 265 | 519 |
+| fill | `#98C769` | `#69C789` |
+| group opacity | `0.3` | `0.3` |
+| blur | `feGaussianBlur stdDeviation="50"` | same |
+| frame position | x −46, y 300 | x 170, y −321 |
+
+`stdDeviation` is exactly the quantity CSS `blur()` takes, so `filter:blur(50px)`
+is the same blur and not an approximation of it — worth stating, because Figma's
+own *Layer blur* number is twice that and copying **it** would have doubled the
+softness.
+
+**They live inside `.gsurface`.** That one decision settles three requirements at
+once. The surface is the element that morphs from the 74px header pill to the
+full-bleed hero, so putting the blobs in it means its `overflow:hidden` +
+`border-radius:inherit` clips them to the green in **both** states with no second
+rule; and the surface is `z-index:12` while `.ghead`/`.gdate`/`.gcta` are 14 and
+`.gicons` is 16, so a `z-index:0` layer inside it is behind every hero element by
+construction rather than by a number someone has to keep true.
+
+**Positions are percentages, not pixels.** The circles' *centres* were converted
+against the green area (402×482 in the frame; the expanded hero is that same 482
+measured down from the device top, which is why the mockup's y values transfer
+unscaled): Ellipse 45 → 21.5% / 89.7%, Ellipse 46 → 106.8% / −12.8%. One set of
+numbers then serves both states, and the blobs *travel with the surface* as it
+expands and collapses — a second, free shared-element move that pixel positions
+would have needed a whole parallel transition to fake.
+
+Fork logged: the circles could have been a sibling layer of `.gsurface` with its
+own clip and its own morph transition. Rejected — that is a second element
+animating the same geometry as the surface, and the two would drift out of step
+on interrupt.
+
+**The drift.** 19s and 24s loops, `ease-in-out`, four and three waypoints. Travel
+is at most 26px on a 265px circle sitting under a 50px blur, which is the point:
+under that much blur a 26px move reads as the light changing rather than as an
+object moving across the screen. The two periods are different enough that the
+pair does not visibly repeat a configuration inside a session. `transform` is
+left entirely free for the animation by centring each circle with a negative
+margin of half its size instead of a `translate(-50%,-50%)`.
+
+## 2 — My Plants
+
+**Vlad is out of the UI, not out of the repo.** The roster is Felix, Mary, Gosha,
+Vera. Removed: his `PLANTS` entry, the flow index's "Plant card" shortcut (now
+Felix — every plant has its own films, so the shortcut no longer needs to be
+him), and `PlantDetail`'s `"vlad"` default id. He was never in `CHAT_INIT` or
+`NOTIFS`, so there was nothing to remove there.
+
+Kept, deliberately: `--g-vlad`, `SHOT.vlad`, the five films in `assets/video`,
+`PS_AR_BY_ID.vlad`, `FILM_HAVE`/`FILM_FALLBACK`, and `LOOK_BY_SPECIES.Bonsai →
+"vlad"`. A Bonsai added through the Add Plant flow still needs a pot to wear, and
+the brief says the assets stay. Removing a character is not deleting the art.
+
+**Vera is last again, and takes the last card's frame.** The break-out render
+returns to her — not as a re-derivation but as the mockup's own numbers.
+438:174 is the last card's image: 282×282 at (173, 640) against a card at
+(5, 695) whose right edge is 397, i.e. **`right:-58, top:-55`**, which is exactly
+what she carried before Vlad was added below her. She had been demoted to the
+clipped 224×227 window of slot four; that is now Vlad's old row's job and hers
+goes back.
+
+**The last card is finished, not stretched.** 438:169 is a 392×**227**
+rounded-rectangle with **all four** corners at 40 and the same `0 -4px 60px
+rgba(61,61,61,.2)` shadow, ending at y 922 in a 962 frame — **40px** of breathing
+room below it. So `.plcard:last-child` loses `flex:1 0 auto` and its 250px, and
+becomes `height:227px; border-radius:40px; overflow:visible`.
+
+The two numbers check each other: the render is 282 tall at a −55 top, so it
+bottoms out at −55 + 282 = **227**, flush on the card's bottom edge. The rounded
+bottom corners stay clean even with overflow open, because the render's own alpha
+is transparent there — confirmed by probing the mockup at (380, 910), which comes
+back as card gradient, not photo.
+
+Measured in the device: cards at y **135 / 275 / 415 / 555**, heights
+**192 / 192 / 192 / 227**, all 376 wide at x 5, and **40px** under the last one.
+The mockup's 135 / 275 / 415 / 555 with a 140 pitch, landed unchanged.
+
+**The header no longer scrolls.** 516:65 draws the list as its own clipped frame
+(`Frame 73`, y 135) with "My Plants" and Add sitting above it, so `.screen`'s own
+scrolling is switched off (`.plscreen{overflow:hidden}`) and the stack gets
+`.plwrap` / `.plscroll`. This is not cosmetic: the top gradient has to be pinned
+to the *list area*, and it cannot be if the thing that scrolls is the page.
+
+**The scroll gradient** is 516:102 "Rectangle 60" — 402×120 at the top of the
+list area, a plain two-stop ramp `#edeee9 → rgba(237,238,233,0)`, no solid cap
+(unlike the chat's, which needs one because a bubble can sit right under the
+header). It obeys the chat's rule exactly: `scrollTop > 4`, so a list that fits
+its screen never wears one. Verified at 386×120, device y **135**.
+
+Fork logged, and worth being explicit about: **with four plants the list very
+nearly fits**. Content is 687px in a 683px viewport, so the maximum scroll is 4px
+and the gradient is, correctly, never lit. That is the mockup's own arithmetic,
+not a mistake — the 874px frame has 52px to spare and this device is 56px
+shorter. The gradient is not decoration waiting for a use: add a plant through
+the Add Plant flow and the list becomes 827px in the same 683px viewport, at
+which point it does real work. Verified in that state — five cards, 144px of
+scroll, gradient at opacity 1 while scrolled and 0 back at the top.
+
+Fork logged: the 40px could have been placed *outside* the scroller, as the
+mockup literally draws it (Frame 73 stops 40px short of the artboard foot).
+Rejected — that leaves a permanent dead strip of page under a list whose cards
+then get cut off mid-air at the viewport edge. Inside the scroller, the same 40px
+is breathing room you scroll *to*, which is what it reads as.
+
+**Entry animation.** `@keyframes plrise` — 34px up, opacity 0 → 1, **460ms** on
+`--soft` (`cubic-bezier(.22,1,.36,1)`, a deep ease-out that decelerates hard and
+does not overshoot), staggered **70ms** per card via an inline `animationDelay`.
+No spring overshoot: a bounce fights the weight of a stack whose cards physically
+tuck under one another. The whole list has landed inside 700ms.
+
+Fork logged: "runs on every entry" is served by it being a *mount* animation.
+Every route into this screen — the hero's CTA, Profile, Back — mounts it fresh,
+and the flow index has no My Plants entry, so there is no path that re-enters an
+already-mounted list. Rejected the alternative of a nav-counter remount key: it
+would restart the animation by throwing away component state, to fix a case that
+cannot happen.
+
+## 3 — The notification card
+
+Felix's row loses both of its exceptions. The "Urgent" chip is gone and his link
+is now "Open in the chat" like the other two, tapping through to the chat focused
+on him. The reasoning is in the copy: the sentence already says *"Felix needs a
+look — soggy soil and a cold draught"*, and a red chip on top of it is telling
+the user the same thing twice, in a card that then behaves differently from its
+neighbours for the trouble.
+
+`kind` and `emo` come out of `NOTIFS` with it — the urgent branch was the only
+thing that read them.
+
+**Layout.** The meta row is gone entirely, so the message moves up to the top of
+the card, level with the avatar, as the card's first and primary line. The
+timestamp comes down to share a line with the action: `.nffoot`, link left,
+time pushed right with `flex`. They are **baseline**-aligned rather than centred,
+so the 13px time sits on the same line as the 16px link instead of floating in
+the middle of it.
+
+Paddings rebalanced from a flat 24 to **22 / 24 / 20**: 24 was tuned against a
+22px meta row that no longer exists, and with the message now starting at the top
+the card wants slightly less above it than beside it, and less again below a
+footer line than above a headline. Card height 116px, avatar and first text line
+both at y 22, footer at 76, 20 under it.
+
+**⚠️ Consequence, flagged rather than fixed:** that link was the last way into
+the **Alert → Diagnosis → Alert done** flow. Those three screens and their routes
+still exist and still work, but nothing in the UI now reaches them — "Alert
+simulation" came off the flow index in an earlier revision precisely because
+Notifications was the way in. Left alone: the brief said not to touch anything
+outside its four areas, and putting the shortcut back is a call about the
+prototype's shell, not a detail of this change. Say the word and it goes back on
+the index in one line.
+
+## 4 — "Your pot is paired and online"
+
+`.aptitle` was capped at `max-width:310px`, the mockup's own text box, and it
+holds for every line in the flow except this one: 29 characters at 44.7px broke
+to **three** lines and the third landed on the pot. The box is now
+`width:100%; max-width:358px` — the full content width the screen allows (the
+device minus `.apscreen`'s 16px gutters), capped at the mockup's own 358 (374 of
+402, less the 16 of padding) so a wider device does not stretch the measure past
+what was drawn. Still centred, still one rule for every frame in the flow.
+
+Measured: **2 lines**, box 354px, headline y 187 → **291**, clear of the pot,
+which starts around 330.
+
+Fork logged: the alternative was a smaller font size on this one screen.
+Rejected — `--t-xl` is locked to the Figma type scale and the brief asked for a
+wider container, which turned out to be sufficient.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`. **No console errors,
+no exceptions**, on every screen in the flow index plus the full Add Plant flow
+run end to end.
+
+- **Hero, expanded** — surface 386×434; blob A 265×265 `rgb(152,199,105)`
+  opacity .3 `blur(50px)` `gdriftA 19s`, centre 83/389 before drift; blob B
+  519×519 `rgb(105,199,137)` opacity .3 `blur(50px)` `gdriftB 24s`, centre
+  412/−56. Both drawn under the headline, CTA and icons.
+- **Hero, collapsed** — pill 358×74, both blobs still present and clipped to the
+  pill's 36px radius; they travel with the surface with no transition of their
+  own.
+- **My Plants** — Felix / Mary / Gosha / Vera; cards at 135 / 275 / 415 / 555,
+  heights 192 / 192 / 192 / **227**, last card `border-radius:40px`
+  `overflow:visible`, **40px** under it. Entry stagger sampled at t=120ms: Felix
+  landed, Mary mid-flight, Gosha faint, Vera not yet in.
+- **Scroll gradient** — 386×120 at device y 135, `opacity 0` at scroll-top.
+  After the Add Plant flow (five cards, 144px of scroll): `opacity 1` while
+  scrolled, back to `0` on return to the top.
+- **Notifications** — 0 chips, 0 meta rows, all three actions read "Open in the
+  chat"; link at x 76, time flush to 24 from the card's right edge, baselines
+  within 3px. Card 116px.
+- **Add Plant** — full flow driven to completion (pair → connect → shutter →
+  identify → character → meeting → Start caring → dashboard with the new plant
+  in the chat and in My Plants). Paired headline: **2 lines**, 354px box,
+  y 187→291.
+- **Regressions checked** — "Plant card" opens Felix; Vera's detail reads
+  "Every 5th day at 7am" (the schedule sentence's worked example moved off Vlad
+  with him).
