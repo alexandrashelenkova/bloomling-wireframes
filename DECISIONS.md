@@ -5063,3 +5063,33 @@ prime, then two 200px *downward* wheels → no expand.
 Headless Chrome over CDP against `python3 -m http.server`. **No console errors,
 no exceptions, no failed requests** across every flow-index screen, all five
 plant cards, all three notifications and the Add Plant flow end to end.
+
+## Shipped
+
+Commit `f04c5cf`-lineage → `origin/main`, Vercel production
+`dpl_CahKwZVrTBSf3w3KWe7JzmBdrsDy`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP **with the browser cache disabled**. **No console
+errors, no exceptions, no failed requests.**
+
+- **Preset films on the wire** (curl): `add-plant-drama` **1 529 100**,
+  `add-plant-grump` **1 497 998**, `add-plant-cheerfull` **1 486 134**,
+  `add-plant-sassy` **1 533 913**, `settings-felix` **1 648 942** — the CRF-21
+  natives, not a stale cache.
+- **1 Seam** — `.dash` `overflow:visible`; surface **[0, 482]** and blob layer
+  **[0, 482]** measured from the device's own top edge; screenshot shows the
+  wash running unbroken behind the status bar.
+- **2 Entry** — 96px of travel, **0 invariant violations** across the sampled
+  frames, every card opaque with travel still to go.
+- **3 Priming** — all five films `readyState 4` at **1292×1604** within 1.2s of
+  the step opening on a cold cache; a switch sampled 130ms in shows both layers
+  at readyState 4 and complementary opacity (0.13 / 0.87).
+- **4 Meeting** — Grump selected → "Right. You'll do, I suppose. Let's not make
+  a fuss about it."
+- **5 Welcome** — landed on `screen dash` at a **74px** hero, 34 rows, scrolled
+  to the bottom, tail reading newcomer → Felix → Mary → Gosha.
+- **6 Deep links** — all three travel **1077px** over 24–25 sampled frames, flash
+  at **~828ms**, landing on `Felix 18:04` / `Mary 17:12` / `Gosha 13:47`.
+- **7 Overscroll** — mid-history 300px up → no expand; prime → no expand; 60px →
+  no expand; 100px → **`screen dash open`**.
