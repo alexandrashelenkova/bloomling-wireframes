@@ -5240,3 +5240,24 @@ owns them:
 - **Plant detail bubble** — `pdbubwrap bubpop`, `bubpop 0.3s`, off state intact.
 - **Hero collapse/expand** — `screen dash` ↔ `screen dash open`, the stream still
   pinned to its newest message through the transition.
+
+## Shipped
+
+Commit `d2e5b4a`-lineage → `origin/main`, Vercel production
+`dpl_GPUKDuvTqsLMa4QNbjcDK67DTWUH`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. **No console errors,
+no exceptions, no failed requests.**
+
+- **1 Sequential arrival** — typing a message produced rows at **+10ms** and
+  **+507ms**, both carrying `gmsgin`, list held at the bottom.
+- **1+5 Welcome** — four messages at **32 / 498 / 965 / 1466ms** on the collapsed
+  chat (hero 74px), scrolled to the bottom.
+- **2 Plant list** — travel **72px**, **0 invariant violations**, every card
+  opaque at the full 72px, curve `cubic-bezier(0.61, 1, 0.88, 1)`.
+- **3 Bubbles** — `psbub bubpop` and `apbub bubpop` both on `bubpop 0.3s
+  cubic-bezier(0.22, 1, 0.36, 1)`; the meeting bubble sampled 130ms in sits at
+  **scale 1.035**, the overshoot.
+- **4 Persistence** — after Profile → Dashboard: 32 rows, the typed message still
+  present, **0** rows animating, scrolled to the bottom.
