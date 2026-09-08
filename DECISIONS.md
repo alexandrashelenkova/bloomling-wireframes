@@ -5093,3 +5093,150 @@ errors, no exceptions, no failed requests.**
   at **~828ms**, landing on `Felix 18:04` / `Mary 17:12` / `Gosha 13:47`.
 - **7 Overscroll** — mid-history 300px up → no expand; prime → no expand; 60px →
   no expand; 100px → **`screen dash open`**.
+
+---
+
+# Revision 41 — the conversation gets a home and a heartbeat, the cards drift, and every bubble arrives the same way
+
+## 1 + 4 — The chat: one store, one queue
+
+These arrived as two items and are one change, because both are answered by the
+same move: **the conversation stops living in the screen.**
+
+`GardenChat` held `useState(CHAT_INIT)`, so every message the user typed died the
+moment the dashboard unmounted — open a plant card, come back, and the exchange
+had never happened. The store is now `App`, which is the only thing that outlives
+every navigation: `nav.go("dashboard")` resets the whole stack and the screen is
+keyed on `cur.screen+stack.length` precisely so it *does* remount.
+
+**Fork logged, and it is the one place this brief does not fit the product.** The
+brief says "each plant keeps its own conversation history". This prototype has no
+per-plant thread to keep: the Windowsill is a single group chat that every plant
+speaks in, and a plant's own screen carries a speech bubble, not a conversation.
+So there is one history, held once, and the requirement is met in the only shape
+this app has for it. Building five empty per-plant threads to satisfy the wording
+would have added a data structure with no screen behind it.
+
+**And messages now arrive one at a time.** `pushChat` takes a whole conversational
+turn and hands it to the room a message at a time, **480ms** apart, rather than
+dropping the turn into the list on one frame. The queue lives at App level for
+the same reason the history does — the Add Plant flow calls it and *then*
+navigates, so the delivery has to survive the screen it was started from.
+
+Three consequences worth recording:
+
+- **`send()` lost its hand-rolled `setTimeout`.** It used to append the user's
+  message, then schedule Mary's reply 400ms later. That was the queue's job being
+  done by hand for one exchange and for nothing else; `send()` now hands both
+  messages over together and spacing them is not its problem.
+- **`addNewPlant` returns its messages instead of pushing them.** `CHAT_INIT` is
+  now only the seed the store is built from, so mutating it after App has mounted
+  would change nothing on screen. Returning them is also what makes the welcome
+  *arrive*: you land in the chat and watch the windowsill greet the newcomer over
+  ~1.5s instead of finding the whole exchange already over.
+- **`fresh` is what makes a row animate**, and it is cleared 600ms after the
+  message lands — longer than the 340ms entrance, short enough that nothing is
+  still marked by the time a user could navigate away and back. That flag is the
+  entirety of "only genuinely new messages animate in": a screen that remounts
+  renders the same objects and by then none of them is fresh.
+
+The entrance is `gmsgin`, **340ms on `--soft`**, opacity plus **14px** of upward
+translate. 14px is a nudge, not a journey — a chat bubble arriving from far away
+reads as a screen transition rather than as someone speaking — and `--soft` is
+the curve the rest of the app arrives on.
+
+**The scroll effect had to be split.** It ran on `[shown.length]` and did two
+jobs: put the chat at its resting position and, if a notification had named a
+message, run the 760ms journey to it. Every arriving message would therefore have
+re-run the journey. It is now guarded by a `firstRun` ref — the travel belongs to
+the arrival, once; every run after that only keeps the newest message in view.
+
+And it only follows **if the user was already reading at the bottom**
+(`nearBottom`, within 80px). Someone who has scrolled up into the history does
+not want to be yanked back down by a message landing. `nearBottom` is a ref
+rather than state because it has to hold the position from *before* the new row
+was measured into `scrollHeight`.
+
+Measured: typing a message produced rows at **+3ms** and **+486ms**, both
+carrying `gmsgin`, list at the bottom, and the 30 rows of history untouched. The
+Add Plant welcome landed at **26 / 492 / 993 / 1460ms**. After a round trip to
+Profile and back: 32 rows, the typed message still present, **0** rows animating,
+scrolled to the bottom.
+
+## 2 — The plant cards drift
+
+The previous build raced the fade against the travel: a card overlaps the one
+above it once its translate drops below 52px, so the fade had to finish before
+that. It worked, and it tied the two together — softening the motion or
+shortening the travel immediately squeezed the fade toward a pop, because **the
+overlap threshold is a fixed 52px however far the card moves.** That is why
+"reduce the translate distance" and "no double exposure" read as opposites.
+
+**So they are separated in time instead.** The card fades in while still *parked*
+at its full offset, and only then begins to drift:
+
+| | before | now |
+|---|---|---|
+| travel | 96px | **72px** |
+| travel curve | `cubic-bezier(.25,.46,.45,.94)` (easeOutQuad) | **`cubic-bezier(.61,1,.88,1)`** (easeOutSine) |
+| travel duration | 540ms | **660ms**, starting at `var(--d) + 200ms` |
+| fade | 110ms, concurrent | **200ms**, starting at `var(--d)` |
+| stagger | 80ms | **100ms** |
+
+The card is opaque before the drift has moved it a single pixel, so the invariant
+holds by construction rather than by arithmetic — which is what freed the travel
+to be slower, shorter and gentler all at once. easeOutSine is the softest of the
+standard decelerations: it leaves at a modest speed and settles without ever
+looking like it was thrown.
+
+`var(--d)` rather than an inline `animationDelay`, because the shorthand needs a
+*different* delay per animation and one `animation-delay` would flatten both.
+
+Measured over 121 frames: travel **72px**, **0 invariant violations**, and every
+card opaque at the full **72px** of travel — 20px of clearance over the threshold
+where the old build had 4–8. Cards settle at **802 / 903 / 1003 / 1102 / 1202ms**.
+
+## 3 — One speech pebble, one entrance
+
+The pop was written three times under three names: `pdbubpop` on the plant
+detail, `psbubpop` on the personality step, and **nothing at all** on the flow's
+final "Meet …" screen — which is exactly why that one was missed. It was the only
+bubble in the app written by hand rather than borrowed.
+
+Now there is one `@keyframes bubpop` and one `.bubpop` class, and a
+`<SpeechBubble>` component that carries the white organic background, the
+entrance, and the `off` state. `where` is the placement class — `.pdbub` /
+`.psbub` / `.apbub` keep the geometry, which is genuinely different in the three
+places (277px centred in the detail card, 193px pinned top-right on the settings
+stage, 260px in the flow's column) and is the only thing that should differ.
+`popKey` remounts the node, which is how the personality step re-pops on a new
+preset.
+
+**Fork logged: the plant detail screen keeps its own markup and is not routed
+through the component.** Its `off` state lives on a flex *wrapper* while the blob
+sits inside it, and `.bubpop`'s arrival is gated on `:not(.off)` so that it
+re-pops when the off state lifts. Move the class to the inner element and that
+gate stops firing, and the wrapper's own 230ms transition starts compounding with
+the pop. It shares the keyframes — the part that was actually duplicated — and
+nothing else.
+
+Measured: `.psbub bubpop` and `.apbub bubpop` both report `bubpop 0.3s
+cubic-bezier(0.22, 1, 0.36, 1)` with a top transform-origin. The meeting bubble
+sampled 120ms in sits at opacity 0.99 and **scale 1.034** — the overshoot — and
+settles to scale 1. The settings bubble re-pops on a preset change.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`. **No console errors,
+no exceptions, no failed requests** across every flow-index screen, all five plant
+cards, both notification deep links and the Add Plant flow end to end.
+
+Regressions specifically checked, because items 1 and 4 rewired the effect that
+owns them:
+
+- **Deep-link journey** — still **1078px** of travel over 24 frames with the
+  flash at **~820ms**, landing on `Felix 18:04` / `Gosha 13:47`, and **0** rows
+  animating in while it does (the history is not replayed).
+- **Plant detail bubble** — `pdbubwrap bubpop`, `bubpop 0.3s`, off state intact.
+- **Hero collapse/expand** — `screen dash` ↔ `screen dash open`, the stream still
+  pinned to its newest message through the transition.

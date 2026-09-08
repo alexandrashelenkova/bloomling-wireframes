@@ -280,37 +280,38 @@
      step of 70ms, so the whole list has landed inside 700ms. It is a mount
      animation, and every route into this screen mounts it fresh.
 
-     TWO ANIMATIONS, NOT ONE, and the split is the whole design. The bleed-through
-     is a card at opacity < 1 sitting over the card above it, and the geometry
-     says exactly when that can happen: a card's final top is 52px above the
-     bottom of the card above, so while its own translate is greater than 52px it
-     overlaps NOTHING and may be as transparent as it likes. The invariant is
-     therefore `opacity === 1 || translateY > 52`, and it is met by giving the
-     fade its own, much shorter duration than the travel:
+     TWO ANIMATIONS WITH DIFFERENT DELAYS, and that is what lets this be both
+     gentle AND free of the bleed-through.
 
-       travel   96px over 540ms on cubic-bezier(.25,.46,.45,.94)
-       fade      0 -> 1 over 110ms
+     The bleed is a card at opacity < 1 sitting over the card above it, and the
+     geometry says exactly when that can happen: a card's final top is 52px above
+     the bottom of the card above, so while its own translate is greater than
+     52px it overlaps NOTHING. Earlier builds satisfied that by RACING the fade
+     against the travel — which worked, but tied the two together: softening the
+     motion or shortening the travel immediately squeezed the fade toward a pop,
+     because the overlap threshold is a fixed 52px however far the card moves.
+     That is why "reduce the travel" and "no double exposure" read as opposites
+     until the two are separated.
 
-     At 110ms the travel curve has covered 37% of 96px, leaving the card ~61px
-     down — 9px clear of the overlap zone at the frame it becomes opaque. 130ms
-     was tried first and measured clean, but only just: the tightest card went
-     opaque at 51px of travel, inside the 52px band by a pixel. Zero violations
-     with no margin is a number that survives one test and not the next frame
-     rate, so the fade came down until the margin was real.
-     The curve is a plain quadratic ease-out rather than --soft on purpose:
-     --soft is so front-loaded that it is already 65% down the travel by 15% of
-     the time, which leaves no room at all for a fade that reads as a fade.
+     So they are separated in TIME instead. The card fades in over 200ms while
+     still PARKED at its full 72px offset, and only then begins to drift:
 
-     Fork logged: the previous build put the alpha on .pstack, which composites
-     the subtree once and cannot bleed by construction. Correct, but it fades the
-     whole list as one sheet, which is what made the motion read as a few-pixel
-     shift — the cards were all already at 96% opacity before any of them had
-     visibly moved. Per-card alpha is what makes the stagger legible.
-     Second fork: clip-path on each card's overlap band was the fallback the
-     brief offers. Not needed — the invariant above is met with margin, and it is
-     measured rather than assumed. */
+       fade    0 -> 1   over 200ms, starting at var(--d)
+       travel  72px     over 660ms, starting at var(--d) + 200ms
+       stagger var(--d) = 100ms per card
+
+     The card is opaque before the drift has moved it a single pixel, so the
+     invariant holds by construction rather than by arithmetic — which is what
+     freed the travel to be slower, shorter and gentler all at once. easeOutSine
+     is the softest of the standard decelerations: it leaves at a modest speed
+     and settles without ever looking like it was thrown, which is the difference
+     between drifting in and snapping in. The last card is home at 1.26s.
+
+     var(--d) rather than an inline animation-delay, because the shorthand needs
+     a DIFFERENT delay per animation and one `animation-delay` would flatten both
+     to the same value. */
   @keyframes plrise{
-    from{transform:translateY(96px)}
+    from{transform:translateY(72px)}
     to  {transform:translateY(0)}}
   @keyframes plfade{from{opacity:0} to{opacity:1}}
   /* The card clips its own contents: a pot may not spill onto its neighbours.
@@ -321,8 +322,9 @@
   .plcard{position:relative;flex:0 0 auto;height:192px;margin-top:-52px;
     cursor:pointer;color:var(--serif-ink);overflow:hidden;
     border-radius:40px 40px 0 0;box-shadow:0 -4px 60px rgba(61,61,61,.2);
-    animation:plrise .54s cubic-bezier(.25,.46,.45,.94) both,
-              plfade .11s ease-out both;
+    --d:0ms;
+    animation:plfade .2s ease-out var(--d) both,
+              plrise .66s cubic-bezier(.61,1,.88,1) calc(var(--d) + 200ms) both;
     backface-visibility:hidden}   /* keeps the transform off a half-pixel seam */
   /* border-radius:inherit is load-bearing, not tidiness. The card's radius only
      rounds anything while the card CLIPS, and the last card is `overflow:visible`
@@ -599,16 +601,14 @@
      LEAVING keeps rev 26's plain ease-out: the .off rule brings its own
      transition, and a transition is what runs when a class is ADDED, so the two
      directions never borrow each other's curve. */
+  /* This screen wears .bubpop on the WRAPPER, not on the bubble, because that is
+     the element carrying `off` — and .bubpop's arrival is gated on :not(.off) so
+     that returning from the off state re-pops. Same keyframes as everywhere
+     else; only the element they are hung on differs, and it has to. */
   .pdbubwrap{position:relative;margin:7px -16px 0;display:flex;justify-content:center;
-    flex:0 0 auto;transform-origin:50% 0;
+    flex:0 0 auto;
     transition:opacity 230ms ease-out,transform 230ms ease-out}
-  .pdbubwrap:not(.off){animation:pdbubpop 300ms cubic-bezier(.22,1,.36,1) both}
   .pdbubwrap.off{opacity:0;transform:translateY(-8px) scale(.96);pointer-events:none}
-  @keyframes pdbubpop{
-    0%  {opacity:0;transform:translateY(-8px) scale(.94)}
-    55% {opacity:1;transform:translateY(0)     scale(1.035)}
-    100%{opacity:1;transform:translateY(0)     scale(1)}
-  }
   .pdbub{position:relative;width:277px;max-width:calc(100% - 32px);min-height:116px;
     background-size:100% 100%;background-repeat:no-repeat;
     padding:26px 29px;font-size:var(--t-md);line-height:1.28;text-align:center;
@@ -1183,17 +1183,11 @@
     color:var(--ink);display:flex;align-items:center;justify-content:center;
     transform-origin:50% 0;
     transition:opacity 230ms ease-out,transform 230ms ease-out}
-  /* ARRIVING is the detail screen's own pop, verbatim (see .pdbubwrap): a soft
-     fade and a scale that overshoots 3.5% at 55% and settles. It runs on mount,
-     and again whenever React remounts this node — which is what `key={bubKey}`
-     is for, so a new personality gets a new bubble rather than a silent text
-     swap. LEAVING keeps the plain 230ms ease-out that .off brings with it, so
-     the two directions never borrow each other's curve. */
-  .psbub:not(.off){animation:psbubpop 300ms cubic-bezier(.22,1,.36,1) both}
-  @keyframes psbubpop{
-    0%  {opacity:0;transform:translateY(-8px) scale(.94)}
-    55% {opacity:1;transform:translateY(0)     scale(1.035)}
-    100%{opacity:1;transform:translateY(0)     scale(1)}}
+  /* ARRIVING is .bubpop, the app's single bubble entrance — see <SpeechBubble>.
+     It runs on mount, and again whenever React remounts the node, which is what
+     `key={bubKey}` is for: a new personality gets a new bubble rather than a
+     silent text swap. LEAVING keeps the plain 230ms ease-out that .off brings
+     with it, so the two directions never borrow each other's curve. */
   .psbub.off{opacity:0;transform:translateY(-8px) scale(.96)}
 
   /* ── the settings themselves ──────────────────────────────────────────────
@@ -1547,6 +1541,30 @@
     100%{filter:drop-shadow(0 0 0 rgba(152,199,105,0)) brightness(1)}}
   .grow-row.hot .gbub{animation:gflash 2s var(--soft) 1}
 
+  /* A message LANDS. 14px is a nudge, not a journey — a chat bubble arriving
+     from far away reads as a screen transition rather than as someone speaking —
+     and --soft is the curve the rest of the app arrives on. Only rows carrying
+     `fresh` wear this, which is why coming back to the chat replays nothing. */
+  @keyframes gmsgin{
+    from{opacity:0;transform:translateY(14px)}
+    to  {opacity:1;transform:translateY(0)}}
+  .grow-row.in{animation:gmsgin .34s var(--soft) both}
+
+  /* ══════════ THE SPEECH BUBBLE'S ENTRANCE ══════════
+     One keyframe set for every pebble in the app: the plant detail's bubble, the
+     personality step's, and the Add Plant flow's final "Meet …" screen. A soft
+     fade with a scale that overshoots 3.5% at 55% and settles — enough spring to
+     read as speech arriving, not enough to bounce. It was written three times
+     under three names (pdbubpop / psbubpop / nothing at all on the meeting
+     screen, which is why that one just appeared); it is written once now, and
+     <SpeechBubble> is what applies it, so the three cannot drift apart again. */
+  @keyframes bubpop{
+    0%  {opacity:0;transform:translateY(-8px) scale(.94)}
+    55% {opacity:1;transform:translateY(0)     scale(1.035)}
+    100%{opacity:1;transform:translateY(0)     scale(1)}}
+  .bubpop{transform-origin:50% 0}
+  .bubpop:not(.off){animation:bubpop 300ms cubic-bezier(.22,1,.36,1) both}
+
   /* message row — grey avatar circle + organic colour-coded bubble */
   .grow-row{display:flex;gap:5px;align-items:flex-start;margin-bottom:11px}
   .grow-row.me{flex-direction:row-reverse}
@@ -1760,7 +1778,7 @@
      The bootstrap at the bottom transforms it with the CLASSIC runtime
      (React.createElement) so no `import` statements are ever emitted. -->
 <script type="text/plain" id="app-src">
-const { useState, useMemo, useEffect, useRef, createContext, useContext } = React;
+const { useState, useMemo, useEffect, useRef, useCallback, createContext, useContext } = React;
 
 /* ───────────────── EMOTION ENUM ─────────────────
    `glow` is the mood chip's fill AND its drop-shadow on the plant detail screen —
@@ -2319,6 +2337,32 @@ function blobBg(kind, fill){
   return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
 }
 
+/* THE SPEECH PEBBLE. Every place a plant says something in its own blob draws
+   it through here: the white organic background, the .bubpop entrance, and the
+   `off` state that screens with a leaving transition of their own opt into.
+   `where` is the placement class — .pdbub / .psbub / .apbub carry the geometry,
+   which is genuinely different in the three places (a 277px centred blob in the
+   detail card, a 193px one pinned top-right on the settings stage, a 260px one
+   in the flow's column) and is the only thing that should differ.
+
+   `popKey` remounts the node when it changes, which is how the personality step
+   re-pops the bubble on a new preset. The final "Meet …" screen had no entrance
+   at all before this: it was the one bubble in the app written by hand rather
+   than borrowed, so it was the one that got missed.
+
+   The plant detail screen keeps its own markup and is NOT routed through here.
+   Its `off` state lives on a flex WRAPPER while the blob sits inside, and
+   .bubpop's arrival is gated on :not(.off) so it re-pops when the off state
+   lifts — move the class to the inner element and that gate stops firing, and
+   the wrapper's own 230ms transition starts compounding with the pop. It shares
+   the keyframes, which is the part that was actually duplicated. */
+function SpeechBubble({where, popKey, off, style, children}){
+  return <div key={popKey} className={where+" bubpop"+(off?" off":"")}
+    style={{backgroundImage:blobBg("speech","#FFFFFF"), ...(style||{})}}>
+    {children}
+  </div>;
+}
+
 /* The reservoir card's water level (Figma 415:1518) — a wave-topped block at 50%,
    fading from a cool blue at the surface to white at the bottom. Painted as a
    stretched SVG so the fill height IS the reservoir percentage. */
@@ -2427,15 +2471,22 @@ function Dashboard({params}){
    and scrolls to that plant's most recent message. */
 function GardenChat({focus, open, onCollapse, onExpand}){
   const nav = useNav();
-  const { chatCross } = useApp();
-  const [msgs,setMsgs] = useState(CHAT_INIT);
+  const { chatCross, chat:msgs, pushChat } = useApp();
   const [text,setText] = useState("");
   // the top fade only exists while there IS hidden content above the viewport —
   // at the very first message the bubble must be fully lit, not dimmed
   const [scrolled,setScrolled] = useState(true);
   const scroller = useRef(null);
   const target = useRef(null);
-  const onScroll = (e)=> setScrolled(e.currentTarget.scrollTop > 4);
+  /* nearBottom is a ref, not state: it is read by the arrival effect to decide
+     whether to follow the newest message, and it has to hold the position from
+     BEFORE the new row was measured into scrollHeight. */
+  const nearBottom = useRef(true);
+  const onScroll = (e)=>{
+    const el = e.currentTarget;
+    setScrolled(el.scrollTop > 4);
+    nearBottom.current = el.scrollHeight - el.clientHeight - el.scrollTop < 80;
+  };
 
   /* PULLING PAST THE TOP OPENS THE HERO. The rule the brief asks for is
      "overscroll intent", and the guard is what makes it that rather than an
@@ -2502,9 +2553,20 @@ function GardenChat({focus, open, onCollapse, onExpand}){
      message; and the opening view is real conversation from shortly before it,
      which is the context you would want anyway. Clamped at the top of the
      history, so a target near the beginning simply starts at the beginning. */
+  const firstRun = useRef(true);
   useEffect(()=>{
     const el = scroller.current;
     if(!el) return;
+    /* Every run after the first is a message landing (or the cross filter
+       moving), and those must NOT re-run the deep link's journey — the travel
+       belongs to the arrival, once. All an arriving message asks for is that the
+       newest stays in view, and only if the user was reading there: someone who
+       has scrolled up into the history does not want to be yanked back down. */
+    if(!firstRun.current){
+      if(nearBottom.current){ el.scrollTop = el.scrollHeight; setScrolled(el.scrollTop > 4); }
+      return;
+    }
+    firstRun.current = false;
     el.scrollTop = el.scrollHeight;          // the chat's own resting position
     setScrolled(el.scrollTop > 4);
     if(!target.current) return;
@@ -2541,13 +2603,17 @@ function GardenChat({focus, open, onCollapse, onExpand}){
     return ()=>{ stop = true; cancelAnimationFrame(raf); clearTimeout(t); };
   },[open]);
 
+  /* One turn, two messages, handed to the queue together — it is the queue's
+     job to space them, not the sender's. The 400ms setTimeout this replaces was
+     doing the same thing by hand for this one exchange and for nothing else. */
   const send = ()=>{
     if(!text.trim()) return;
     const t = text;
     setText("");
-    setMsgs(m=>[...m,{who:"me",text:t,at:"now"}]);
-    setTimeout(()=>setMsgs(m=>[...m,
-      {who:"mary",at:"now",text:"love it when you message us 💚"}]),400);
+    pushChat([
+      { who:"me",   at:"now", text:t },
+      { who:"mary", at:"now", text:"love it when you message us 💚" },
+    ]);
   };
 
   return <>
@@ -2569,7 +2635,7 @@ function GardenChat({focus, open, onCollapse, onExpand}){
           const av = AVATAR[lookOf(m.who)];
           const shape = isMe ? "me" : (m.urgent ? "alert" : "them");
           return <div key={i} className={"grow-row "+(isMe?"me":"them")+(m.rx?" rx":"")
-              +(flash && i===hot ? " hot" : "")}
+              +(flash && i===hot ? " hot" : "")+(m.fresh ? " in" : "")}
             ref={i===hot ? target : null}>
             {/* a plant's avatar is the way from the chat into its card */}
             <div className={"gmava"+(av?" art":"")+(isMe?"":" tap")}
@@ -3149,7 +3215,7 @@ function PlantDetail({params}){
 
       {/* the plant's own words, in a white organic blob. No quote marks. It is
           only here at "now" with the sheet down; see `greeting`. */}
-      <div className={"pdbubwrap"+(greeting?"":" off")}>
+      <div className={"pdbubwrap bubpop"+(greeting?"":" off")}>
         <div className="pdbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
           {p.checkin}
         </div>
@@ -3685,10 +3751,7 @@ function PsShell({filmId, film, films, title, pinTitle, line, bubKey, children})
           <h1 className={"pltitle psptitle"+(titled?" on":"")}>{pinTitle}</h1>}
       </div>
     </div>
-    <div key={bubKey} className={"psbub"+(deep?" off":"")}
-      style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
-      {line}
-    </div>
+    <SpeechBubble where="psbub" popKey={bubKey} off={deep}>{line}</SpeechBubble>
   </div>;
 }
 
@@ -4147,7 +4210,7 @@ function CreateCharacter({params}){
    identity: no render, no avatar and no film of its own, so it wears the ones
    the app already has for its species. */
 const addNewPlant = ({name, species, preset, voice})=>{
-  if(PLANTS.some(x=>x.id==="new")) return;
+  if(PLANTS.some(x=>x.id==="new")) return [];
   const persona = personaByName(preset);
   PLANTS.push({
     id:"new", look:lookFor(species), name, species, persona:preset, voice,
@@ -4164,15 +4227,20 @@ const addNewPlant = ({name, species, preset, voice})=>{
      personality model's largest in-character line and is the right register for
      walking into a room; `apMeetLine` is the one-to-one hello and belongs on the
      meeting screen, not here. */
-  CHAT_INIT.push({ who:"new", at:"now", text:persona.lines.big });
   const first = (name || "").trim().split(" ")[0] || species;
-  for(const m of apWelcome(first)) CHAT_INIT.push(m);
+  /* RETURNED, not pushed. CHAT_INIT is now only the seed the store is built
+     from, so mutating it after App has mounted would change nothing on screen;
+     the caller hands these to pushChat, which is also what makes them arrive one
+     at a time — you land in the chat and watch the windowsill greet the
+     newcomer rather than finding the whole exchange already over. */
+  return [{ who:"new", at:"now", text:persona.lines.big }].concat(apWelcome(first));
 };
 
 /* Step 5 — the first meeting: the plant's own line, in the app's own bubble,
    over the film of what it is. */
 function FirstMeeting({params}){
   const nav = useNav();
+  const { pushChat } = useApp();
   const name    = (params&&params.name)||AP_SPECIES;
   const species = (params&&params.species)||AP_SPECIES;
   const preset  = (params&&params.preset)||PERSONALITIES.presets[0].k;
@@ -4181,13 +4249,14 @@ function FirstMeeting({params}){
      the welcome already at the bottom of it. Arriving on the hero would put the
      green block over the conversation the flow just created. Same mechanism the
      notification deep link uses, different reason for using it. */
-  const start = ()=>{ addNewPlant({name,species,preset,voice}); nav.go("dashboard",{chat:true}); };
+  const start = ()=>{
+    pushChat(addNewPlant({name,species,preset,voice}));
+    nav.go("dashboard",{chat:true});
+  };
   return <ApStep onBack={nav.back} film={filmSrc(lookFor(species),"still")} filmUp
     title={"Meet "+name}
     actions={<button className="actbtn" onClick={start}>Start caring</button>}>
-    <div className="apbub" style={{backgroundImage:blobBg("speech","#FFFFFF")}}>
-      {apMeetLine(preset)}
-    </div>
+    <SpeechBubble where="apbub">{apMeetLine(preset)}</SpeechBubble>
   </ApStep>;
 }
 
@@ -4458,7 +4527,7 @@ function PlantsList(){
            within a card the chip/species/name follow the pot and so sit on top
            of it. The last card is the one exception and it paints last anyway. */
         return <div className="plcard" key={it.id}
-          style={{animationDelay:(i*80)+"ms"}}
+          style={{"--d":(i*100)+"ms"}}
           onClick={()=>nav.go("plant",{id:it.id})}>
           <div className="plsurface" style={{background:"var(--g-"+lookOf(it.id)+")"}}/>
           <PotShot who={lookOf(it.id)}/>
@@ -4521,6 +4590,50 @@ function App(){
   const [uiLang,setUiLang]       = useState("English");
   const [convLang,setConvLang]   = useState("English");
 
+  /* ── THE CONVERSATION LIVES HERE, NOT IN THE SCREEN ──────────────────────
+     It used to be `useState(CHAT_INIT)` inside GardenChat, so every message the
+     user typed died the moment the dashboard unmounted — open a plant card,
+     come back, and the exchange had never happened. The store is App because
+     App is the only thing that outlives every navigation: `nav.go("dashboard")`
+     resets the whole stack, and the screen is keyed on `cur.screen+stack.length`
+     precisely so it DOES remount.
+
+     Fork logged: the brief says "each plant keeps its own conversation history".
+     This prototype has no per-plant thread to keep — the Windowsill is a single
+     group chat that every plant speaks in, and a plant's own screen carries a
+     speech bubble, not a conversation. So there is one history, held once, and
+     the requirement is met in the only shape this product has for it.
+
+     ── AND MESSAGES ARRIVE ONE AT A TIME ───────────────────────────────────
+     `pushChat` takes a whole conversational turn and hands it to the room a
+     message at a time, 480ms apart, rather than dropping four bubbles into the
+     list on one frame. The queue lives at this level for the same reason the
+     history does: the Add Plant flow calls it and then navigates, so the
+     delivery has to survive the screen it was started from.
+
+     `fresh` is what tells a row to animate in, and it is cleared 600ms later —
+     longer than the 340ms entrance, short enough that nothing is still marked
+     by the time a user could navigate away and back. That flag is the whole of
+     "only genuinely new messages animate": a screen that remounts renders the
+     same objects, and by then none of them is fresh. */
+  const [chat,setChat] = useState(CHAT_INIT);
+  const queue = useRef([]);
+  const beat  = useRef(0);
+  const uid   = useRef(0);
+  const drain = useCallback(()=>{
+    if(beat.current || !queue.current.length) return;
+    const m = {...queue.current.shift(), _k: ++uid.current, fresh:true};
+    setChat(c=>[...c, m]);
+    setTimeout(()=>setChat(c=>c.map(x=> x._k===m._k ? {...x, fresh:false} : x)), 600);
+    beat.current = setTimeout(()=>{ beat.current = 0; drain(); }, 480);
+  },[]);
+  const pushChat = useCallback((msgs)=>{
+    if(!msgs || !msgs.length) return;
+    queue.current = queue.current.concat(msgs);
+    drain();
+  },[drain]);
+  useEffect(()=>()=>clearTimeout(beat.current),[]);
+
   const cur = stack[stack.length-1];
   const nav = useMemo(()=>({
     go:(screen,params={})=> setStack(s=> screen==="dashboard"
@@ -4541,7 +4654,7 @@ function App(){
 
   return (
     <AppCtx.Provider value={{chatCross,setChatCross,freq,setFreq,
-      uiLang,setUiLang,convLang,setConvLang}}>
+      uiLang,setUiLang,convLang,setConvLang, chat,pushChat}}>
     <Nav.Provider value={nav}>
       <div className="phone">
         <div className="device">
