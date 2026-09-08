@@ -4858,3 +4858,208 @@ fetched cold. **No console errors, no exceptions, no failed requests.**
   clamps at `scrollLeft 0` (5) and Sassy at the row's max 390 (282).
 - **8 Bubble** — `psbubpop` on entry and on all four preset changes; each switch
   sampled 140ms in shows two layers at complementary opacities.
+
+---
+
+# Revision 40 — the seam, found properly; the stagger, reworked; the presets, restored; and the chat learns to travel and to welcome
+
+## 1 — The status-bar seam: `.dash{overflow:hidden}`
+
+Rev 39 moved the blob layer to `top:-48px` and measured `getBoundingClientRect()`
+reporting top **0**, height **482** — and the seam was still there, because **a
+bounding rect is the layout box, not what is painted.** `.dash` IS the `.screen`,
+`.screen` begins 48px down under the status bar, and `.dash` carried
+`overflow:hidden`. Every hero layer was being clipped back to y=48 no matter what
+top offset it was given. Above that line the user was seeing `.device`'s flat
+`--sage` background; below it, the blob wash. Hence a dead-straight horizontal
+edge exactly at 48.
+
+Two changes, both required:
+
+- **`.dash{overflow:visible}`.** Nothing in there needs a clip — every child is
+  absolutely positioned inside the box — and `.device` still has
+  `overflow:hidden` with its 44px radius, so the phone's own corners keep doing
+  the clipping they always did.
+- **`.dash.open .gsurface{top:-48px;height:482px}`** (was `top:0;height:434px`).
+  The green surface itself now paints to the absolute top of the viewport rather
+  than stopping at y=0 of `.dash` and leaning on `.device`'s background to cover
+  the strip above. That worked for a flat colour and could never work for the
+  circles, because the circles live *inside* the surface.
+
+`.gblobs` goes back to a plain `inset:0` — with the surface at its true 482px the
+Figma percentages resolve against the 402×482 area they were measured on, with no
+second offset to keep in step.
+
+Verified the way it should have been the first time — **a pixel probe down the
+top of the frame**, not a rect. Device rows 0→75 at x=47 read
+(181,211,178) → (183,212,178), a smooth ramp with **no step at y=48**. Both
+states shot: expanded, the wash runs unbroken behind the status bar; collapsed,
+it is inside the 358×74 pill with its 36px radius and nothing above it.
+
+## 2 — My Plants entry, reworked
+
+The previous build put the alpha on `.pstack` — a group fade, which cannot bleed
+by construction and which is exactly why the motion read as "a tiny few-pixel
+shift": every card was already at 96% opacity before any of them had visibly
+moved, so the eye had nothing to follow. Per-card alpha is what makes a stagger
+legible; the trick is doing it without the double exposure.
+
+**The geometry states the invariant.** A card's final top sits 52px above the
+bottom of the card above it, so while its own translate is greater than 52px it
+overlaps nothing and may be as transparent as it likes. The requirement is
+therefore exactly `opacity === 1 || translateY > 52`, and it is met by giving the
+fade its own, much shorter duration than the travel — two animations on one
+element, not one:
+
+```
+travel   96px over 540ms on cubic-bezier(.25,.46,.45,.94)
+fade     0 → 1 over 110ms
+stagger  80ms
+```
+
+The curve is a plain quadratic ease-out rather than `--soft` deliberately:
+`--soft` is so front-loaded it is 65% down the travel by 15% of the time, which
+leaves no room for a fade that reads as a fade.
+
+**Measured, not assumed** — 79 frames sampled with `requestAnimationFrame` inside
+the page, every card's computed opacity and matrix on each one:
+
+| fade | violations | travel remaining when each card goes opaque |
+|---|---:|---|
+| 130ms | 0 | 53 / 52 / **51** / 55 / 54 |
+| **110ms** | **0** | **58 / 57 / 56 / 60 / 59** |
+
+130ms measured clean and was still rejected: its tightest card went opaque at
+51px, *inside* the 52px band by a pixel. Zero violations with no margin is a
+number that survives one test and not the next frame rate. At 110ms the margin
+is 4–8px and real.
+
+Fork logged: clip-path masking of each card's overlap band was the fallback the
+brief offers. Not needed, and not added — the invariant holds with headroom and
+is checked rather than hoped for.
+
+## 3 — Preset films, quality restored
+
+The originals were recoverable, so nothing was re-encoded from an encode. The
+four preset films came from the true 1292×1604 sources; **`settings-felix` was
+recovered from git at `c99d69a`** — the 4 860 948-byte pre-optimization original,
+two revisions before it was ever touched.
+
+Native resolution kept (1292×1604, against a 691×857 CSS draw = 1382×1714 at
+DPR 2 — the source is the display size, near enough exactly), **CRF 21**, 0.5s
+GOP for switching, `-preset slow`, `-an`, `+faststart`.
+
+| file | source | Rev 39 (720p CRF 28) | now (native CRF 21) |
+|---|---:|---:|---:|
+| add-plant-drama | 4 069 350 | 138 611 | **1 529 100** |
+| add-plant-grump | 2 974 878 | 136 474 | **1 497 998** |
+| add-plant-cheerfull | 3 502 974 | 125 535 | **1 486 134** |
+| add-plant-sassy | 3 705 256 | 132 231 | **1 533 913** |
+| settings-felix | 4 860 948 | 171 971 | **1 648 942** |
+| | | 704 822 | **7 696 087** |
+
+Eleven times the weight, and that is the trade the brief asks for: switching
+speed comes from priming the elements, not from crushing the picture. Rev 39's
+720p call was wrong for these five specifically — they are the one place in the
+app where a film is looked at closely and switched between.
+
+The other sixteen films keep Rev 39's 720p encodes; they were not the complaint
+and the detail/still films are seen full-bleed and in motion, where the
+difference does not read the same way.
+
+Verified with the cache disabled: all five reach `readyState 4` within **0.9s**
+of the step opening, at 1292×1604, and every switch is a crossfade between two
+layers both already at readyState 4 — no load wait anywhere in it.
+
+## 4 — The meeting line follows the preset
+
+It used to be `personaByName(preset).lines.base`, the personality model's generic
+check-in — a line for the hundredth morning, not for the first hello. `AP_MEET_LINE`
+is written as introductions instead:
+
+| preset | line |
+|---|---|
+| Friendly | "Hi! I'm so glad it's you. I think we're going to get on." |
+| Drama queen | "At LAST. A window, an audience, and a person. My era begins." |
+| Grump | "Right. You'll do, I suppose. Let's not make a fuss about it." |
+| Calm | "Hello. No rush. We have all the time in the world, you and I." |
+| Cheerful | "HI! New pot, new light, new you — best day I have ever had!" |
+| Shy | "Oh — hello. Sorry. I'm still getting used to the light." |
+| Sassy | "Well. Took you long enough. Kidding. Mostly. Hi." |
+| Wise | "So it begins. Be patient with me and I'll be patient with you." |
+
+All eight the brief names are here though `PERSONALITIES` carries six — Shy and
+Wise have no preset yet, so their lines are inert until one exists. Writing them
+now costs nothing and means the map is never the reason a new preset falls back
+to Friendly.
+
+## 5 — The windowsill welcomes the new plant
+
+`addNewPlant` already pushed the newcomer's own arrival; it now pushes the answer
+too. Three replies, appended as the newest rows so the chat's own "land on the
+newest" rule puts the user in front of them with no special case:
+
+- **the newcomer** — `personaByName(preset).lines.big`, the model's largest
+  in-character line, which is the right register for walking into a room.
+  `apMeetLine` is the one-to-one hello and stays on the meeting screen.
+- **Felix** — "*{Name}*! Welcome to the windowsill. You'll like it here, the
+  light's honest." · 💚 2
+- **Mary** — "A NEW ONE. Fine. Just know the drama slot is taken, *{Name}*." · 😂 1
+- **Gosha** — "Hm. Another one. …welcome, I suppose."
+
+All three are `cross` — plant-to-plant chatter is exactly what they are, so the
+profile's "plants talk to each other" switch governs them like everything else in
+that register.
+
+"Start caring" now navigates with `{chat:true}`, which lands on the **collapsed**
+dashboard. Arriving on the hero would put the green block over the conversation
+the flow had just created. Same mechanism the notification deep link uses, a
+different reason for using it.
+
+Verified end to end with a plant named Bertha on Drama queen: meeting bubble
+"At LAST. A window, an audience, and a person. My era begins."; landed on
+`screen dash` at a 74px hero, 34 rows, scrolled to the bottom, tail reading
+Bertha → Felix → Mary → Gosha with her name in two of them.
+
+## 6 — The deep link travels
+
+760ms of ease-in-out, hand-tweened rather than `scrollTo({behavior:"smooth"})`
+because the browser picks that duration and it is nowhere near the band asked
+for. The flash now fires **when the travel ends** — the glow is the full stop on
+the journey, not something that has already finished by the time the chat
+arrives.
+
+**It starts above the target, not at the chat's resting position, and that is a
+deliberate departure from the brief.** "Open where it rests, then travel" was
+built first and measured: **595px** for Gosha, **44px** for Mary, **0px** for
+Felix — because the chat rests on its newest message and two of the three alerts
+live within a screen of the end. That is the very problem this item exists to fix,
+unfixed for two rows out of three. Starting a fixed run-up of 1.4 screens *above*
+the target instead gives every deep link the same journey, always ending on the
+message, and the opening view is real conversation from shortly before it — the
+context you would want anyway. Clamped at the top, so a target near the beginning
+simply starts at the beginning.
+
+Measured after: **1078px of travel over 46 frames** for all three, flash at
+**~795ms**, hero at 74px, each landing on `Felix 18:04` / `Mary 17:12` /
+`Gosha 13:47`.
+
+## 7 — Overscrolling the chat's top opens the hero
+
+The guard is what makes this intent rather than accident: the gesture that
+*arrives* at the top only primes; it takes a further **120px** of continued
+upward travel, with the scroller already pinned at 0, before the hero opens. Any
+downward movement, or any `scrollTop` above 0, disarms it again — so a fast flick
+up through the history stops at the top and stays there, exactly as it does
+today. Wheel and touch both routed through one `pull(dy)`.
+
+Verified, in order: a 300px up-wheel mid-history → no expand; the first up-wheel
+at the top → no expand (primes); a second at 60px → no expand (below threshold);
+a third at 100px → **expands**, hero 482. Then, freshly collapsed and at the top:
+prime, then two 200px *downward* wheels → no expand.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`. **No console errors,
+no exceptions, no failed requests** across every flow-index screen, all five
+plant cards, all three notifications and the Add Plant flow end to end.
