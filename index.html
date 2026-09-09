@@ -1981,6 +1981,81 @@ const CHAT_INIT = [
     "Sorry to be a bother — my soil's gone soggy and there's a proper cold draught by this window. Could you take a look?" },
 ];
 
+/* ── HOW FAST A ROOM TALKS ───────────────────────────────────────────────────
+   Every arriving message used to land on a flat 480ms metronome, which reads as
+   a script being played back rather than as three plants typing. A gap is now
+   carried PER MESSAGE — `_gap` is the wait BEFORE that row lands — and it is
+   derived from the length of the line it precedes: the longer the sentence, the
+   longer its author was busy writing it. The band is the brief's 2–3.5s, with
+   ±130ms of wobble so that no two consecutive gaps come out identical and the
+   rhythm never resolves into a beat you can count. */
+const typingGap = (text)=>{
+  const n = (text||"").length;
+  const k = Math.max(0, Math.min(1, (n - 24) / 86));    // 24 chars → 2.0s, 110 → 3.5s
+  return Math.round(2000 + 1500*k + (Math.random()*260 - 130));
+};
+/* A whole conversational turn, paced. `lead` is the wait before the FIRST row —
+   the pause after the screen has settled and before anyone says anything — and
+   every row after it is timed off its own text. */
+const paced = (msgs, lead)=> msgs.map((m,i)=> ({...m, _gap: i===0 ? lead : typingGap(m.text)}));
+
+/* ── AMBIENT LIVE MESSAGES ───────────────────────────────────────────────────
+   Opening the chat should not feel like opening a transcript. A short while
+   after the chat takes the screen, one of these exchanges arrives a message at
+   a time, in the same three voices and with the same entrance animation as any
+   other arrival: Felix warm, Mary theatrical, Gosha refusing to be pleased.
+
+   Six sets, 2–3 rows each. THE FIRST ROW OF EVERY SET IS NEVER `cross` — the
+   follow-ups are plant-to-plant chatter and are correctly governed by the
+   profile's "plants talk to each other" switch, but if the opener were governed
+   too then turning that switch off would leave a set that arrives as silence.
+   Reactions sit on a few of them rather than on all: a chip on every bubble
+   stops reading as a reaction and starts reading as decoration. */
+const AMBIENT = [
+  [ { who:"felix", at:"now", text:"Someone wiped the window. I can see the whole street from here. Big day.", rx:[["💚",1]] },
+    { who:"gosha", at:"now", cross:true, text:"It's a street." },
+    { who:"mary",  at:"now", cross:true, text:"It's a STAGE, Gosha, and I have waited a long time for an audience.", rx:[["😂",2]] } ],
+
+  [ { who:"mary",  at:"now", text:"The radiator just clicked. Twice. I have decided to read that as applause.", rx:[["😂",2]] },
+    { who:"felix", at:"now", cross:true, text:"It absolutely was applause." },
+    { who:"gosha", at:"now", cross:true, text:"It was the radiator." } ],
+
+  [ { who:"gosha", at:"now", text:"The watering can has moved. I'm not saying anything. I'm noting that it moved.", rx:[["💅",1]] },
+    { who:"felix", at:"now", cross:true, text:"That's optimism, Gosha! I'm proud of you." } ],
+
+  [ { who:"felix", at:"now", text:"The light just came round onto the shelf and everything looks expensive. Us included.", rx:[["🌿",2]] },
+    { who:"mary",  at:"now", cross:true, text:"Me especially." } ],
+
+  [ { who:"mary",  at:"now", text:"Going for a short dramatic nap. Wake me the moment anything happens." },
+    { who:"gosha", at:"now", cross:true, text:"Nothing will happen." },
+    { who:"felix", at:"now", cross:true, text:"Something might happen!", rx:[["😂",1]] } ],
+
+  [ { who:"gosha", at:"now", text:"Quiet in here today. I'd like it noted that I am not complaining about that." },
+    { who:"felix", at:"now", cross:true, text:"Noted, and frankly celebrated.", rx:[["💚",1]] } ],
+];
+/* Which set a visit gets. Random rather than a strict rotation, but never the
+   set that ran last — two identical openings in a row is the one outcome that
+   gives the trick away — and never a second set within 30s, so bouncing out to
+   a plant card and back does not fill the history with small talk. Module-level
+   because every navigation remounts the chat: a ref would forget both rules. */
+let ambLast = -1, ambAt = 0;
+const pickAmbient = ()=>{
+  const now = Date.now();
+  if(now - ambAt < 30000) return null;
+  ambAt = now;
+  let i = Math.floor(Math.random()*AMBIENT.length);
+  if(i === ambLast) i = (i + 1) % AMBIENT.length;
+  ambLast = i;
+  return AMBIENT[i];
+};
+
+/* WHERE THE CHAT WAS WHEN YOU LEFT IT. Module-level for the same reason: the
+   dashboard is remounted by every navigation, so nothing inside the component
+   survives a trip to Notifications and back — which is precisely the trip the
+   deep link is made of. `at` is null for "resting on the newest message", which
+   is both the never-scrolled default and what being at the bottom means. */
+const chatMemo = { at:null };
+
 /* ───────────────── PERSONALITY MODEL (single source of truth) ─────────────────
    Six presets, each with default positions for THREE fixed sliders
    (warmth / drama / chattiness) and a small set of in-character line variants.
@@ -2459,7 +2534,7 @@ function Dashboard({params}){
     <div className="gcta" onClick={()=>nav.go("plantsList")}>See your plants</div>
 
     {/* ── THE GROUP CHAT: the main and only content of the collapsed state ── */}
-    <GardenChat focus={params&&params.focus} open={open}
+    <GardenChat focus={params&&params.focus} fromAdd={!!(params&&params.chat)} open={open}
       onCollapse={()=>setOpen(false)} onExpand={()=>setOpen(true)}/>
   </div>;
 }
@@ -2469,7 +2544,7 @@ function Dashboard({params}){
    carries a plain-text inline CTA under a hairline (no outlined box) that taps
    through into the alert → diagnosis flow. `focus` comes from a notification tap
    and scrolls to that plant's most recent message. */
-function GardenChat({focus, open, onCollapse, onExpand}){
+function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
   const nav = useNav();
   const { chatCross, chat:msgs, pushChat } = useApp();
   const [text,setText] = useState("");
@@ -2486,6 +2561,10 @@ function GardenChat({focus, open, onCollapse, onExpand}){
     const el = e.currentTarget;
     setScrolled(el.scrollTop > 4);
     nearBottom.current = el.scrollHeight - el.clientHeight - el.scrollTop < 80;
+    /* and remember it, for the next deep link — see `chatMemo`. Sitting at the
+       bottom is stored as null rather than as a number, because the number would
+       be stale the moment another message arrives and made the history taller. */
+    chatMemo.at = nearBottom.current ? null : el.scrollTop;
   };
 
   /* PULLING PAST THE TOP OPENS THE HERO. The rule the brief asks for is
@@ -2543,17 +2622,33 @@ function GardenChat({focus, open, onCollapse, onExpand}){
      the end of it. Hand-tweened rather than scrollTo({behavior:"smooth"})
      because the browser picks that duration and it is nowhere near this band.
 
-     IT STARTS ABOVE THE TARGET, not at the chat's resting position, and that is
-     a departure from the brief worth stating. The chat rests on its newest
-     message and two of the three alerts live within a screen of the end — so
-     "open where it rests, then travel" measured out at 595px for Gosha, 44px
-     for Mary and 0px for Felix, which is the very problem this is meant to fix
-     for two rows out of three. Starting a fixed run-up ABOVE the target instead
-     gives every deep link the same ~1.4 screens of travel, always ending on the
-     message; and the opening view is real conversation from shortly before it,
-     which is the context you would want anyway. Clamped at the top of the
-     history, so a target near the beginning simply starts at the beginning. */
+     IT STARTS WHERE YOU LEFT THE CHAT. A previous revision opened every deep
+     link a fixed 1.4 screens ABOVE the target, to guarantee the travel was
+     visible; the cost was that the journey always began somewhere the user had
+     never been, which reads as "the chat jumped to the top and then scrolled
+     down" rather than as "the chat came from where I was". So the origin is now
+     `chatMemo.at` — the position this screen held when the user left it for the
+     Notifications list — clamped into range, and falling back to the chat's own
+     resting position at the newest message when there is nothing stored yet.
+
+     The consequence is accepted, not overlooked: a user who was resting at the
+     bottom and deep-links to the newest alert now has almost nothing to travel,
+     and gets the flash on the spot. That is the honest answer — there was no
+     distance between where they were and where they were going. The duration
+     scales with the distance for the same reason: a fixed 760ms made a long
+     journey feel hurried and a short one feel like a stall. */
   const firstRun = useRef(true);
+  /* The journey's rAF, held in refs rather than closed over by the effect's
+     cleanup. It used to be cancelled by that cleanup, which was harmless while
+     the only thing that changed `shown.length` was the user typing — but an
+     ambient exchange can still be draining from the previous visit when a deep
+     link starts, and the first of those rows would abort the travel a hundred
+     pixels in and leave the chat parked in the middle of nowhere with no flash.
+     Now only unmount stops it, and an arrival that lands mid-journey is told to
+     keep its hands off the scroller. */
+  const travel = useRef(0);
+  const travelling = useRef(false);
+  useEffect(()=>()=>cancelAnimationFrame(travel.current),[]);
   useEffect(()=>{
     const el = scroller.current;
     if(!el) return;
@@ -2563,31 +2658,41 @@ function GardenChat({focus, open, onCollapse, onExpand}){
        newest stays in view, and only if the user was reading there: someone who
        has scrolled up into the history does not want to be yanked back down. */
     if(!firstRun.current){
+      if(travelling.current) return;         // the deep link owns the scroller
       if(nearBottom.current){ el.scrollTop = el.scrollHeight; setScrolled(el.scrollTop > 4); }
       return;
     }
     firstRun.current = false;
-    el.scrollTop = el.scrollHeight;          // the chat's own resting position
-    setScrolled(el.scrollTop > 4);
-    if(!target.current) return;
-    const to = Math.max(0, Math.min(target.current.offsetTop - 120,
-                                    el.scrollHeight - el.clientHeight));
-    const from = Math.max(0, to - el.clientHeight * 1.4);
+    const max = Math.max(0, el.scrollHeight - el.clientHeight);
+    if(!target.current){
+      el.scrollTop = el.scrollHeight;        // the chat's own resting position
+      setScrolled(el.scrollTop > 4);
+      return;
+    }
+    /* the destination is re-read every frame, not captured once: a message can
+       land while the journey is running, and a fixed target would then stop the
+       chat short of the row it is about to flash. */
+    const aim = ()=> Math.max(0, Math.min(target.current.offsetTop - 120,
+                              el.scrollHeight - el.clientHeight));
+    const from = chatMemo.at == null ? max : Math.max(0, Math.min(chatMemo.at, max));
     el.scrollTop = from;
     setScrolled(from > 4);
-    if(Math.abs(to - from) < 4){ startFlash(); return; }
-    const t0 = performance.now(), dur = 760;
+    if(Math.abs(aim() - from) < 4){ startFlash(); return; }
+    // ~420ms for a nudge, ~900 for the length of the history, tweened either way
+    const dur = Math.max(420, Math.min(900,
+                  420 + Math.abs(aim() - from) / Math.max(1, el.clientHeight) * 300));
+    const t0 = performance.now();
     // easeInOutQuad: leaves and arrives at rest, so the travel has a shape
     const ease = (x)=> x < .5 ? 2*x*x : 1 - Math.pow(-2*x + 2, 2)/2;
-    let raf = 0;
+    travelling.current = true;
     const step = (now)=>{
       const k = Math.min(1, (now - t0) / dur);
-      el.scrollTop = from + (to - from) * ease(k);
-      if(k < 1) raf = requestAnimationFrame(step);
-      else { setScrolled(el.scrollTop > 4); startFlash(); }
+      el.scrollTop = from + (aim() - from) * ease(k);
+      if(k < 1) travel.current = requestAnimationFrame(step);
+      else { travelling.current = false; travel.current = 0;
+             setScrolled(el.scrollTop > 4); startFlash(); }
     };
-    raf = requestAnimationFrame(step);
-    return ()=>cancelAnimationFrame(raf);
+    travel.current = requestAnimationFrame(step);
   },[shown.length]);
 
   // while the hero expands/collapses the pane changes height — keep the stream
@@ -2603,16 +2708,52 @@ function GardenChat({focus, open, onCollapse, onExpand}){
     return ()=>{ stop = true; cancelAnimationFrame(raf); clearTimeout(t); };
   },[open]);
 
+  /* THE ROOM IS ALREADY TALKING WHEN YOU WALK IN. A few seconds after the chat
+     takes the screen, one ambient exchange arrives, message by message, through
+     the same queue and the same entrance animation as everything else — so the
+     history the user is reading is visibly still being written.
+
+     IT FIRES WHEN THE CHAT GETS THE SCREEN, not when the dashboard mounts. The
+     dashboard opens on the hero with the chat peeking at the bottom edge and its
+     stream frozen; starting the timer there would spend the whole exchange
+     behind the green block, and the user would collapse into a conversation that
+     had already happened. `open === false` is the moment they asked for the chat.
+
+     TWO ARRIVALS OWN THEMSELVES, and neither wants company. `fromAdd` is the Add
+     Plant flow, whose welcome sequence is the point of that arrival — the brief
+     is explicit that it takes priority. `focus` is a notification deep link: the
+     user came to read one specific older message, and new rows landing under it
+     are noise at best and a reason for the chat to move at worst. The flag is
+     still set in both cases, so neither can start an ambient run later by
+     collapsing and expanding the hero.
+
+     Once per mount. Auto-scrolling on arrival is not this effect's business —
+     the arrival effect above already follows the newest message only when the
+     user was reading at the bottom, and that is the rule these obey too. */
+  const amb = useRef(false);
+  useEffect(()=>{
+    if(open || amb.current) return;
+    amb.current = true;
+    if(fromAdd || focus) return;
+    const set = pickAmbient();
+    if(set) pushChat(paced(set, 2000 + Math.round(Math.random()*2000)));
+  },[open]);
+
   /* One turn, two messages, handed to the queue together — it is the queue's
      job to space them, not the sender's. The 400ms setTimeout this replaces was
-     doing the same thing by hand for this one exchange and for nothing else. */
+     doing the same thing by hand for this one exchange and for nothing else.
+
+     The user's own line carries no `_gap` and lands at once, which is what the
+     input field promises. Mary's answer is paced like every other reply in the
+     app now: 480ms after your message would be the one bot in a room of plants. */
   const send = ()=>{
     if(!text.trim()) return;
     const t = text;
     setText("");
+    const reply = "love it when you message us 💚";
     pushChat([
       { who:"me",   at:"now", text:t },
-      { who:"mary", at:"now", text:"love it when you message us 💚" },
+      { who:"mary", at:"now", text:reply, _gap:typingGap(reply) },
     ]);
   };
 
@@ -4232,8 +4373,16 @@ const addNewPlant = ({name, species, preset, voice})=>{
      from, so mutating it after App has mounted would change nothing on screen;
      the caller hands these to pushChat, which is also what makes them arrive one
      at a time — you land in the chat and watch the windowsill greet the
-     newcomer rather than finding the whole exchange already over. */
-  return [{ who:"new", at:"now", text:persona.lines.big }].concat(apWelcome(first));
+     newcomer rather than finding the whole exchange already over.
+
+     PACED, because "one at a time" was still too fast to be a conversation: the
+     four rows landed inside 1.5s, which is four plants typing in perfect unison.
+     The lead is ~1–1.5s of empty chat before the newcomer speaks — long enough
+     that the screen has visibly settled first and the arrival is an event — and
+     each reply after it is timed off its own length. */
+  const lead = 1000 + Math.round(Math.random()*500);
+  return paced([{ who:"new", at:"now", text:persona.lines.big }]
+    .concat(apWelcome(first)), lead);
 };
 
 /* Step 5 — the first meeting: the plant's own line, in the app's own bubble,
@@ -4606,10 +4755,18 @@ function App(){
 
      ── AND MESSAGES ARRIVE ONE AT A TIME ───────────────────────────────────
      `pushChat` takes a whole conversational turn and hands it to the room a
-     message at a time, 480ms apart, rather than dropping four bubbles into the
-     list on one frame. The queue lives at this level for the same reason the
-     history does: the Add Plant flow calls it and then navigates, so the
-     delivery has to survive the screen it was started from.
+     message at a time rather than dropping four bubbles into the list on one
+     frame. The queue lives at this level for the same reason the history does:
+     the Add Plant flow calls it and then navigates, so the delivery has to
+     survive the screen it was started from — and so does an ambient exchange
+     that was still arriving when the user opened a plant card.
+
+     THE SPACING IS THE MESSAGE'S OWN, not the queue's. Each queued row carries
+     `_gap`, the wait before it lands; `typingGap` sets that from the length of
+     the line so a long sentence keeps the room waiting longer than a two-word
+     one. A row with no `_gap` of its own falls back to what this queue always
+     did — the head of a batch lands at once, the rest 480ms apart — which is
+     what a message the user just typed still wants.
 
      `fresh` is what tells a row to animate in, and it is cleared 600ms later —
      longer than the 340ms entrance, short enough that nothing is still marked
@@ -4622,14 +4779,24 @@ function App(){
   const uid   = useRef(0);
   const drain = useCallback(()=>{
     if(beat.current || !queue.current.length) return;
-    const m = {...queue.current.shift(), _k: ++uid.current, fresh:true};
-    setChat(c=>[...c, m]);
-    setTimeout(()=>setChat(c=>c.map(x=> x._k===m._k ? {...x, fresh:false} : x)), 600);
-    beat.current = setTimeout(()=>{ beat.current = 0; drain(); }, 480);
+    const emit = ()=>{
+      beat.current = 0;
+      const q = queue.current.shift();
+      const m = {...q, _k: ++uid.current, fresh:true};
+      delete m._gap;                          // pacing is the queue's business, not the row's
+      setChat(c=>[...c, m]);
+      setTimeout(()=>setChat(c=>c.map(x=> x._k===m._k ? {...x, fresh:false} : x)), 600);
+      drain();
+    };
+    const gap = queue.current[0]._gap;
+    if(gap > 0) beat.current = setTimeout(emit, gap);
+    else emit();                              // a row asking for no wait gets none
   },[]);
   const pushChat = useCallback((msgs)=>{
     if(!msgs || !msgs.length) return;
-    queue.current = queue.current.concat(msgs);
+    // the fallback pacing, filled in here so `drain` only ever reads a number
+    queue.current = queue.current.concat(msgs.map((m,i)=>
+      typeof m._gap === "number" ? m : {...m, _gap: i===0 ? 0 : 480}));
     drain();
   },[drain]);
   useEffect(()=>()=>clearTimeout(beat.current),[]);

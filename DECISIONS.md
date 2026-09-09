@@ -5261,3 +5261,209 @@ no exceptions, no failed requests.**
   **scale 1.035**, the overshoot.
 - **4 Persistence** — after Profile → Dashboard: 32 rows, the typed message still
   present, **0** rows animating, scrolled to the bottom.
+
+---
+
+# Revision 42 — the windowsill talks while you are in it, at the speed a room actually talks, and the deep link leaves from where you were standing
+
+Three things, all of them about the chat being a live room rather than a
+transcript with an animation on it: the welcome sequence slows down to a human
+typing rhythm, an ordinary visit gets ordinary small talk arriving in front of
+the user, and the notification deep link stops departing from a place the user
+has never been.
+
+## 1 — Pacing is the message's own, not the queue's
+
+The queue in `App` handed rows to the room on a flat **480ms** metronome. Four
+plants greeting a newcomer inside 1.5s is not four plants typing; it is a script
+being played back, and the welcome sequence was the place it showed worst.
+
+Each queued row now carries **`_gap`**, the wait *before* it lands, and
+`drain` reads that number instead of a constant. `typingGap(text)` derives it
+from the length of the line it precedes — the longer the sentence, the longer
+its author was busy writing it:
+
+| chars | gap |
+|---|---|
+| ≤ 24 | ~2.0s |
+| 60 | ~2.6s |
+| ≥ 110 | ~3.5s |
+
+plus **±130ms** of wobble, so no two consecutive gaps come out identical and the
+rhythm never resolves into a beat you can count against.
+
+**Fork logged — the fallback.** A row with no `_gap` of its own keeps exactly
+what the queue always did: the head of a batch lands at once, the rest 480ms
+apart. That is what a message the user has just typed still wants, and it means
+nothing outside the two new sequences had to be touched to keep working.
+
+**Fork logged — the composer's reply was paced anyway,** which is one step past
+the brief. Mary answering a typed message 480ms later was invisible while
+everything moved at 480ms; next to a welcome sequence breathing at 2.7s it is
+the one bot in a room of plants. Her line goes through `typingGap` (~2.1s). The
+user's own message still lands at once — that is what the input field promises.
+
+### The welcome sequence
+
+`addNewPlant` now returns `paced(...)` rather than a bare list. The lead before
+the newcomer speaks is **1000 + rand(500)ms** of empty chat — long enough that
+the screen has visibly settled first, so the arrival is an event rather than
+part of the transition. Measured end-to-end through the real flow:
+
+| row | landed | gap |
+|---|---|---|
+| newcomer's big line | +945ms | 945 |
+| Felix, 75 chars | +3695ms | 2750 |
+| Mary, 62 chars | +6375ms | 2680 |
+| Gosha, 37 chars | +8544ms | 2169 |
+
+(measured from ~200ms after "Start caring", so the true lead is ~1.15s)
+
+## 2 — Ambient live messages
+
+Opening the chat should not feel like opening a transcript. A few seconds after
+the chat takes the screen, one exchange from `AMBIENT` arrives message by
+message, through the same queue and with the same `fresh` entrance animation as
+every other arrival. **Six sets**, 2–3 rows each, in the three established
+voices — Felix warm, Mary theatrical, Gosha refusing to be pleased:
+
+1. **Clean window** — Felix "Someone wiped the window. I can see the whole street
+   from here. Big day." 💚1 → Gosha "It's a street." → Mary "It's a STAGE, Gosha,
+   and I have waited a long time for an audience." 😂2
+2. **Radiator** — Mary "The radiator just clicked. Twice. I have decided to read
+   that as applause." 😂2 → Felix "It absolutely was applause." → Gosha "It was
+   the radiator."
+3. **Watering can** — Gosha "The watering can has moved. I'm not saying anything.
+   I'm noting that it moved." 💅1 → Felix "That's optimism, Gosha! I'm proud of
+   you."
+4. **Afternoon light** — Felix "The light just came round onto the shelf and
+   everything looks expensive. Us included." 🌿2 → Mary "Me especially."
+5. **Dramatic nap** — Mary "Going for a short dramatic nap. Wake me the moment
+   anything happens." → Gosha "Nothing will happen." → Felix "Something might
+   happen!" 😂1
+6. **Quiet day** — Gosha "Quiet in here today. I'd like it noted that I am not
+   complaining about that." → Felix "Noted, and frankly celebrated." 💚1
+
+**Fork logged — the first row of every set is never `cross`.** The follow-ups
+are plant-to-plant chatter and are correctly governed by the profile's "plants
+talk to each other" switch; if the opener were governed too, turning that switch
+off would leave a set that arrives as silence.
+
+**Fork logged — reactions on some sets, not all.** A chip on every bubble stops
+reading as a reaction and starts reading as decoration.
+
+**Fork logged — random, not a strict rotation, with two guards.** Never the set
+that ran last (two identical openings in a row is the one outcome that gives the
+trick away), and never a second set within **30s** (bouncing out to a plant card
+and back should not fill the history with small talk). Both live at module scope
+in `pickAmbient`, because every navigation remounts the chat and a ref would
+forget both rules.
+
+**Fork logged — it fires when the chat gets the screen, not when the dashboard
+mounts.** The dashboard opens on the hero with the chat peeking at the bottom
+edge and its stream frozen; starting the timer there would spend the whole
+exchange behind the green block, and the user would collapse into a conversation
+that had already happened. `open === false` is the moment they asked for the
+chat. The lead from there is **2000 + rand(2000)ms**.
+
+**Fork logged — two arrivals own themselves and get no ambient.** `fromAdd` is
+the Add Plant flow, whose welcome sequence the brief says takes priority.
+`focus` is a notification deep link: the user came to read one specific older
+message, and new rows landing under it are noise at best. The once-per-mount
+flag is set in both cases regardless, so neither can start an ambient run later
+by collapsing and expanding the hero.
+
+**Following the newest message** needed no new code: the arrival branch of the
+scroll effect already moves the chat only when `nearBottom` was true *before*
+the row was measured in. Ambient rows obey it like any other.
+
+**Fork logged — arrivals are not cancelled by navigation.** The queue lives in
+`App` and survives the screen it was started from, so an exchange still draining
+when the user opens a plant card finishes into the history rather than
+disappearing. That is the same property the Add Plant welcome has always relied
+on, and it is the right one for a group chat.
+
+**Fork logged — the timestamp stays `"now"`,** as it is for every other row
+pushed at runtime. The chat's fictional clock reads 18:04; stamping ambient rows
+with the real wall time would put 09:41 under it.
+
+## 3 — The deep link leaves from where you were standing
+
+Revision 40 opened every deep link a fixed **1.4 screens above the target**, to
+guarantee the travel was visible. The cost is what this brief names: the journey
+always began somewhere the user had never been, which reads as "the chat jumped
+to the top and then scrolled down" rather than "the chat came from where I was".
+
+The origin is now **`chatMemo.at`** — the position this screen held when the user
+left it — clamped into range, with the chat's own resting position at the newest
+message as the fallback when nothing is stored. `chatMemo` is module-level for
+the same reason `pickAmbient`'s guards are: the dashboard is remounted by every
+navigation, so nothing inside the component survives the trip to Notifications
+and back, and that trip *is* the deep link.
+
+**Fork logged — sitting at the bottom is stored as `null`, not as a number.**
+The number would be stale the moment another message arrived and made the
+history taller; `null` folds "resting on the newest message" and "never scrolled"
+into one case, which is exactly what the brief asks for as the default.
+
+**Fork logged — the consequence is accepted, not overlooked.** A user resting at
+the bottom who deep-links to the newest alert now has almost nothing to travel
+and gets the flash on the spot. That is the honest answer: there was no distance
+between where they were and where they were going. The 1.4-screen run-up existed
+to manufacture that distance, and the brief has ruled against it.
+
+**Fork logged — the duration now scales with the distance**, 420ms for a nudge
+to 900ms for the length of the history. A fixed 760ms made a long journey feel
+hurried and a short one feel like a stall, and the distance is no longer a
+constant.
+
+**Fork logged — the destination is re-read every frame.** A message can land
+while the journey is running; a target captured once would stop the chat short
+of the row it is about to flash.
+
+### The bug this uncovered
+
+The journey's `requestAnimationFrame` was cancelled by the scroll effect's own
+cleanup, which runs whenever `shown.length` changes. That was harmless while the
+only thing that changed it was the user typing — but an ambient exchange can
+still be draining from the previous visit when a deep link starts, and the first
+of those rows aborted the travel a hundred pixels in and left the chat parked in
+the middle of nowhere with no flash. Reproduced four times out of four before
+the fix.
+
+The rAF now lives in a ref and is stopped only by unmount, and an arrival that
+lands mid-journey returns early instead of grabbing the scroller.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`, driving the real UI —
+the Add Plant flow clicked end to end, the bell and the notification rows
+clicked, `MutationObserver` on `.gscroll` for arrival times, per-frame sampling
+of `scrollTop`. **No console errors, no exceptions, across every case below.**
+
+**Ambient, three consecutive visits** — a different set each time, no repeat:
+
+| visit | lead | gaps |
+|---|---|---|
+| 1 (nap, 3 rows) | 3900ms | 2025, 1965 |
+| 2 (watering can, 2 rows) | 3566ms | 2168 |
+| 3 (quiet day, 2 rows) | 2483ms | 2161 |
+
+**Deep link, four origins** — every one lands on its target row and flashes:
+
+| stored position | notification | origin → final |
+|---|---|---|
+| none | Felix (newest) | 2788 → 2788, flash on the spot |
+| 2600 of 2662 (inside the bottom band → `null`) | Gosha 13:47 | 2788 → 2067 |
+| 300 | Gosha 13:47 | 300 → 2067 |
+| 300 | Mary 17:12 | 300 → 2618 |
+
+**The auto-scroll rule** — scrolled up to 600, two ambient rows arrived, viewport
+held at **600 → 600**. Resting at the bottom, three rows arrived, gap from the
+bottom held at **0 → 0**.
+
+**Silence where it belongs** — hero open for 8s: **30 rows, unchanged**. A bounce
+out to a plant card and back inside the 30s cooldown: **32 → 32 rows**, no second
+set. The Add Plant flow ran its welcome and **no ambient rows followed it**.
+
+**Composer** — the typed row at **+600ms**, Mary's reply at **~+2.6s**.
