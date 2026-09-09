@@ -805,17 +805,32 @@
   .pfhead .plback{pointer-events:auto}
   .pfbody{margin:40px -11px 0;flex:0 0 auto}
   .pfsec{margin-top:40px}
-  /* identity (460:201/208) — 95px is 24 of padding round a 47px row: a 40px
-     avatar, 14px, then the name over the plant count. The count is the way into
-     the plants list, so the whole card is the target. */
-  .pfme{height:95px;padding:0 24px;background:var(--card);
-    border-radius:var(--r-card);display:flex;align-items:center;gap:14px;
+  /* identity (460:201/208) — the avatar is 80px, twice the 40 it was drawn at,
+     because this is the one place in the app that shows the user rather than a
+     plant and at 40 it was the smallest thing on a screen made of 95px cards.
+     The card's own rule is unchanged and simply re-applied: 24px of padding
+     round the tallest thing in the row. That row is now the avatar rather than
+     the two lines of text, so 80 + 48 = 128px.
+
+     The text block still centres against it — `align-items:center` was already
+     doing that work and needs nothing new; at 80px it is centring the 47px
+     text column against the avatar instead of the other way round.
+
+     Fork logged: the gap goes 14px → 18px. 14 was measured beside a 40px
+     circle; held next to one twice that size it reads as the name crowding the
+     photograph, and 18 keeps the same optical distance without touching the
+     24px padding the rest of the screen's cards are built on.
+
+     The count is the way into the plants list, so the whole card is the target. */
+  .pfme{height:128px;padding:0 24px;background:var(--card);
+    border-radius:var(--r-card);display:flex;align-items:center;gap:18px;
     cursor:pointer}
   .pfme:active{background:var(--box)}
-  .pfava{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto}
+  .pfava{width:80px;height:80px;border-radius:50%;object-fit:cover;flex:0 0 auto}
   /* 460:183/187 — the same title/subtitle pair the Quiet-hours card sets,
      reused verbatim so every settings card across both screens is one object:
-     .psqt over .psqsub, on 24px of padding, in a 95px card. */
+     .psqt over .psqsub, on 24px of padding, in a 95px card — the identity card
+     above is the one that grew past 95, and only because its avatar did. */
   /* .psrowcard carries a 5px top margin for the settings screen's own stack;
      here the header's 14px is the whole gap, so the borrowed card gives it up */
   .pfsec .psrowcard{margin-top:0}

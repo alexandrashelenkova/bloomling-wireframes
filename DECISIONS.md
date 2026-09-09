@@ -5693,3 +5693,59 @@ no exceptions, no failed requests.**
 - **Gaps** — 1973 / 1976 and 2073ms, unchanged.
 - **Entrance** — every arriving row carried the `in` class, so the softened
   animation from Revision 43 is intact.
+
+---
+
+# Revision 45 — the user gets to be as big as the plants
+
+One card. The Profile screen's identity card carried a **40px** avatar, which
+made the one place in the app that shows the *user* rather than a plant the
+smallest thing on a screen built out of 95px cards. It is now **80px**.
+
+The card's own rule is unchanged and simply re-applied: **24px of padding round
+the tallest thing in the row**. That row used to be the two lines of text at
+47px, giving 95; it is now the avatar at 80, giving **128px**. Nothing new was
+invented to get there.
+
+**The text block needed no new alignment.** `align-items:center` was already
+doing the work — at 40px it centred the avatar against the text column, and at
+80px it centres the text column against the avatar. Measured on the live card,
+both the avatar's centre and the text block's centre sit **0px** from the card's
+own centre line.
+
+**Fork logged — the gap goes 14px → 18px.** 14 was measured beside a 40px
+circle; held next to one twice that size it reads as the name crowding the
+photograph. 18 restores the optical distance without touching the 24px padding
+every other card on the screen is built on.
+
+**Fork logged — the asset needed no re-export.** `avatar-user.png` is a 160×160
+file that was exported at 4× for the 40px slot, so at 80px it is still a 2×
+image and stays crisp on a retina screen.
+
+**Fork logged — the identity card is now the only card past 95px, and that is
+correct.** The stale half-sentence in the `.psqt`/`.psqsub` comment, which
+claimed every card sharing that type pair was 95px tall, is amended rather than
+left to mislead the next revision.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`, measuring the live
+card's box. **No console errors.**
+
+| | value |
+|---|---|
+| card height | 128px |
+| avatar | 80 × 80px (natural 160 × 160) |
+| padding, top / bottom / left | 24 / 24 / 24px |
+| gap, computed and measured | 18px |
+| text block height | 47px |
+| text centre vs card centre | 0px |
+| avatar centre vs card centre | 0px |
+| gap to the next section | 40px, unchanged |
+
+Regressions checked, because the card is a tap target and sits under a
+scroll-driven scrim:
+
+- **The card still opens the plants list** — tapping it lands on `My Plants`.
+- **The header scrim still tracks the scroll** — opacity `1` at 60px.
+- **Every other flow-index screen renders** with no console errors.
