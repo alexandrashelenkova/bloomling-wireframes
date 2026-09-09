@@ -5749,3 +5749,14 @@ scroll-driven scrim:
 - **The card still opens the plants list** — tapping it lands on `My Plants`.
 - **The header scrim still tracks the scroll** — opacity `1` at 60px.
 - **Every other flow-index screen renders** with no console errors.
+
+## Shipped
+
+Commit `2257966` → `origin/main`, Vercel production
+`dpl_8R5uyjsFs2YTg2bZ3fUTDPvPd9Bs`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. **No console errors,
+no exceptions, no failed requests.** Card **128px**, avatar **80 × 80** off a
+160 × 160 file that loaded (`complete: true`), padding **24/24**, gap **18px**
+both computed and measured, text block centred at **0px** off the card's centre.
