@@ -5483,3 +5483,127 @@ no exceptions, no failed requests.**
   entrance class.
 - **3 Deep link** — left the chat at **300**, tapped Gosha's notification, the
   journey ran **300 → 2067** and flashed `Gosha 13:47`.
+
+---
+
+# Revision 43 — a message stops snapping into place and starts landing
+
+One tweak, four parts: the entrance curve, the anchor it grows from, the
+reaction that follows it, and the scroll that carries it.
+
+## The animation
+
+`gmsgin` was a 340ms fade-and-rise on `--soft`, which is
+`cubic-bezier(.22,1,.36,1)` — easeOutQuint, and **90% finished inside the first
+third of its run**. That is what "abrupt" was: the bubble was effectively in
+place before the eye had registered it moving, and the remaining two thirds of
+the duration were spent on the last few pixels.
+
+Now **420ms**, and three properties instead of one: the fade, a **15px** rise,
+and a scale from **0.96**. Measured on a live arrival:
+
+| t | opacity | scale | translateY |
+|---|---|---|---|
+| 23ms | 0.00 | 0.960 | +15.0px |
+| 90ms | 0.69 | 0.993 | +3.7px |
+| 157ms | 0.92 | 1.004 | −0.1px |
+| 290ms | 1.00 | 1.008 | −1.5px |
+| 423ms | 1.00 | 1.000 | 0.0px |
+
+**Fork logged — a mild spring, not a bounce.** The brief allows either a gentle
+ease-out or a spring with minimal overshoot. It overshoots, because a bubble
+that decelerates onto its line and stops dead still reads as being *placed*; but
+the overshoot is **1.5px and 0.8%**, which is felt rather than seen. The two
+segments carry their own curves — a firm deceleration into the peak at 62%
+(`cubic-bezier(.2,.7,.3,1)`), a gentle one out of it — because a single curve
+across both makes the settle either abrupt or floaty.
+
+**Fork logged — opacity finishes at 62%, not at 100%.** A bubble still
+translucent while it is settling reads as ghosting rather than as arriving.
+
+## The anchor
+
+The scale needed an origin, and the brief names it: the bubble's avatar-side
+bottom corner, the point the speech comes out of. **37.81px** of avatar plus the
+row's **5px** gap puts that at **42.81px** in from the row's leading edge, which
+is the bubble's own bottom-left on a `them` row and its bottom-right on one of
+the user's. Verified both ways on live rows: the bubble's leading edge sits
+**43px** from the row's edge on both sides, and the computed origins are
+`42.81px 115px` and `315.19px …` on a 358px row (= 358 − 42.81).
+
+**Fork logged — the whole row scales, avatar included, about the bubble's
+corner**, rather than scaling the bubble alone. The row arrives as one object; a
+bubble that grows while its avatar sits still reads as two things. The avatar's
+~1.7px drift toward its bubble at 0.96 is under the threshold of notice.
+
+## The reaction
+
+Same shape, smaller: **6px** of rise instead of 15, **0.9** instead of 0.96,
+300ms, and **140ms of delay** so the chip arrives once the bubble has stopped
+moving rather than riding down with it. Origin at the chip's own bubble-side
+bottom corner. Measured: opacity 0 until 157ms, 0.59 at 223ms, 1.00 by 423ms.
+
+**Fork logged — scoped to `.grow-row.in`.** In this prototype a reaction is only
+ever part of the message it belongs to; nothing adds one to a row already on
+screen. So it rides the row's entrance rather than existing as an independent
+trigger, and non-fresh rows replay nothing, exactly as their bubbles do not.
+
+## The follow-scroll, and the browser fighting it
+
+`el.scrollTop = el.scrollHeight` moved the whole history on one frame while the
+new bubble was still rising into place — the one hard edge left in an otherwise
+soft arrival. It is now **420ms of easeOutCubic**: the same length as the
+entrance and the same shape as its firm half, minus the overshoot, because a
+scroller cannot travel past its own end. The destination is re-read every frame
+and a second arrival re-aims the same run from wherever it is, so two messages
+landing close together give one continuous glide rather than two that fight.
+
+**The first attempt did nothing at all,** and the reason is worth recording.
+`.gscroll` had Chrome's scroll anchoring at its default, and **appending a row
+while the scroller sits at its maximum moves `scrollTop` to the new maximum
+before a single line of our JS runs**. Isolated with a direct DOM probe: at the
+bottom of the chat, appending a bare 120px div took `scrollTop` from **2662 to
+2782** synchronously. So the eased follow read its start position *after* the
+browser had already jumped, found itself at its destination, and animated from a
+point to itself — 14 frames all writing the same number. `overflow-anchor:none`
+on `.gscroll` hands the follow back to the app.
+
+**Fork logged — the anchoring is not needed elsewhere in this chat.** Its other
+job is holding the view steady when content above the viewport changes size;
+here the avatars are absolutely positioned inside fixed circles so nothing
+reflows, and the only bulk change to the history is the "plants talk to each
+other" filter, which lives in Profile and therefore always remounts the chat at
+its resting position on the way back.
+
+**Fork logged — `onScroll` ignores the scroller while the glide owns it.**
+Mid-glide the chat sits a bubble's height off the bottom; reading that back as
+"the user has scrolled up" would stop the *next* message from being followed at
+all.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`, sampling computed
+style per frame on a live arrival and trapping every `scrollTop` write on the
+scroller. **No console errors across all five flow-index screens.**
+
+- **The glide** — `2662 → 2690 → 2755 → 2788 → 2800 → 2801` over ~420ms,
+  decelerating (28, 65, 33, 12, 1px per 100ms sample). Second arrival the same
+  shape from 2801.
+- **Row animation** — `gmsgin 0.42s`, `both`, origin on the bubble corner, on
+  every arriving row and only on arriving rows.
+- **Chip animation** — `grxin 0.3s cubic-bezier(.2,.7,.3,1) 0.14s both`.
+
+Regressions re-checked, because the follow and the anchoring both sit under
+rules from Revision 42:
+
+- **No yank** — scrolled up to 600, two ambient rows arrived, viewport held at
+  **600 → 600**.
+- **Follow when resting** — gap from the bottom held at **0 → 0** across three
+  arrivals.
+- **Deep link, four origins** — 2662→2801, 2662→2067, 300→2067, 300→2618, each
+  landing on its target row and flashing.
+- **Welcome sequence** — four rows at **+1261 / +4188 / +6770 / +8997ms**, chat
+  collapsed and resting at the bottom.
+- **Ambient guards** — 30 rows held while the hero is open; no second set inside
+  the 30s cooldown.
+- **Composer** — typed row instant, Mary's reply at ~2.6s.

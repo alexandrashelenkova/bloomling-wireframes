@@ -1497,7 +1497,14 @@
   .dash.open .gchat{top:434px;background:var(--bg2);cursor:pointer;
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
     transition:top .5s var(--spring),background .5s ease-out,border-radius .5s ease-out}
+  /* overflow-anchor:none because the CHAT OWNS ITS OWN FOLLOW. With Chrome's
+     scroll anchoring on, appending a row while the scroller sits at its maximum
+     moves scrollTop to the new maximum before a single line of our JS runs —
+     measured at 2662 → 2782 on a 120px append — so the eased follow below found
+     itself already at its destination and animated from a point to itself. The
+     hard jump was the browser's, and this is the switch that hands it back. */
   .gscroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+    overflow-anchor:none;
     padding:100px 14px 100px;border-radius:inherit}
   .gscroll::-webkit-scrollbar{width:0}
   /* The conversation is NOT blurred or desaturated behind the hero. The only
@@ -1541,14 +1548,50 @@
     100%{filter:drop-shadow(0 0 0 rgba(152,199,105,0)) brightness(1)}}
   .grow-row.hot .gbub{animation:gflash 2s var(--soft) 1}
 
-  /* A message LANDS. 14px is a nudge, not a journey — a chat bubble arriving
-     from far away reads as a screen transition rather than as someone speaking —
-     and --soft is the curve the rest of the app arrives on. Only rows carrying
-     `fresh` wear this, which is why coming back to the chat replays nothing. */
+  /* A message LANDS — softly. The 340ms fade-and-rise on --soft was a snap:
+     that curve (easeOutQuint) is 90% done in the first third of its run, so the
+     bubble was effectively in place before the eye had registered it moving.
+
+     Three things now, on one 420ms run: the fade, a 15px rise, and a scale from
+     0.96. THE SCALE IS THE PART THAT NEEDS AN ANCHOR, and the anchor is the
+     bubble's avatar-side bottom corner — the point the speech is coming out of.
+     37.81px of avatar plus the row's 5px gap puts that at 42.81px in from the
+     row's leading edge, which is the bubble's own bottom-left on a `them` row
+     and its bottom-right on one of the user's. Scaling the avatar about the
+     same point is deliberate: the row arrives as one object, and the avatar's
+     ~1.7px drift toward its bubble is under the threshold of notice.
+
+     A MILD SPRING, NOT A BOUNCE. The row passes 1.5px above its resting line and
+     0.8% over its size at 62%, then settles — enough to read as landing rather
+     than as being placed, and small enough that nothing wobbles. The two
+     segments carry their own curves: a firm deceleration into the overshoot, a
+     gentle one out of it. Opacity is finished at 62% too, because a bubble still
+     translucent while it settles reads as ghosting rather than as arriving.
+
+     Only rows carrying `fresh` wear this, which is why coming back to the chat
+     replays nothing; `fresh` is cleared at 600ms, comfortably clear of 420. */
   @keyframes gmsgin{
-    from{opacity:0;transform:translateY(14px)}
-    to  {opacity:1;transform:translateY(0)}}
-  .grow-row.in{animation:gmsgin .34s var(--soft) both}
+    0%  {opacity:0;transform:translateY(15px) scale(.96);
+         animation-timing-function:cubic-bezier(.2,.7,.3,1)}
+    62% {opacity:1;transform:translateY(-1.5px) scale(1.008);
+         animation-timing-function:cubic-bezier(.4,0,.2,1)}
+    100%{opacity:1;transform:translateY(0) scale(1)}}
+  .grow-row.in{animation:gmsgin 420ms both}
+  .grow-row.them.in{transform-origin:42.81px 100%}
+  .grow-row.me.in{transform-origin:calc(100% - 42.81px) 100%}
+
+  /* THE REACTION LANDS ON THE MESSAGE, a beat after it. Same shape, smaller:
+     6px of rise instead of 15, 0.9 instead of 0.96, and 140ms of delay so the
+     chip arrives once the bubble has stopped moving rather than riding down with
+     it. Fork logged: in this prototype a reaction is only ever part of the
+     message it belongs to — nothing adds one to a row that is already on screen —
+     so this is scoped to `.in` and rides the row's own entrance. */
+  @keyframes grxin{
+    0%  {opacity:0;transform:translateY(6px) scale(.9)}
+    100%{opacity:1;transform:translateY(0)   scale(1)}}
+  .grow-row.in .grxchip{animation:grxin 300ms cubic-bezier(.2,.7,.3,1) 140ms both}
+  .grow-row.them.in .grxchip{transform-origin:0 100%}
+  .grow-row.me.in .grxchip{transform-origin:100% 100%}
 
   /* ══════════ THE SPEECH BUBBLE'S ENTRANCE ══════════
      One keyframe set for every pebble in the app: the plant detail's bubble, the
@@ -2557,9 +2600,41 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
      whether to follow the newest message, and it has to hold the position from
      BEFORE the new row was measured into scrollHeight. */
   const nearBottom = useRef(true);
+  /* THE FOLLOW IS A GLIDE, NOT A JUMP. `el.scrollTop = el.scrollHeight` moved the
+     whole history on one frame while the new bubble was still rising into place,
+     which is the one hard edge left in an otherwise soft arrival. 420ms of
+     easeOutCubic — the same length as the entrance, and the same shape as the
+     firm-deceleration half of it, minus the overshoot, because a scroller cannot
+     travel past its own end.
+
+     The destination is re-read every frame and a second arrival re-aims the run
+     from wherever it currently is, so two messages landing close together give
+     one continuous glide rather than two that fight each other. */
+  const glide = useRef(0);
+  const followBottom = ()=>{
+    const el = scroller.current; if(!el) return;
+    cancelAnimationFrame(glide.current);
+    const from = el.scrollTop, t0 = performance.now(), dur = 420;
+    const ease = (x)=> 1 - Math.pow(1 - x, 3);
+    const step = (now)=>{
+      const k = Math.min(1, (now - t0) / dur);
+      const to = Math.max(0, el.scrollHeight - el.clientHeight);
+      el.scrollTop = from + (to - from) * ease(k);
+      if(k < 1){ glide.current = requestAnimationFrame(step); return; }
+      el.scrollTop = el.scrollHeight;
+      glide.current = 0;
+      setScrolled(el.scrollTop > 4);
+    };
+    glide.current = requestAnimationFrame(step);
+  };
+  useEffect(()=>()=>cancelAnimationFrame(glide.current),[]);
   const onScroll = (e)=>{
     const el = e.currentTarget;
     setScrolled(el.scrollTop > 4);
+    /* the eased follow below drives this same scroller, and mid-glide it sits a
+       bubble's height off the bottom — reading that back as "the user has
+       scrolled up" would stop the NEXT message from being followed at all. */
+    if(glide.current) return;
     nearBottom.current = el.scrollHeight - el.clientHeight - el.scrollTop < 80;
     /* and remember it, for the next deep link — see `chatMemo`. Sitting at the
        bottom is stored as null rather than as a number, because the number would
@@ -2659,7 +2734,7 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
        has scrolled up into the history does not want to be yanked back down. */
     if(!firstRun.current){
       if(travelling.current) return;         // the deep link owns the scroller
-      if(nearBottom.current){ el.scrollTop = el.scrollHeight; setScrolled(el.scrollTop > 4); }
+      if(nearBottom.current) followBottom();
       return;
     }
     firstRun.current = false;
