@@ -5607,3 +5607,22 @@ rules from Revision 42:
 - **Ambient guards** — 30 rows held while the hero is open; no second set inside
   the 30s cooldown.
 - **Composer** — typed row instant, Mary's reply at ~2.6s.
+
+## Shipped
+
+Commit `85808b8` → `origin/main`, Vercel production
+`dpl_BRGjsRjNLGcrt8zFwYCVhKCZ1uaj`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. **No console errors,
+no exceptions, no failed requests.**
+
+- **Anchoring** — `getComputedStyle(.gscroll).overflowAnchor` reads `none` in
+  production.
+- **Row** — `gmsgin 0.42s`, origin `42.81px 115px`. Scale `0.960 → 1.008 → 1.000`
+  and translateY `+15.0 → −1.49 → 0` across 460ms, opacity full at ~260ms.
+- **Glide** — `2670 → 2708 → 2737 → 2758 → 2772 → 2781 → 2786 → 2788`, the
+  per-sample steps falling 38, 29, 21, 14, 9, 5, 2 as it eases out.
+- **Chip** — `grxin 0.3s cubic-bezier(.2,.7,.3,1) delay 0.14s`, origin
+  `0px 23px`. Held at opacity 0 and scale 0.9 through 115ms, then `0.59` at
+  215ms and settled by 465ms.
