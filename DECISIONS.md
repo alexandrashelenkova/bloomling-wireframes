@@ -5678,3 +5678,18 @@ draining when the user leaves the chat:
   in two of the four.
 - **Silence where it belongs** — 30 rows held while the hero is open; no second
   set inside the 30s cooldown.
+
+## Shipped
+
+Commit `9a7e232` → `origin/main`, Vercel production
+`dpl_2q5tEkCitx5RoJrwcZbHVToeUQ4j`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. **No console errors,
+no exceptions, no failed requests.**
+
+- **Lead** — **1900ms** (dramatic nap, 3 rows) and **1788ms** (afternoon light,
+  2 rows) on two consecutive live visits, both inside the 1.5–2s band.
+- **Gaps** — 1973 / 1976 and 2073ms, unchanged.
+- **Entrance** — every arriving row carried the `in` class, so the softened
+  animation from Revision 43 is intact.
