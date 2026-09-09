@@ -5467,3 +5467,19 @@ out to a plant card and back inside the 30s cooldown: **32 → 32 rows**, no sec
 set. The Add Plant flow ran its welcome and **no ambient rows followed it**.
 
 **Composer** — the typed row at **+600ms**, Mary's reply at **~+2.6s**.
+
+## Shipped
+
+Commit `dc197e1` → `origin/main`, Vercel production
+`dpl_eFuuDDCTJFKJW2ZZL8C1rxgV6iFm`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. **No console errors,
+no exceptions, no failed requests.**
+
+- **2 Ambient** — the radiator set arrived on a live visit at **+3366 / +5297 /
+  +7188ms** (lead 3.37s, gaps 1.93s and 1.89s — both are short lines sitting at
+  the bottom of the band with the negative wobble), every row carrying the `in`
+  entrance class.
+- **3 Deep link** — left the chat at **300**, tapped Gosha's notification, the
+  journey ran **300 → 2067** and flashed `Gosha 13:47`.
