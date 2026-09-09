@@ -5626,3 +5626,55 @@ no exceptions, no failed requests.**
 - **Chip** — `grxin 0.3s cubic-bezier(.2,.7,.3,1) delay 0.14s`, origin
   `0px 23px`. Held at opacity 0 and scale 0.9 through 115ms, then `0.59` at
   215ms and settled by 465ms.
+
+---
+
+# Revision 44 — the room does not wait four seconds to say something
+
+One constant. The ambient exchange's lead — the wait between the chat taking the
+screen and its first message landing — goes from **2000 + rand(2000)ms** to
+**1500 + rand(500)ms**.
+
+The 2–4s figure was reasoned across from the welcome sequence, where the pause
+*is* the point: the screen settles, and then something happens. Ambient messages
+have no such moment to wait for, because the user is already reading. Up to four
+seconds of nothing read as a chat that was not going to do anything, and the
+arrival landed after the eye had settled rather than in front of it.
+
+**Fork logged — the spread is kept, just narrowed to 500ms.** A lead that is
+identical on every visit is the one part of this the user could learn to expect,
+and the point of the whole mechanism is that the room is not on a schedule.
+
+**Fork logged — the gaps BETWEEN messages are untouched.** Those come from
+`typingGap` and are typing rhythm, not anticipation; typing takes as long as it
+takes, and the brief asks for them to stay.
+
+Nothing else moved: the welcome sequence's own ~1–1.5s lead, the entrance
+animation, the eased follow, the once-per-mount flag, the 30s cooldown, the
+never-twice-running rule, and the `fromAdd` / `focus` suppressions are all as
+they were.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`, `MutationObserver` on
+the scroller for arrival times. **No console errors.**
+
+**Three consecutive visits** — every lead inside the 1.5–2s band, gaps unchanged:
+
+| visit | lead | gaps |
+|---|---|---|
+| 1 (watering can) | 1830ms | 2171 |
+| 2 (afternoon light) | 1979ms | 1928 |
+| 3 (afternoon light) | 1779ms | 2125 |
+
+Regressions, because a shorter lead makes it likelier that an exchange is still
+draining when the user leaves the chat:
+
+- **Welcome still takes precedence** — the Add Plant flow ran end to end, four
+  rows at **+1048 / +4028 / +6594 / +8930ms**, chat collapsed and resting at the
+  bottom, and **no ambient rows followed it**.
+- **Deep link, four origins** — 2788→2873, 2801→2067, 300→2067, 300→2618, each
+  landing on its target row and flashing, with ambient rows arriving mid-journey
+  in two of the four.
+- **Silence where it belongs** — 30 rows held while the hero is open; no second
+  set inside the 30s cooldown.

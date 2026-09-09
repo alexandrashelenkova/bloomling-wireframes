@@ -2783,10 +2783,21 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
     return ()=>{ stop = true; cancelAnimationFrame(raf); clearTimeout(t); };
   },[open]);
 
-  /* THE ROOM IS ALREADY TALKING WHEN YOU WALK IN. A few seconds after the chat
-     takes the screen, one ambient exchange arrives, message by message, through
-     the same queue and the same entrance animation as everything else — so the
+  /* THE ROOM IS ALREADY TALKING WHEN YOU WALK IN. Moments after the chat takes
+     the screen, one ambient exchange arrives, message by message, through the
+     same queue and the same entrance animation as everything else — so the
      history the user is reading is visibly still being written.
+
+     THE LEAD IS 1.5–2s, DOWN FROM 2–4s. The longer wait was reasoned from the
+     welcome sequence, where a pause before the newcomer speaks is the point:
+     the screen settles, and then something happens. Ambient messages have no
+     such moment to wait for — the user is already reading — so up to four
+     seconds of nothing read as a chat that was not going to do anything, and
+     the arrival landed after the eye had settled rather than in front of it.
+     Fork logged: the spread is kept, just narrowed to 500ms, because a lead
+     that is identical on every visit is the one part of this the user could
+     learn to expect. The gaps BETWEEN the messages are untouched — those are
+     typing rhythm, and typing takes as long as it takes.
 
      IT FIRES WHEN THE CHAT GETS THE SCREEN, not when the dashboard mounts. The
      dashboard opens on the hero with the chat peeking at the bottom edge and its
@@ -2811,7 +2822,7 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
     amb.current = true;
     if(fromAdd || focus) return;
     const set = pickAmbient();
-    if(set) pushChat(paced(set, 2000 + Math.round(Math.random()*2000)));
+    if(set) pushChat(paced(set, 1500 + Math.round(Math.random()*500)));
   },[open]);
 
   /* One turn, two messages, handed to the queue together — it is the queue's
