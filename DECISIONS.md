@@ -5915,3 +5915,198 @@ delivered source is not on the origin. The flow walks found → connecting →
 paired with the film paused at **0**, playing, then frozen at **5.042** —
 computed `top` **−40px** and box **401.61 × 874** on all three. **No console
 errors** beyond the browser's own `favicon.ico`.
+
+# Revision 47 — the viewfinder is re-shot, and the photograph it takes is re-shot with it
+
+One asset swapped and nothing else designed. `add-plant-new.mp4` — a fresh take
+of the same pot on the same windowsill, with a younger plant in it — replaces
+the film the camera step has been playing since Revision 32. Every mechanic is
+unchanged: the film loops live in the viewfinder, the shutter freezes it where
+it stands, the scan bar sweeps the frozen frame, and the recognition screen
+shows that same picture back. **The whole diff is two binaries and one number in
+a comment.**
+
+This is Revision 46 run again on the other film. The reasoning below is the same
+reasoning, and it lands in the same place, because the two films are the same
+kind of asset in the same kind of role.
+
+## 1 — The new take needs no CSS, and the aspect ratio is why
+
+`.camvid` declares `aspect-ratio: 1176 / 1756` and draws at `height: 874px`,
+centred, reaching 48px up behind the status bar. The measured box is
+**585.32 × 874**. A `<video>` defaults to `object-fit: contain`, so any encode
+whose ratio is not exactly 1176:1756 gets letterboxed inside that box — on a
+screen whose entire premise is a full-bleed viewfinder.
+
+1176:1756 reduces to **294:439**, and 439 is prime. The only sizes that hold the
+ratio exactly are multiples of 294×439, and of those only **588×878** and
+**1176×1756** have the even dimensions `yuv420p` requires. 588×878 is DPR 1 and
+far too soft for a picture the flow asks you to inspect.
+
+The delivered take is already **1176×1756**. Against the CSS box that is DPR
+2.007 — 1170.64 × 1748 is exact DPR 2, and native overshoots it by 0.46%. So
+"sized to display" and "native" are the same encode here, and the brief's two
+constraints do not pull against each other at all. **No CSS changed and none
+needed to.**
+
+It is also 24fps, **121 frames, 5.041667s** — frame-for-frame the old film's
+duration. Nothing in the flow is timed off the film (the shutter freezes on
+demand, the 1.8s recognition wait is its own timer), but the loop wraps on the
+same beat it always did.
+
+## 2 — CRF 21
+
+Four encodes, `-preset slow -pix_fmt yuv420p -an -movflags +faststart`, SSIM
+measured against the delivered source over all 121 frames:
+
+| CRF | bytes | SSIM (all) |
+|---:|---:|---:|
+| 20 | 1 852 186 | 0.989569 |
+| **21** | **1 577 535** | **0.988917** |
+| 22 | 1 347 655 | 0.988167 |
+| 23 | 1 149 588 | 0.987435 |
+
+The curve is featureless — four evenly spaced points, no knee to land on — so
+the grade is decided by what the film is *for*, not by where the arithmetic
+bends.
+
+**CRF 21**, and the deciding reason is the screen change, not the film. The
+shutter freezes the video and 1.8s later the flow swaps it for
+`photo-addplant.webp`, a near-lossless still of the same scene. Those two
+pictures sit either side of one transition, and if the video frame is visibly
+softer than the still, the swap reads as a quality *pop* — the prototype
+admitting that the viewfinder was never the photograph. At CRF 21 the film
+measures **0.9889** and the still **0.9923** against the same source: the still
+is still the crisper of the two, as it should be, but not by an amount anyone
+sees. CRF 23 opens that gap by three times as much for 428KB.
+
+It is also the grade Revision 40 gave the preset films and Revision 46 gave the
+pairing film, for the same reason all three times: these are the films that get
+looked at rather than glanced past.
+
+**Default GOP kept.** Fork logged, and it reverses an old call: Revision 32 gave
+this film `-g 12` (0.5s) specifically so the shutter's *seek to the last frame*
+would be instant. Revision 44 deleted that seek — the shutter is now
+`loop = false; pause()` on the frame already decoded — and looping wraps to
+`currentTime 0`, which is a keyframe at any GOP. Nothing seeks into this film
+any more, so the keyframes that were bought for seeking are bytes with no job.
+
+## 3 — The photograph is re-exported, because it is part of the film
+
+`photo-addplant.webp` is not decoration and it is not a separate asset in any
+sense that matters: it is **this film's own last frame**, exported once. Swapping
+the film without re-exporting it would have left the recognition screen showing
+a plant that is not the plant the viewfinder just held — the one failure this
+screen exists to avoid, and a mismatch the CDP walk would have caught as a
+picture, not as an error.
+
+Re-exported from the new take's last frame, scaled to the same **720×1075** the
+old still used, `cwebp -q 90 -m 6`. `.apshot.photo` draws it at 240×320 with
+`object-fit: cover`, so 720 wide is DPR 3 and the 1.5× downscale is doing some
+of the smoothing for free.
+
+| | bytes | dimensions | SSIM |
+|---|---:|---|---:|
+| `photo-addplant.webp` as it was | 72 366 | 720×1075 | — |
+| **shipped** | **66 086** | **720×1075** | **0.992266** |
+
+Lighter than the still it replaces at the same size, because the new take is a
+simpler picture — a smaller plant against more soft window.
+
+The one comment in `index.html` that recorded the old figure ("72KB against a
+video element") now reads **66KB**. That is the entire code diff: a stale number
+made true again, not a change of behaviour.
+
+## 4 — The Rev 44 mismatch is inherited, and it gets slightly better
+
+Revision 44 logged a known cost: the shutter freezes on the frame you pressed
+on, but the still is the film's *last* frame, so the two are not guaranteed to
+be identical. Accepted then because the film is a slow take of one static scene.
+
+That still holds, and the new take is the calmer of the two. First frame against
+last frame, same method on both:
+
+| film | SSIM, first vs last |
+|---|---:|
+| old take | 0.475 |
+| **new take** | **0.590** |
+
+Less travel across the five seconds, so the frozen frame and the exported still
+are closer together than they were. The exact fix is still a canvas capture on
+the shutter, and it is still a change to a screen outside an asset swap's remit.
+
+## 5 — Two names checked and left alone
+
+**Fork logged — it ships as `add-plant.mp4`.** The brief says use the new film
+and remove the old one, which reads two ways: ship `add-plant-new.mp4` and
+delete `add-plant.mp4`, or write the new encode over `add-plant.mp4`.
+**Overwritten in place**, on Revision 46's precedent and one reason of this
+file's own: `add-plant-*` is already a naming family — `add-plant-drama`,
+`add-plant-grump`, `add-plant-cheerfull`, `add-plant-sassy` are the personality
+films the character step switches between. An `add-plant-new.mp4` sitting in
+that list reads as a *preset called "new"*. The old film is gone from the working
+tree and from the repo tip either way, `AP_CAM_FILM` stays correct, and "new" is
+a name that stops meaning anything the moment it ships.
+
+The delivered `add-plant-new.mp4` was **never committed** — 6.5MB with an audio
+track, and this repo has never carried pre-optimization sources.
+
+**`AP_SPECIES` stays "Ficus".** Checked rather than assumed: the old take was a
+mature rubber plant and the new one is a young glossy-leaved ficus, so the
+recognition screen's "Looks like it's a Ficus" is still true of the picture
+above it. Had the take been a different genus this would have been a copy change
+the brief did not ask for, and it would have been logged as one. It is not.
+
+## 6 — Sizes
+
+| file | bytes | dimensions | audio |
+|---|---:|---|---|
+| `add-plant-new.mp4` as delivered | 6 562 100 | 1176×1756 | AAC 128k, 5.039s |
+| **`add-plant.mp4` shipped** | **1 577 535** | **1176×1756** | **stripped** |
+| `add-plant.mp4` as it was (Rev 39) | 707 290 | 720×1076 | none |
+| `photo-addplant.webp` shipped | 66 086 | 720×1075 | — |
+| `photo-addplant.webp` as it was | 72 366 | 720×1075 | — |
+
+**24.0% of the delivered source.** Against the old shipped film it is 2.23× the
+weight, which is Revision 40's trade taken a third time and deliberately: the
+old 707KB was a 720p CRF 26 encode from Revision 39's blanket pass, and this is
+the third film that pass got wrong. Net page change is **+870 249 bytes** of
+film and **−6 280 bytes** of still.
+
+The delivered file carried an **audio track**, which nothing in this prototype
+plays and which every other film here has had stripped. `-an` removes it.
+`moov` sits immediately after `ftyp` in the shipped file — faststart verified by
+reading the atoms, not by trusting the flag.
+
+## Verification
+
+Headless Chrome over CDP at DPR 2, cache disabled, against
+`python3 -m http.server`, walking the flow with real
+`Input.dispatchMouseEvent` clicks from the flow index: pair → searching → found
+→ connecting → paired → capture → shutter → recognition.
+
+| state | paused | loop | currentTime | readyState | natural |
+|---|---|---|---:|---:|---|
+| live viewfinder | **false** | **true** | 2.444 | 4 | 1176×1756 |
+| shutter pressed | **true** | **false** | **2.656** | 4 | 1176×1756 |
+| +700ms | **true** | **false** | **2.656** | 4 | 1176×1756 |
+
+Every mechanic the brief names, confirmed on the live elements:
+
+- **Plays in the viewfinder.** `loop` true, `muted` true, `readyState 4`,
+  advancing.
+- **Freezes on the frame that was on screen.** `pause()` at **2.656** — not 0,
+  not `duration` — and still exactly 2.656 seven hundred milliseconds later.
+  `loop` flipped to false with it.
+- **The scan bar runs over the frozen frame.** `.camscan` present, `.camshutter`
+  gone, "Recognising your plant…" over a motionless picture.
+- **The frozen frame is reused on the result.** `.apshot.photo img` resolves
+  `assets/photo-addplant.webp`, `complete` true, natural **720×1075**, drawn
+  **240×320** `object-fit: cover` — the same pot, plant and windowsill the
+  viewfinder was holding a second earlier. Read back as a screenshot, not only
+  as a property.
+- **No letterbox.** Computed `aspect-ratio` **1176 / 1756**, computed height
+  **874px**, measured box **585.32 × 874** — the film fills it edge to edge.
+- **One 200 for `add-plant.mp4`**, one for `photo-addplant.webp`, and
+  **no failed requests, no console errors and no exceptions** anywhere in the
+  walk.
