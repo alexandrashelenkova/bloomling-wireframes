@@ -5902,3 +5902,16 @@ Every mechanic the brief names, confirmed on the live element:
 Both held frames were also read back as screenshots: no LEDs on "Pot found
 nearby", three green LEDs on "Your pot is paired and online", pot centred under
 the headline on both.
+
+## Shipped
+
+Commit `0a64db3` → `origin/main`, Vercel production
+`dpl_5w4KkNNVEtiiSoL426DVi9APnSXr`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled. `bt.mp4` serves
+**501 835 bytes** and decodes **976×2124**; `bt_new.mp4` is **404**, so the
+delivered source is not on the origin. The flow walks found → connecting →
+paired with the film paused at **0**, playing, then frozen at **5.042** —
+computed `top` **−40px** and box **401.61 × 874** on all three. **No console
+errors** beyond the browser's own `favicon.ico`.
