@@ -5760,3 +5760,145 @@ Re-verified live over CDP with the browser cache disabled. **No console errors,
 no exceptions, no failed requests.** Card **128px**, avatar **80 × 80** off a
 160 × 160 file that loaded (`complete: true`), padding **24/24**, gap **18px**
 both computed and measured, text block centred at **0px** off the card's centre.
+
+---
+
+# Revision 46 — the pairing film is re-shot, and it lands on the same pixels
+
+One asset swapped and nothing else touched. `bt_new.mp4` — a fresh take of the
+pot with its Bluetooth LEDs — replaces the film the pairing step has been
+playing since Revision 32. The mechanics it drives are unchanged, and so is
+every line of markup, CSS and JS in the file: **this revision's whole diff is
+one binary.**
+
+## 1 — The new take lands on the old take's geometry
+
+The film is not decoration here. `.apvid` is drawn at the mockup frame's own
+size — 402×874 from y 0, 40px up — for one reason, measured in Revision 32: at
+that size and that offset the film's pot falls exactly where `462:262` draws the
+pot. That measurement is a property of the *film*, not of the CSS, so a new take
+that framed the pot even slightly differently would have silently moved it out
+from under the headline.
+
+It does not. The pot's bounding box was measured in both takes — first frame and
+last frame, background sampled and thresholded at ±10 luma:
+
+| | x | y |
+|---|---|---|
+| old `bt.mp4`, first frame | 158…818 | 904…1680 |
+| **new take, first frame** | **158…818** | **904…1680** |
+| old `bt.mp4`, last frame | 158…818 | 904…1680 |
+| **new take, last frame** | **158…818** | **904…1680** |
+
+Identical to the pixel, and identical to the `x 158…819 / y 904…1681` the
+`.apvid` comment has recorded since it was written. **No CSS changed and none
+needed to.** The comment stays true.
+
+The take is also 976×2124, 24fps, **121 frames, 5.041667s** — the same duration
+the flow's timing was built around, so "Connecting…" still runs exactly as long
+as the pot's own LED sequence and not a frame longer.
+
+## 2 — Native resolution, and the aspect ratio decides it
+
+**Fork logged.** The brief says "sized to display", and the display size is
+401.61 × 874 CSS px — 803 × 1748 at DPR 2. The obvious call is to scale to it.
+It was rejected, on arithmetic:
+
+`.apvid` declares `aspect-ratio: 976 / 2124`, and a `<video>` defaults to
+`object-fit: contain`. Any encode whose ratio is not exactly 976:2124 gets
+letterboxed inside that box. 976:2124 reduces to **244:531**, so the only sizes
+that hold the ratio exactly are multiples of 244×531 — and of those, only
+488×1062 and 976×2124 have the even dimensions `yuv420p` requires. 488×1062 is
+DPR 1.2, far too soft. A 804×1748 encode is off by 0.1% and leaves a **0.87px
+transparent band** along the bottom of a full-bleed film, on a screen whose
+whole point is that the film runs edge to edge behind the status bar.
+
+So: **native 976×2124**, which is DPR 2.4 against the CSS box — above DPR 2 and
+below the DPR 3 many phones actually have. Revision 40 made the same call for
+the preset films on the same reasoning, and this film has the stronger claim:
+two of the three frames it appears on hold it **motionless** while the user
+reads a headline over it.
+
+## 3 — CRF 21
+
+Four encodes, `-preset slow -pix_fmt yuv420p -an -movflags +faststart`, SSIM
+measured against the source over all 121 frames:
+
+| CRF | bytes | SSIM (all) |
+|---:|---:|---:|
+| 20 | 605 751 | 0.997933 |
+| **21** | **501 835** | **0.997715** |
+| 22 | 408 500 | 0.997501 |
+| 23 | 326 134 | 0.997329 |
+
+**CRF 21**, the same grade Revision 40 gave the films that get looked at rather
+than glanced past. The 93KB it costs over CRF 22 buys the three green LEDs on
+the frozen last frame — small, saturated, high-contrast, and the one thing on
+that screen a user actually inspects. Against a page that already ships 7.7MB of
+preset films, 93KB is not a trade worth making the other way.
+
+Default GOP kept, unlike the preset films' 0.5s: nothing here seeks. `connect()`
+sets `currentTime = 0`, which is always a keyframe, and the freeze is a `pause()`
+on the frame already decoded.
+
+## 4 — Sizes
+
+| file | bytes | dimensions | audio |
+|---|---:|---|---|
+| `bt_new.mp4` as delivered | 1 971 314 | 976×2124 | AAC, 5.039s |
+| **`bt.mp4` shipped** | **501 835** | **976×2124** | **stripped** |
+| `bt.mp4` as it was (Rev 39) | 92 656 | 720×1566 | none |
+
+**25.5% of the delivered source.** Against the old shipped film it is 5.4× the
+weight, which is the Revision 40 trade taken again and deliberately: the old
+92KB was a 720p CRF 26 encode from Revision 39's blanket pass, and this film is
+one of the ones that pass got wrong.
+
+The delivered `bt_new.mp4` carried an **audio track**, which nothing in this
+prototype ever plays and which every other film here has had stripped. `-an`
+removes it. `moov` sits immediately after `ftyp` in the shipped file — faststart
+verified by reading the atoms, not by trusting the flag.
+
+## 5 — It ships as `bt.mp4`
+
+**Fork logged.** The brief says to use the new film and remove the old
+`bt.mp4`. Two readings: add `bt_new.mp4` and delete `bt.mp4`, or write the new
+encode over `bt.mp4`. **Overwritten in place**, for three reasons — "new" is a
+name that stops meaning anything the moment it ships and misleads at the next
+revision; `AP_FILM` and the two comments naming `bt.mp4` stay correct, which
+keeps a one-asset swap from touching JS; and the old film is gone from the
+working tree and from the repo tip either way.
+
+The delivered `bt_new.mp4` was **never committed** — it is a 2MB source with an
+audio track, and this repo has never carried pre-optimization sources. It stays
+where the encode came from.
+
+## Verification
+
+Headless Chrome over CDP against `python3 -m http.server`, walking the pairing
+flow from the flow index and probing the live `<video>` at each state.
+
+| state | title | paused | currentTime | readyState |
+|---|---|---|---:|---:|
+| found | Pot found nearby | **true** | **0** | 4 |
+| connecting | Connecting… | **false** | 1.203 | 4 |
+| done | Your pot is paired and online | **true** | **5.042** | 4 |
+
+Every mechanic the brief names, confirmed on the live element:
+
+- **First-frame hold.** On `found` the film is `paused` at `currentTime 0` with
+  `readyState 4` — decoded and holding, not loading.
+- **Plays on Connect**, and `loop` is `false`, so it runs once.
+- **`ended` advances the screen**, and the film is left frozen at
+  `currentTime 5.042` = its full `duration`. The title changed with it.
+- **The 40px-up positioning survives**: class `apvid up40`, computed `top`
+  **−40px**, computed height **874px**, `aspect-ratio` **976 / 2124**, measured
+  box **401.61 × 874**.
+- **Natural size reads 976×2124** off the live element.
+- One `200` for `bt.mp4` and no other request over 399. The only console error
+  is the browser's own `GET /favicon.ico`, which this prototype has never
+  declared.
+
+Both held frames were also read back as screenshots: no LEDs on "Pot found
+nearby", three green LEDs on "Your pot is paired and online", pot centred under
+the headline on both.
