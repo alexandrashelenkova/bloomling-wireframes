@@ -6110,3 +6110,24 @@ Every mechanic the brief names, confirmed on the live elements:
 - **One 200 for `add-plant.mp4`**, one for `photo-addplant.webp`, and
   **no failed requests, no console errors and no exceptions** anywhere in the
   walk.
+
+## Shipped
+
+Commit `7cff0d6` → `origin/main`, Vercel production
+`dpl_Cvr4X4R8qd9JnzryZrzWWHJ9brBR`, serving
+**https://bloomling-wireframes.vercel.app** (alias unchanged).
+
+Re-verified live over CDP with the browser cache disabled.
+
+- **On the wire** (curl): `add-plant.mp4` **1 577 535 bytes**,
+  `photo-addplant.webp` **66 086** — the CRF-21 native and the re-exported
+  still, not a stale cache. `add-plant-new.mp4` is **404**, so the 6.5MB
+  delivered source is not on the origin.
+- **The walk** runs pair → found → paired → capture → shutter → recognition.
+  The film decodes **1176×1756** in a **585.32 × 874** box at
+  `aspect-ratio 1176 / 1756`; live and looping at t **2.028**; frozen at
+  **2.251** with `loop` off and the scan bar up; still **2.251** 700ms later;
+  the result screen's still resolves 720×1075 at 240×320 `cover`, showing the
+  same pot the viewfinder was holding.
+- **No failed requests and no exceptions.** The only console error is the
+  browser's own `GET /favicon.ico`, which this prototype has never declared.
