@@ -3,6 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>
+/* EMBED MODE, SET BEFORE FIRST PAINT. `?embed=1` puts the prototype inside
+   someone else's rounded box — the landing page's phone — so everything that
+   is SHELL rather than SCREEN has to go: the dark page ground, the centring
+   canvas and its padding, the black device body and its 13px bezel, and the
+   device's own 44px corner, which the host rounds instead. The in-app status
+   bar and the island stay: they are drawn inside the screen and are part of
+   the design. Read here rather than in React so the class is on <html> before
+   the first style is resolved and no frame of the shell is ever painted. */
+(function(){try{var q=new URLSearchParams(location.search);
+  if(q.get("embed")==="1"||q.has("embed")&&q.get("embed")!=="0")
+    document.documentElement.classList.add("is-embed");}catch(e){}})();
+</script>
 <title>[APP NAME] — wireframe</title>
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
@@ -101,6 +114,31 @@
     position:relative;display:flex;flex-direction:column;
     transition:background .46s cubic-bezier(.22,.9,.28,1)}
   .device:has(.dash.open){background:var(--sage)}
+
+  /* ── EMBED MODE ─────────────────────────────────────────────────────────
+     The screen and nothing else, at the device's own 386 x 818. That is the
+     size the app was drawn against — 412 x 844 less the 13px bezel on each
+     side — so laying the embed out at it means the app renders exactly as it
+     does standalone rather than reflowing into a wider box.
+
+     TRANSPARENT, NOT WHITE. The host clips this to a rounded corner, and
+     anything painted outside that corner is what the whole exercise is for:
+     a white or dark ground here would show as a square behind the radius. The
+     screen's own background lives on `.device`, inside the rounded area.
+
+     NO SCROLLBAR ON THE OUTER DOCUMENT either — the app scrolls inside
+     `.screen`, and an outer scrollbar would take width off the screen and
+     paint a track over the host's corner. */
+  html.is-embed,html.is-embed body{
+    width:386px;height:818px;margin:0;padding:0;overflow:hidden;
+    background:transparent}
+  html.is-embed #root{
+    display:block;min-height:0;height:100%;width:100%;padding:0}
+  html.is-embed .phone{
+    width:100%;height:100%;max-width:none;
+    background:transparent;border-radius:0;padding:0}
+  /* the host owns the corner; a radius here would round INSIDE its own */
+  html.is-embed .device{border-radius:0}
   /* dynamic island */
   .island{position:absolute;top:9px;left:50%;transform:translateX(-50%);
     width:112px;height:31px;background:#000;border-radius:16px;z-index:60}

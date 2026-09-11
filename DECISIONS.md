@@ -6131,3 +6131,44 @@ Re-verified live over CDP with the browser cache disabled.
   same pot the viewfinder was holding.
 - **No failed requests and no exceptions.** The only console error is the
   browser's own `GET /favicon.ico`, which this prototype has never declared.
+
+---
+
+## Rev 48 · An embed mode, so the landing page can round our corners
+
+`?embed=1` renders **the screen and nothing else**. Everything that is SHELL
+rather than SCREEN goes: the dark page ground (`#262521`), the centring canvas
+and its 24/12 padding, the black device body and its 13px bezel, and the
+device's own 44px corner.
+
+**Why the host needs this.** The landing page shows this prototype in an iframe
+inside its own phone. A cross-origin iframe cannot be styled from outside, so
+everything we paint — the black bezel, the grey page behind it, the square
+document corners — lands *inside* the host's rounded box and there is nothing
+the host can do about it. The only place it can be fixed is here.
+
+**386 x 818, which is the device's own size** — 412 x 844 less the 13px bezel
+on each side. That is the box the app was drawn against, so the embed renders
+exactly as the prototype does standalone rather than reflowing into a wider one.
+
+**Transparent, not white.** The host clips this to a rounded corner. Anything
+painted outside that corner is the whole problem, and a white or dark ground
+would show as a square behind the radius. The screen's own colour stays on
+`.device`, inside the rounded area.
+
+**The status bar and the island stay.** They are drawn inside the screen and are
+part of the design, which is what the brief asks for. Only the physical handset
+around them is shell.
+
+**No scrollbar on the outer document.** The app scrolls inside `.screen`; an
+outer scrollbar would take width off the screen and paint a track across the
+host's corner.
+
+**The class is set before first paint**, by an inline script in `<head>` that
+reads the query string and puts `is-embed` on `<html>`. Done in React instead it
+would resolve after the first style pass and one frame of the full shell would
+be painted into the host's box.
+
+**Normal mode is untouched** and was verified as such: without the parameter the
+page still reports `#262521` on html and body, a 412 x 844 phone at `#0c0c0c`
+with a 56px radius and 13px of padding, and a 386 x 818 device at 44px.
