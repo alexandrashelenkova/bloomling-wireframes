@@ -6595,3 +6595,30 @@ from the parent page, taken while the tour was on the collapsed chat: opaque.
 **Clean console.** Zero exceptions and zero console output across every run
 above. The only 404 anywhere is the browser's own `GET /favicon.ico`, which this
 prototype has never declared and which is equally present without the parameter.
+
+### Shipped
+
+`f372731`, deployed to production and aliased to
+**https://bloomling-wireframes.vercel.app**
+(`dpl_9STYDhGKouEY7tQ8g65qtBTWq2f5`).
+
+Re-verified against the live deployment, not just the local build:
+
+- **The route runs and loops.** Hero → chat → typed message → hero → My Plants →
+  Felix → timeline → ⋯ → Personality & Settings → four presets → back down the
+  stack → hero, at the same 43s cadence.
+- **The films play from the CDN.** All five, `currentTime` 0.0 → 2.1–2.8, zero
+  paused samples, every layer 691×857.
+- **One real tap stops it.** Zero screen transitions over the next 20s,
+  `interacted` posted, app still live.
+- **Nothing without the parameter.** No query and `?autoplay=0`: zero listeners,
+  zero observers, zero posts. `?autoplay=1`: the five stop listeners, one
+  observer, one `ready`.
+- **The strip is gone.** The band predicate: CLEAN at 360×780, 390×844, 412×900,
+  430×932 @3, 320×640, and in embed mode at 386×818 and @2.
+- **And gone inside the real landing's iframe.** https://bloomling-landing.vercel.app
+  loading this build cross-origin at `?embed=1&autoplay=1`: attached to the
+  frame's own target and ran the predicate there for nine samples across three
+  laps — **0 leaks** — plus a 10× capture of the strip taken from the parent
+  while the tour was on the collapsed chat: opaque.
+- **Clean console**, the browser's own `/favicon.ico` 404 aside.
