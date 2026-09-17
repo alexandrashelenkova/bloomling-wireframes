@@ -75,6 +75,17 @@
     --t-lg:22px;             /* display headline, collapsed       (344:125) */
     --t-xl:44.7px;           /* display headline, expanded        (345:215) */
 
+    /* ── DEVICE CHROME ── the two numbers every "reach the very top" in this
+       file has to be written from. --sb-h is the status bar's own height and
+       is now set FROM here rather than restated in .statusbar; --safe-top is
+       the notch, which is 0 in every context this prototype actually ships in
+       (it draws its own handset, and the embed runs in a fixed-size iframe) —
+       it is here so that "the very top" stays the very top if it is ever run
+       full-bleed on a device that has one, rather than being a number that
+       silently means "48 and nothing else". */
+    --sb-h:48px;
+    --safe-top:env(safe-area-inset-top, 0px);
+
     /* ── RADII ── */
     --r-pill:36px;           /* header pill            (343:60)  */
     --r-input:37px;          /* composer pill 36.932px (344:74)  */
@@ -143,7 +154,7 @@
   .island{position:absolute;top:9px;left:50%;transform:translateX(-50%);
     width:112px;height:31px;background:#000;border-radius:16px;z-index:60}
   /* status bar — constant device chrome, solid ink (never dashed/wireframe) */
-  .statusbar{flex:0 0 auto;height:48px;display:flex;align-items:center;
+  .statusbar{flex:0 0 auto;height:var(--sb-h);display:flex;align-items:center;
     justify-content:space-between;padding:0 26px;color:var(--ink);
     position:relative;z-index:40}
   /* the plant detail runs its photo under the status bar, so the device chrome
@@ -1406,11 +1417,82 @@
      Nothing here needs the clip — every child is absolutely positioned inside
      the box — and .device still has overflow:hidden with its 44px radius, so
      the phone's own corners keep doing the clipping they always did. */
+  /* ── THE HEADER'S GEOMETRY, STATED ONCE ───────────────────────────────────
+     The green block is the only thing on this screen whose size anything else
+     depends on, and until now its two numbers were written in .gsurface and
+     then written AGAIN, by hand and pre-added, wherever something had to sit
+     below it. That is how the chat layer came to overlap the header in the
+     first place, and re-deriving 86 by hand was the same mistake with a better
+     comment on it.
+
+     So the block's top and height are tokens now, `--ghead-bottom` is their
+     sum, and the header band, the chat pane and the scroll fade are all
+     expressed in terms of it. Change the pill's inset or its height and all
+     four move together; there is no second copy to forget.
+
+     --ghead-chrome is everything ABOVE .dash's own top edge: the status bar,
+     plus the notch if there is one. .screen starts below the status bar, so
+     anything that has to reach the physical top of the device reaches back by
+     exactly this much. */
   .dash{padding:0;gap:0;overflow:visible;position:relative;background:var(--bg);
-    --ghead-bottom:86px}   /* the pill's bottom edge — see .gchat */
+    --ghead-top:12px;                                   /* 343:60 */
+    --ghead-h:74px;                                     /* 343:60 */
+    --ghead-bottom:calc(var(--ghead-top) + var(--ghead-h));
+    --ghead-chrome:calc(var(--sb-h) + var(--safe-top))}
+  /* expanded, the block is the whole hero: it starts at the true top of the
+     device — behind the status bar and behind the notch — and runs to the
+     mockup's own 482px measured from that same edge. Its BOTTOM therefore
+     lands at 482 − status bar, which is the 434 the chat sheet has always
+     opened at, now arrived at rather than typed. */
+  .dash.open{
+    --ghead-top:calc(-1 * var(--ghead-chrome));
+    --ghead-h:calc(482px + var(--safe-top))}
+
+  /* ── THE HEADER BAND ──────────────────────────────────────────────────────
+     The full-width, opaque floor the header sits on, and the thing whose
+     absence was the bug. The green block is a PILL: inset 14px left and right
+     and 12px from the top of .screen, so the header occupies a band the pill
+     itself does not fill — 12px above it, 14px down each side, and everything
+     behind the status bar. Nothing was painting that band. It looked painted
+     because .dash's own background is the same --bg and, once the chat pane
+     was moved below the header, nothing was left over it — but "opaque because
+     the layer that could cover it has been moved away" is a property of two
+     elements agreeing, not a floor, and it is one edit away from being untrue
+     again.
+
+     This is the floor. Full viewport width, from the physical top of the
+     device (status bar and notch included) down to the pill's bottom edge,
+     filled with the app background, and stacked ABOVE the chat layer (z 10)
+     and below the pill (z 12) — so a message cannot be seen through the band
+     however the chat layer is positioned.
+
+     It is sized from --ghead-bottom, so it tracks the block through the morph
+     on the block's own curve: at every frame of the expand and the collapse
+     its lower edge IS the green's lower edge. */
+  .ghband{position:absolute;left:0;right:0;
+    top:calc(-1 * var(--ghead-chrome));
+    height:calc(var(--ghead-chrome) + var(--ghead-bottom));
+    z-index:11;background:var(--bg);pointer-events:none;
+    transition:height .38s var(--soft),background-color .2s ease-out}
+  /* ── AND IT CARRIES .gunder's COLOUR WHILE THE HERO IS OPEN ───────────────
+     The band sits at z 11, above the sage underlay at z 8, so inside the band
+     it is the band rather than .gunder that the eye sees — and .gunder is
+     visible in exactly one place during the morph: the shrinking gutter beside
+     the green, before the pill's inset has closed. Left as a flat --bg the band
+     erased that sage for the ~200ms it shows, which measured as 16 000 changed
+     pixels across the top third of the screen.
+
+     So it takes the same colour on the same curve. .gunder fades sage in at
+     opacity o, which composites to mix(--bg, --sage, o); interpolating this
+     background-color from --bg to --sage over the identical duration, easing
+     and delay is the same arithmetic on the same clock, so the gutter reads
+     exactly as it did. Opaque throughout either way — only the colour moves. */
+  .dash.open .ghband{background:var(--sage);
+    transition:height .5s var(--spring),background-color .24s ease-out .2s}
 
   /* the morphing sage surface: pill → full bleed */
-  .gsurface{position:absolute;left:14px;right:14px;top:12px;height:74px;z-index:12;
+  .gsurface{position:absolute;left:14px;right:14px;
+    top:var(--ghead-top);height:var(--ghead-h);z-index:12;
     background:var(--sage);border-radius:var(--r-pill);cursor:pointer;
     transition:left .38s var(--soft),right .38s var(--soft),
       top .38s var(--soft),height .38s var(--soft),border-radius .38s var(--soft)}
@@ -1422,7 +1504,11 @@
      background to cover the strip above — which worked for flat colour and
      could not work for the circles, because they live inside this surface.
      482 is the mockup's own green height, measured from the frame's top edge. */
-  .dash.open .gsurface{left:0;right:0;top:-48px;height:482px;border-radius:0;
+  /* top and height are gone from here on purpose: they are --ghead-top and
+     --ghead-h, redefined on .dash.open above, and this rule now says only the
+     things that are this element's own — it goes full-bleed and square — plus
+     the curve the whole morph runs on. */
+  .dash.open .gsurface{left:0;right:0;border-radius:0;
     transition:left .5s var(--spring),right .5s var(--spring),
       top .5s var(--spring),height .5s var(--spring),border-radius .5s var(--spring)}
   /* ── the two drifting blobs (Figma 516:63 "Ellipse 45" / 516:64 "Ellipse 46")
@@ -1569,7 +1655,11 @@
   .gchat{position:absolute;left:0;right:0;top:var(--ghead-bottom);bottom:0;z-index:10;
     border-radius:0;background:transparent;
     transition:top .38s var(--soft),background .38s ease-out,border-radius .38s ease-out}
-  .dash.open .gchat{top:434px;background:var(--bg2);cursor:pointer;
+  /* 434 is gone from here too — var(--ghead-bottom) already IS 434 once
+     .dash.open has redefined the block, so the sheet opens at the green's own
+     lower edge by derivation. The pane is the header's bottom edge in both
+     states, which is the whole rule, written once. */
+  .dash.open .gchat{background:var(--bg2);cursor:pointer;
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
     transition:top .5s var(--spring),background .5s ease-out,border-radius .5s ease-out}
   /* overflow-anchor:none because the CHAT OWNS ITS OWN FOLLOW. With Chrome's
@@ -1620,7 +1710,7 @@
      begins at 541: it and its CTA have to read at full clarity, so the ramp has
      to be finished before it. At 244px it was not — the gradient was still at
      FULL opacity where that bubble started, which is what washed it out. */
-  .dash.open .gfade{top:434px;height:52px;opacity:1;
+  .dash.open .gfade{height:52px;opacity:1;
     background:linear-gradient(180deg,var(--bg2) 0,var(--bg2) 14px,rgba(239,239,239,0) 52px);
     border-radius:var(--r-sheet) var(--r-sheet) 0 0;
     transition:top .5s var(--spring),height .5s var(--spring),
@@ -2642,6 +2732,12 @@ function Dashboard({params}){
   return <div className={"screen dash"+(open?" open":"")}>
 
     <div className="gunder"/>
+
+    {/* The header's floor. Opaque, full width, from the physical top of the
+        device to the pill's bottom edge, over the chat and under the pill —
+        see .ghband. The pill does not fill the band it sits in, and this is
+        what fills the rest of it. */}
+    <div className="ghband" aria-hidden="true"/>
 
     {/* the one element that morphs: header pill → full-bleed hero */}
     <div className="gsurface" onClick={()=>setOpen(o=>!o)}

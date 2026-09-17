@@ -6622,3 +6622,192 @@ Re-verified against the live deployment, not just the local build:
   laps — **0 leaks** — plus a 10× capture of the strip taken from the parent
   while the tour was on the collapsed chat: opaque.
 - **Clean console**, the browser's own `/favicon.ico` 404 aside.
+
+## Rev 51 · The header gets a floor, and the numbers under it get a source
+
+Rev 50 stopped the chat painting into the strip under the status bar by moving
+the chat's pane below the header. That was the right move and it holds — but it
+made the band opaque by *removing* the only thing that could cover it, not by
+painting it, and it did so with the header's geometry copied out by hand. This
+revision gives the header an actual floor and gives the numbers one home.
+
+### 1 — Diagnosis, of the four candidates named
+
+**It is the first one: the header container has no background — only the pill
+does.** There is no header *container* at all. `.gsurface` is a pill, inset 14px
+left and right and 12px from the top of `.screen`, and it is the only thing in
+the header that paints. The rest of the band — 12px above it, 14px down each
+side, and the whole strip behind the status bar — was `--bg` for one reason:
+`.dash`'s own background is `--bg`, and after Rev 50 nothing was left painting
+over it there. "Opaque because the layer that could cover it has been moved
+away" is two elements agreeing, not a floor, and it is one edit away from being
+untrue again.
+
+The other three, checked rather than assumed:
+
+- **"The scroll container starts above the header."** True before Rev 50, fixed
+  then, and not true now. Measured at every size below: `.gchat` and `.gscroll`
+  both start at device y 134, which is the pill's bottom edge to the pixel.
+- **"A mask/fade applied but too short."** `.gfade` was load-bearing before Rev
+  50 — a decorative scroll gradient doing a chrome job, transparent whenever the
+  chat sat at its top — and that was Rev 50's root cause. It is not load-bearing
+  now: it begins at `--ghead-bottom`, i.e. at the band's lower edge, never
+  inside it.
+- **"The safe-area inset is not covered."** Not observable in any context this
+  ships in — the prototype draws its own handset, and the embed runs in a
+  fixed-size iframe — but the criticism lands anyway: every "reach the very top"
+  in this file was a hand-written `-48px`, which is the status bar and nothing
+  else. There was no inset in the arithmetic to be right or wrong.
+
+**What could not be reproduced, stated plainly.** The chat layer painting *above
+or beside* the pill does not happen in the build that was deployed. The chat
+layer was marked a single unmistakable colour and the entire header band
+screenshotted and scanned edge to edge — not a geometric predicate, which is
+what missed the gutters last time — at nine viewport/DPR combinations and in
+embed mode, in seven states each: zero message pixels above the pill's bottom
+edge in all 77. The likeliest explanation for what was seen is a tab that
+predates the Rev 50 deploy; the page is served `max-age=0, must-revalidate`, so
+a reload has it, but an already-open tab does not. Either way the structural
+complaint is right, and the rest of this entry is the fix for it.
+
+### 2 — The header's geometry, stated once
+
+The block's two numbers used to live in `.gsurface` and then be written again,
+by hand and pre-added, wherever something had to sit below it: `86px` on
+`.gchat` and `.gfade`, `434px` on their open-state overrides, `-48px` for "the
+top of the device". That is how the chat layer came to overlap the header in the
+first place, and re-deriving 86 by hand was the same mistake with a better
+comment on it.
+
+```
+:root  --sb-h:48px                --safe-top:env(safe-area-inset-top, 0px)
+.dash  --ghead-top:12px           --ghead-h:74px
+       --ghead-bottom:calc(top + h)        --ghead-chrome:calc(sb-h + safe-top)
+.dash.open
+       --ghead-top:calc(-1 * chrome)       --ghead-h:calc(482px + safe-top)
+```
+
+Everything else reads those. `.gsurface` takes `top:var(--ghead-top);
+height:var(--ghead-h)` in **both** states — the `.dash.open` rule now says only
+what is that element's own, that it goes full-bleed and square. `.gchat` and
+`.gfade` take `top:var(--ghead-bottom)` in both states, so their `434px`
+overrides are gone: expanded, `--ghead-bottom` resolves to `482 − 48 = 434`, the
+number the sheet has always opened at, now arrived at rather than typed.
+
+Custom properties do not animate, but the properties that read them do: the
+class flip changes the tokens instantly and `top`/`height` transition from their
+old computed values to their new ones on their own curves — which are the same
+curves they always were. Verified frame by frame below.
+
+Two consequences worth stating. The hero now genuinely reaches the physical top
+of the device rather than the top-minus-48: with a notch it starts at
+`-(48 + inset)` and is `482 + inset` tall, so its *bottom* stays at 434 and
+nothing downstream moves. And `--ghead-bottom` does not depend on `--safe-top`,
+so the chat pane and the fade keep their positions even in a browser that makes
+nothing of `env()`.
+
+### 3 — The header band
+
+```
+.ghband  left:0; right:0
+         top:    calc(-1 * var(--ghead-chrome))
+         height: calc(var(--ghead-chrome) + var(--ghead-bottom))
+         z-index:11          /* over .gchat (10), under .gsurface (12) */
+         background:var(--bg)
+```
+
+Full viewport width, from the physical top of the device — status bar and notch
+included — down to the pill's bottom edge, in the app background, above the chat
+layer and below the pill. The pill keeps its shape and sits on it. Because the
+height is `--ghead-bottom`, the band's lower edge **is** the green's lower edge
+at every frame of the morph, on the green's own curve; measured band bottom and
+pill bottom agree to 0.01px at every sample of both the expand and the collapse.
+
+`pointer-events:none`, so the pull-to-expand gesture over the header is
+unaffected.
+
+**It carries `.gunder`'s colour while the hero is open.** The band sits above the
+sage underlay, and `.gunder` is visible in exactly one place during the morph —
+the shrinking gutter beside the green, before the pill's inset has closed. Left
+flat `--bg` the band erased that sage for the ~200ms it shows, which measured as
+**16 000 changed pixels** across the top third of the screen. So the band
+transitions its own `background-color` from `--bg` to `--sage` on `.gunder`'s
+exact duration, easing and delay: `.gunder` composites to `mix(--bg, --sage, o)`
+and a colour transition between the same endpoints on the same clock is the same
+arithmetic. Sampled per frame through both directions, the gutter colour now
+matches the old build to **0/255 on the expand** and **at worst 5/255 for 150ms
+on the collapse**.
+
+**The one pixel-level cost, measured and accepted.** `.device` has
+`border-radius:44px` with `overflow:hidden`, so every layer reaching a corner is
+clipped with its own antialiased arc. The band is a third `--bg` layer at those
+corners, and compounding three coverage values instead of two makes the arc very
+slightly harder: **116 pixels of 278 120**, confined to the four top corner arcs
+of the drawn handset, max channel delta 56. Zero in embed mode, where `.device`
+has no radius — which is the context the landing shows. Restructuring the
+screen's backgrounds to avoid it would be a far larger change than the class of
+bug it prevents.
+
+### 4 — The fade
+
+Unchanged and still wanted: rows should dissolve rather than be guillotined at
+the band's edge. It starts at `--ghead-bottom` — the band's lower edge — with
+10px of solid `--bg` and a ramp clear by device 292. Never inside the band.
+
+### Verified
+
+The instrument is a **pixel** test, not a geometric one, because a geometric
+predicate is what missed the gutters in Rev 50: the chat layer is painted
+magenta, the green block red and the band blue, and the assertion — *no magenta
+pixel above the lowest red row* — is decidable from a single bitmap. That matters
+during a transition: reading geometry in one CDP round trip and shooting in the
+next samples two different instants, and on this morph's front-loaded curve that
+is 145px of travel. An earlier version of this scan reported a leak that was
+entirely its own clock.
+
+Every child of the marked layers is hidden and only their backgrounds are left —
+emoji are colour glyphs that ignore `color`, and a 🍾 in a reaction chip put real
+red pixels into the chat and moved "the pill's bottom edge" 200px down the
+screen.
+
+**Controls, so the result means something.**
+
+| run | result |
+|---|---|
+| as shipped | **0** of 209 frames with any chat pixel above the pill |
+| control: chat pane forced back to `top:0`, band intact | **0** of 96 — the band alone is sufficient |
+| control: chat at `top:0` **and** the band removed | **45** of 87 frames leak, magenta from device y 48 — the reported symptom, detected |
+
+**States.** Nine viewport/DPR combinations — 390×844, 360×780, 320×568, 412×915,
+430×932 @3, 375×667 @2, 344×882, 280×500 and 1440×900 — plus embed at 386×818
+and @2, in seven states each: chat at the top, mid-scroll, at the bottom, a hard
+flick from the top, the expanded hero, mid-collapse and mid-expand. **77 of 77
+clean.**
+
+**Continuously, while it is being used.** 209 frames over 45s of repeated
+collapses, expands, and navigations out to Notifications and My Plants and back;
+274 frames over 140s of the autoplay tour; 211 frames and 194 frames of the same
+two in embed mode. **0 leaking frames in all four.**
+
+**The brief's own check.** Top 200px of the dashboard, collapsed, parked
+mid-history with a coloured bubble under the header, shot at DPR 3 (3060×1800),
+and compared against the identical frame with the chat layer hidden: above the
+pill's bottom edge **1 pixel of 411 400 differs, by 4/255**; below it, 768 531
+differ — the chat, where it belongs. The strip under the status bar, the 12px
+above the pill and both 14px gutters are the app background and nothing else.
+
+**The morph.** Every CSS transition paused and its `currentTime` set by hand, so
+both builds render the same millisecond of the same morph: band bottom and pill
+bottom agree at every sample, and the chat pane's top is the same value again.
+The gutter colour curve matches as above.
+
+**The other screens with a header at the top of a list.** My Plants and
+Notifications build theirs as an in-flow flex item with the scroller after it,
+so nothing can reach above it by construction; marked and checked anyway —
+header bottom at 121px, **0** scroller pixels above it on both.
+
+**Nothing else moved.** The tour runs its eighteen steps at the same cadence with
+all five preset films playing; one real tap still stops it dead with zero screen
+transitions over 20s; `?autoplay=0` and no parameter still register zero
+listeners, zero observers and zero posts. Console clean throughout, the
+browser's own `/favicon.ico` 404 aside.
