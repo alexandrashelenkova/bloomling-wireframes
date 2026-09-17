@@ -1406,7 +1406,8 @@
      Nothing here needs the clip — every child is absolutely positioned inside
      the box — and .device still has overflow:hidden with its 44px radius, so
      the phone's own corners keep doing the clipping they always did. */
-  .dash{padding:0;gap:0;overflow:visible;position:relative;background:var(--bg)}
+  .dash{padding:0;gap:0;overflow:visible;position:relative;background:var(--bg);
+    --ghead-bottom:86px}   /* the pill's bottom edge — see .gchat */
 
   /* the morphing sage surface: pill → full bleed */
   .gsurface{position:absolute;left:14px;right:14px;top:12px;height:74px;z-index:12;
@@ -1542,9 +1543,30 @@
   .gcta{transform:translateX(-50%) translateY(10px)}
   .dash.open .gcta:active{transform:translateX(-50%) translateY(1px);transition:transform .08s}
 
-  /* the chat layer — the whole content in the collapsed state; pushed down,
-     desaturated and peeking at the bottom edge when expanded */
-  .gchat{position:absolute;left:0;right:0;top:0;bottom:0;z-index:10;
+  /* WHERE THE CHAT'S PANE BEGINS, and it is the fix for the see-through strip
+     under the status bar. The pill is inset 12px from the top of .dash, so
+     there is a 12px band of screen above it — and the chat layer used to be
+     `inset:0`, i.e. its scroll pane started at the very top of the screen and
+     ran BEHIND the pill and through that band. Nothing opaque was between them:
+     the only thing hiding a row that scrolled up into the band was .gfade, a
+     DECORATIVE scroll-position gradient that is transparent whenever the chat
+     sits at its top and cross-fades over 220ms. Scroll away from the top and
+     for the first fifth of a second the band showed a line of chat.
+
+     So the pane now starts where the header block ends. The band above it is
+     .dash's own background, which is the same --bg the gradient was painting —
+     the appearance is unchanged, and it is now opaque by construction rather
+     than by a decoration happening to be lit. Nothing can paint there because
+     nothing reaches there.
+
+     12 (the pill's top inset) + 74 (its height). Named and scoped to .dash,
+     because .gfade's own top and .gscroll's padding are measured from this
+     same edge and all three have to move together if the pill ever does.
+
+     The layer itself is unchanged in what it IS: the whole content in the
+     collapsed state, pushed down, desaturated and peeking at the bottom edge
+     when the hero is open — and .dash.open still puts it at 434. */
+  .gchat{position:absolute;left:0;right:0;top:var(--ghead-bottom);bottom:0;z-index:10;
     border-radius:0;background:transparent;
     transition:top .38s var(--soft),background .38s ease-out,border-radius .38s ease-out}
   .dash.open .gchat{top:434px;background:var(--bg2);cursor:pointer;
@@ -1556,9 +1578,15 @@
      measured at 2662 → 2782 on a 120px append — so the eased follow below found
      itself already at its destination and animated from a point to itself. The
      hard jump was the browser's, and this is the switch that hands it back. */
+  /* 14, not 100. The 100 was the header's own clearance held INSIDE the pane,
+     back when the pane started at the top of the screen; with the pane starting
+     at the header's bottom edge that distance is already spent, and 14 is what
+     is left of the mockup's gap between the pill and the first bubble. The two
+     numbers add up to the 100 they always did, so the first row lands on the
+     same pixel it always has. */
   .gscroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
     overflow-anchor:none;
-    padding:100px 14px 100px;border-radius:inherit}
+    padding:14px 14px 100px;border-radius:inherit}
   .gscroll::-webkit-scrollbar{width:0}
   /* The conversation is NOT blurred or desaturated behind the hero. The only
      thing over it is .gfade — the very same top scroll gradient the collapsed
@@ -1567,9 +1595,19 @@
   .dash.open .gscroll{padding-top:26px;overflow-y:hidden}
   /* soft fade where the chat runs under the header / the sheet's top edge.
      Only present when something is actually scrolled up behind it (.on). */
-  .gfade{position:absolute;left:0;right:0;top:0;height:244px;z-index:11;
+  /* IT IS A DECORATION AGAIN, and only that. It used to be load-bearing by
+     accident: its 96px opaque cap was the one thing covering the strip between
+     the status bar and the pill, which made a gradient that switches on and off
+     with the scroll position responsible for a piece of chrome. The pane now
+     starts at the header's bottom edge, so this fades the top of the LIST and
+     nothing else — and its ramp is stated from that same edge.
+
+     The numbers are the old ones re-expressed, not new ones: solid to 10px
+     (where the old 96px cap ended, 86 further down the screen) and clear at
+     158px (where the old 244 ended). Every pixel of the ramp is where it was. */
+  .gfade{position:absolute;left:0;right:0;top:var(--ghead-bottom);height:158px;z-index:11;
     pointer-events:none;opacity:0;
-    background:linear-gradient(180deg,var(--bg) 0,var(--bg) 96px,rgba(237,238,233,0) 244px);
+    background:linear-gradient(180deg,var(--bg) 0,var(--bg) 10px,rgba(237,238,233,0) 158px);
     transition:top .38s var(--soft),height .38s var(--soft),
       background .38s ease-out,opacity .22s ease-out}
   .gfade.on{opacity:1}
@@ -3776,6 +3814,18 @@ const PS_LAP   = 84;    // stage 662 + the resolve's 18px overhang → content 5
 const PS_AR_BY_ID = { felix:1292/1604, mary:1292/1604, gosha:1292/1604,
                       vera: 1292/1604, vlad:1340/1544 };
 const psAr        = (id)=> PS_AR_BY_ID[filmId(id)];
+/* ── …AND BY FILE, because a set can now hold films from two places ──────────
+   Personality & Settings shows the Add Plant flow's preset reaction films
+   whenever the chosen preset has one, so a single stage can mix a plant's own
+   settings film with four that were shot for the flow. Those four are all
+   1292x1604 — the shape four of the five settings films already are, and the
+   one Vlad's 1340x1544 is not. Sizing a whole set by one ratio would stretch
+   whichever film it was not measured from, so the stage asks each layer for its
+   own. The preset films register themselves where they are declared, which is
+   the only other door into a set. */
+const PS_AR_BY_SRC = {};
+FILM_HAVE.forEach(id => { PS_AR_BY_SRC[psFilm(id)] = PS_AR_BY_ID[id]; });
+const psArOf = (src, fallback)=> PS_AR_BY_SRC[src] || fallback;
 const PS_ZOOM     = 0.295;       // extra zoom over cover, at rest
 const PS_ZOOM_END = 200;         // …spent by here
 // the first paint — 744px on Vlad, 691px on the taller four
@@ -3984,9 +4034,11 @@ function PsShell({filmId, film, films, title, pinTitle, line, bubKey, children})
     if(g){
       const vis = Math.max(0, PS_STAGE - t);
       const z   = 1 + PS_ZOOM * Math.max(0, Math.min(1, 1 - t / PS_ZOOM_END));
-      const w   = Math.max(g.clientWidth, vis * ar * z).toFixed(1) + "px";
-      // EVERY layer, or a hidden one arrives at the wrong size mid-scroll
-      for(const k in vids.current){ const v = vids.current[k]; if(v) v.style.width = w; }
+      // EVERY layer, or a hidden one arrives at the wrong size mid-scroll — and
+      // each by its own ratio, because a set can mix film shapes (PS_AR_BY_SRC)
+      for(const k in vids.current){ const v = vids.current[k]; if(v)
+        v.style.width =
+          Math.max(g.clientWidth, vis * psArOf(k, ar) * z).toFixed(1) + "px"; }
     }
     setDeep(t > PS_TALK_MAX);      // the film has left the bubble's own box
     /* the pinned title appears only when the film is ENTIRELY gone — vis hits 0
@@ -4006,11 +4058,12 @@ function PsShell({filmId, film, films, title, pinTitle, line, bubKey, children})
     {/* 1 — the scroller: the film, its resolve, and the sections, in that order */}
     <div className="psscroll" ref={scroller} onScroll={onScroll}>
       <div className="psstage" ref={stage}>
-        {list.map(src =>
+        {list.map(src => (
           <video key={src} ref={el=>{vids.current[src] = el;}} src={src}
             className={"psvid"+(src===url ? "" : " off")}
             muted loop playsInline preload="auto" autoPlay={src===url}
-            style={{width:psVidW0(ar).toFixed(1)+"px", aspectRatio:String(ar)}}/>)}
+            style={{width:psVidW0(psArOf(src, ar)).toFixed(1)+"px",
+                    aspectRatio:String(psArOf(src, ar))}}/>))}
       </div>
       <div className="psfade"/>
       <div className="pscontent">{children}</div>
@@ -4075,8 +4128,15 @@ function PlantSettings({params}){
         onBlur={commit} onKeyDown={e=>e.key==="Enter"&&commit()}/>
     : <b>{value}</b>;
 
+  /* THE FILM FOLLOWS THE PRESET, exactly as it does in the Add Plant flow: pick
+     a character and the pot answers in that character's take. `films` is the
+     whole set this screen can reach, mounted and preloaded at once by PsShell,
+     so the switch is a crossfade between decoded elements rather than a load.
+     `bubKey` re-pops the speech bubble on the same beat, because the line under
+     it has just changed too. */
   return <PsShell filmId={lookOf(p.id)} title="Personality &amp; Settings"
-    line={sampleLine(preset,tune)}>
+    film={psPresetFilm(lookOf(p.id), preset)} films={psPresetFilms(lookOf(p.id))}
+    bubKey={preset} line={sampleLine(preset,tune)}>
 
         {/* ── PERSONALITY ──────────────────────────────────────────────── */}
         <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
@@ -4164,7 +4224,21 @@ const AP_PRESET_FILM = {
   "Cheerful":    "assets/video/add-plant-cheerfull.mp4",
   "Sassy":       "assets/video/add-plant-sassy.mp4",
 };
+/* all four are 1292x1604 — the stage sizes each layer by its own shape now that
+   a set can mix these with a plant's settings film. See PS_AR_BY_SRC. */
+Object.keys(AP_PRESET_FILM).forEach(k => { PS_AR_BY_SRC[AP_PRESET_FILM[k]] = 1292/1604; });
 const apPresetFilm = (k)=> AP_PRESET_FILM[k] || psFilm(AP_CREATE_FILM);
+
+/* ── THE SAME FILMS, ON A PLANT YOU ALREADY HAVE ────────────────────────────
+   A preset is a character, and a character does not become a different one
+   because the plant is already on the windowsill — so Personality & Settings
+   plays the very same reaction film the flow plays for that preset. Two things
+   differ, and both follow from the screen having a real plant behind it:
+   the fallback for a preset with no film of its own is THIS plant's settings
+   film rather than Felix's, and the set is therefore built per plant. */
+const psPresetFilm  = (id,k)=> AP_PRESET_FILM[k] || psFilm(id);
+const psPresetFilms = (id)=> Object.keys(AP_PRESET_FILM)
+                               .map(k=>AP_PRESET_FILM[k]).concat([psFilm(id)]);
 
 /* The first thing the plant ever says, one line per preset. It used to be
    `personaByName(preset).lines.base` — the personality model's generic check-in,
@@ -5230,6 +5304,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
     return $$(".pschips .pschip").filter(function(c){
       return c.textContent.trim() === name; })[0];
   }
+  /* By name, not by index. My Plants renders PLANTS in order and Felix happens
+     to be first, but a plant added through the flow is pushed onto that array —
+     so an index would quietly open somebody else the moment the list grows. */
+  function cardNamed(name){
+    return $$(".pstack .plcard").filter(function(c){
+      var n = c.querySelector(".plname");
+      return n && n.textContent.trim() === name; })[0];
+  }
   /* A scroll the tour performs itself, and the one tween here that runs on rAF
      rather than on the paced clock: 40fps of setTimeout would read as a
      stutter on the one motion in the whole tour that is continuous. It is
@@ -5248,10 +5330,19 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
   }
 
   /* ── THE TOUR ────────────────────────────────────────────────────────────
-     Fourteen steps, about 32 seconds, then home and round again. The path is
+     Eighteen steps, about 45 seconds, then home and round again. The path is
      the shortest one that touches everything this prototype is FOR: the
-     garden, the room talking back, a plant's own card, its life as a
-     time-lapse, and the character behind the voice.
+     garden, the room talking back, the whole windowsill as a list, a plant's
+     own card, its life as a time-lapse, and the character behind the voice —
+     rewritten as a character you can change, one preset at a time, with the
+     pot answering each one in its own film.
+
+     WHY IT GOES THE LONG WAY ROUND TO FELIX. Straight from a bubble into that
+     plant's card is one tap, and it was the old route; it also skips the one
+     screen that shows there is a garden rather than a chat. So the tour now
+     leaves the conversation the way the app intends — back up into the green
+     block, through "See your plants" — and comes home the same way, back down
+     the stack it built. Nothing is jumped: every arrow is a real one.
 
      Every step returns to `ok`, and a false there means the element it wanted
      was not on screen — the screen never arrived, or the app moved somewhere
@@ -5259,6 +5350,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
      rather than by pressing on into a screen that is not there. */
   var Bail = {};
   var must = function(v){ if(!v) throw Bail; return v; };
+
+  /* Four presets, in the order the chip row draws them, and every one of them
+     has a film of its own — Friendly and Calm fall back to the plant's own
+     settings film (AP_PRESET_FILM), so putting either in this list would be a
+     tap with nothing to watch. Felix opens on Friendly, so his own film is what
+     the screen arrives showing and these four are four real changes. */
+  var PRESETS = ["Drama queen", "Grump", "Cheerful", "Sassy"];
 
   async function lap(){
     // 1 — THE GARDEN. The hero as the app opens it: the date, the headline,
@@ -5278,62 +5376,73 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
     must(tap($(".gmic")));
     await sleep(3600);
 
-    // 5 — into the plant that answered. The avatar beside a bubble is the way
-    //     from the chat into that plant's card, and Mary's reply is the row
-    //     the chat is now resting on.
-    var rows = $$('.gscroll .gmava.tap[title^="Open Mary"]');
-    must(tap(rows[rows.length-1] || $$(".gscroll .gmava.tap").pop()));
+    // 5 — and back up out of the conversation: the same pill, tapped again,
+    //     floods the screen and brings its button back with it
+    must(tap($(".gsurface")));
+    await sleep(1800);
+
+    // 6 — "See your plants" — the button inside the green block
+    must(tap($(".gcta")));
+    must(await upNext(".plscreen"));
+    await sleep(2400);          // the cards rise in 100ms apart
+
+    // 7 — Felix, the app's reference pot
+    must(tap(cardNamed("Felix")));
     must(await upNext(".pdtimeline"));
-    await sleep(2800);
+    await sleep(2600);
 
-    // 6 — back through her life: the growth film seeks under the thumb
-    must(await scrubTo(1, 0.12, 1600));
-    await sleep(1400);
+    // 8 — back through his life: the growth film seeks under the thumb, and
+    //     then it is left alone at the far end long enough to actually read
+    must(await scrubTo(1, 0.12, 1800));
+    await sleep(2400);
 
-    // 7 — and home to now, where the still film takes over again
+    // 9 — and home to now, where the still film takes over again
     must(await scrubTo(0.12, 1, 1100));
-    await sleep(900);
+    await sleep(1000);
 
-    // 8 — the card's one menu
+    // 10 — the card's one menu
     must(tap($(".pdhead .plmore")));
     await sleep(800);
 
-    // 9 — Personality & Settings
+    // 11 — Personality & Settings
     must(tap($(".pdmenu div")));
     must(await upNext(".pschips"));
-    await sleep(2800);
+    await sleep(2600);
 
-    // 10 — a different character, and the plant answers in its new voice
-    must(tap(chipNamed("Cheerful")));
-    await sleep(1900);
+    // 12-15 — a different character, four times over. Each tap crossfades the
+    //     stage to that preset's own reaction film, re-pops the bubble and
+    //     rewrites the line under it from the preset's slider defaults; 2.8s is
+    //     the 260ms dissolve plus half of a 5.04s take, which is as much of it
+    //     as a demo loop can spend and still be a loop.
+    for(var i=0; i<PRESETS.length; i++){
+      must(tap(chipNamed(PRESETS[i])));
+      await sleep(2800);
+    }
 
-    // 11 — down the screen a little, which is its own piece of design: the film
-    //      shrinks out of the way and the personality card comes up under it.
-    //      300px, short of the 410 at which the bubble withdraws, because the
-    //      bubble is what the next step is for.
-    await glide(must($(".psscroll")), 300, 900);
-    await sleep(700);
-
-    // 12 — and a slider, which re-writes that line live
-    await slide(must($$(".psrange")[1]), 92, 900);
-    await sleep(1200);
-
-    // 13 — back to the card. The chat is put back to the history the app ships
-    //      with HERE, a screen and 1.4s before the dashboard that draws it —
-    //      not on the way home. A click is a discrete event and React flushes
-    //      it synchronously, so a reset issued after the last Back lands one
-    //      frame too late and the returning dashboard paints its peeking chat
-    //      with the previous lap's tail in it. From here the chat is not on
-    //      screen at all and nothing can add to it: the queue is cleared with
-    //      it, and the only two things that push rows — the chat's own mount
-    //      and the composer — are both a navigation away.
+    // 16 — back to the card. The chat is put back to the history the app ships
+    //      with HERE, three screens and four seconds before the dashboard that
+    //      draws it. A click is a discrete event and React flushes it
+    //      synchronously, so a reset issued after the last Back lands one frame
+    //      too late and the returning dashboard paints its peeking chat with
+    //      the previous lap's tail in it. From here the chat is not on screen
+    //      at all and nothing can add to it: the queue is cleared with it, and
+    //      the only two things that push rows — the chat's own mount and the
+    //      composer — are both a navigation away.
     must(tap($(".psscreen .plback")));
     if(DemoHooks.resetChat) DemoHooks.resetChat();
     must(await upNext(".pdtimeline"));
     await sleep(1400);
 
-    // 14 — and back to the garden, where the next lap starts
+    // 17 — back out to the list
     must(tap($(".pdhead .plback")));
+    must(await upNext(".plscreen"));
+    await sleep(1400);
+
+    // 18 — and back to the garden, where the next lap starts. Scoped to
+    //      .plscreen: .plhead is shared chrome and the detail screen wears one
+    //      too, so an unqualified selector would be a coin toss if a step ever
+    //      landed early.
+    must(tap($(".plscreen .plhead .plback")));
     await sleep(2400);
   }
 

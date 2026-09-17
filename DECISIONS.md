@@ -6365,3 +6365,233 @@ film is seeked, and `python3 -m http.server` would break that silently).
   and every test above. The only 404 anywhere is the browser's own
   `GET /favicon.ico`, which this prototype has never declared and which is
   equally present without the parameter.
+
+## Rev 50 · The tour takes the long way round to Felix, and the chat stops painting under the status bar
+
+Two things, and they meet in one place: the tour now spends most of a lap on
+screens the old route never reached, and the screen it starts and ends on had a
+see-through strip in it that nobody could see standing still.
+
+### 1 — The strip: what it actually was
+
+**A scroll container starting above the header, and a decoration standing in for
+chrome.**
+
+The collapsed dashboard draws its header as a *pill* — `.gsurface`, inset 12px
+from the top of `.dash` and 14px from each side — so there is a 12px band of
+screen between the status bar's bottom edge and the top of the green. That band
+was **inside the chat's scroll pane**: `.gchat` and `.gscroll` were both
+`inset:0` on `.dash`, i.e. the pane began at the very top of the screen and ran
+up behind the pill and through the band. `.dash`'s own opaque background is
+*below* the chat layer, so any row scrolled up into that band painted over it.
+
+The one thing hiding those rows was `.gfade` — the chat's top scroll-fade,
+whose first 96px are solid `--bg`. That is a **decoration**, and it behaves like
+one: it carries `.on` only while `scrollTop > 4`, and it cross-fades its opacity
+over 220ms. So for the first fifth of a second of any scroll away from the top,
+the band was transparent with a chat row already underneath it. Standing still
+it is invisible, because the band then shows `.dash`'s `--bg` — the very colour
+the gradient paints. It only exists while something moves, which is exactly why
+it reads as a flicker of text under the status bar rather than as a hole.
+
+**Measured, not reasoned.** A per-frame predicate — *is a `.grow-row` rect
+inside the band (clipped to the scroller), and is `.gfade` not fully opaque over
+all of it* — run against a scripted session of smooth scrolls, instant jumps, a
+slow creep and a fast flick from the top:
+
+| build | 360×780 | 390×844 | 412×900 | 430×932 @3 | 320×640 | embed 386×818 | embed @2 |
+|---|---|---|---|---|---|---|---|
+| Rev 49 | 59 frames | 59 | 60 | 59 | 42 | 58 | 59 |
+| **Rev 50** | **0** | **0** | **0** | **0** | **0** | **0** | **0** |
+
+The worst frame on Rev 49 reads `op: 0` with a row in the band — the fade had
+not begun to arrive. Captured at 6× as a screenshot: one line of Felix's
+"Morning! The lights just came…" sitting between the status bar and the green.
+
+**The three other candidates were checked and are not it.** The green block's
+top offset is correct — expanded it is `top:-48px`, which puts it at the
+device's absolute top, behind the status bar, and collapsed its 12px inset is
+the mockup's own. There is no rounding gap: the status bar's bottom and `.dash`'s
+top measure identical to 2dp at every viewport above, and the band is exactly
+12.00px at all of them. And the stacking order is right the whole time —
+`.gchat` 10 < `.gfade` 11 < `.gsurface` 12.
+
+### 2 — The fix: the pane begins where the header ends
+
+`.gchat` now starts at `--ghead-bottom`, a constant on `.dash` worth `86px` —
+the pill's 12px inset plus its 74px height. The band above it is `.dash`'s own
+background and **nothing can reach it**, because the scroll container no longer
+does. It is opaque by construction rather than by a gradient happening to be
+lit. No coloured strip was added; one was *removed* from the job it was doing
+by accident.
+
+Two numbers move with it, and both are the old ones re-expressed from the new
+edge rather than new ones:
+
+- `.gscroll` padding-top **100 → 14**. The 100 was the header's clearance held
+  inside the pane; 86 of it is now the pane's own offset, and 14 is what is left
+  of the mockup's gap between the pill and the first bubble. 86 + 14 = 100, so
+  the first row lands on the same pixel.
+- `.gfade` **top 0 → 86, height 244 → 158**, cap **96 → 10**. Every stop of the
+  ramp keeps its device position: solid to device 181, clear at device 329.
+  It is now a fade for the top of the *list*, which is all it ever was.
+
+`.dash.open` is untouched — expanded, `.gchat` and `.gfade` sit at 434 as
+before, and the green covers the screen from its absolute top.
+
+**Verified invisible.** Both builds, identical state (collapsed, chat pinned to
+its newest message, ambient randomness pinned, animations paused), full device
+at 340×818: **1 pixel of 278 120 differs, by 3/255**.
+
+**One behaviour did change, and it is an improvement rather than a cost.** The
+notification deep link aims at `target.offsetTop − 120` — "park the row 120px
+from the top of the list". With the pane starting at the top of the *screen*
+that 120 used to land the row at device 168, under the fade's opaque cap, so the
+row a notification pointed at arrived with its top edge veiled. It now lands at
+device 254, in the clear. Measured on all three notifications: Gosha 167.7 →
+253.7, Mary 168.3 → 254.3, Felix 571.4 → 571.4 (his target is at the end of the
+history, so the clamp to `scrollHeight − clientHeight` applies and nothing moved
+at all). The constant finally measures what it says.
+
+### 3 — Personality & Settings gets the preset films
+
+The character step in the Add Plant flow has always switched its film with the
+preset — Drama queen, Grump, Cheerful and Sassy each have a take of their own,
+and Friendly and Calm fall back to a plant's settings film. **Personality &
+Settings now does the same thing with the same files.** A preset is a character,
+and a character does not become a different one because the plant is already on
+the windowsill.
+
+Two differences follow from this screen having a real plant behind it: the
+fallback is **that plant's** settings film rather than Felix's, and the set is
+therefore built per plant (`psPresetFilm` / `psPresetFilms`). `bubKey={preset}`
+came with it, so the speech bubble re-pops on the same beat the line under it is
+rewritten — which is what the flow's copy already did.
+
+**One thing this broke and the fix for it.** `PsShell` sized *every* mounted
+layer by one aspect ratio, which was safe while a set could only hold films of
+one shape. The preset films are 1292×1604 — the shape four of the five settings
+films already are, and the one **Vlad's 1340×1544 is not** — so on Vlad's
+settings screen a single ratio would have stretched the presets by 7.7%. The
+stage now asks each layer for its own shape (`PS_AR_BY_SRC` / `psArOf`), filled
+in beside each film's declaration. Measured on Vlad: his own film renders at
+0.8679 against a natural 0.8675, each preset film at 0.8055 against a natural
+0.8055. On the other four plants, and in the flow, nothing moves — every film in
+those sets already shared one ratio.
+
+### 4 — The tour's new route
+
+**Why the long way.** The old route went from Mary's bubble straight into her
+card — one tap, and it skipped the one screen that shows this is a garden rather
+than a chat. The tour now leaves the conversation the way the app intends: back
+up into the green block, out through **See your plants**, and home again down
+the stack it built. Nothing is jumped; every arrow is a real one, and the two
+extra screens cost 6.6s of a 43s lap.
+
+The opening is unchanged — it reads well and there was no reason to touch it.
+
+| # | Step | Dwell |
+|---|---|---|
+| 1 | The garden — the expanded hero, date, headline, chat peeking | 2.6s |
+| 2 | Tap the hero; it folds to its pill and the chat takes the screen | 2.4s |
+| 3 | Type "how is everyone doing?" into the composer, a character at a time (55ms/char) | 1.2s + 0.5s |
+| 4 | Tap the mic; the message lands and Mary answers on her own typing rhythm | 3.6s |
+| 5 | Tap the pill again; the hero floods back and brings its button with it | 1.8s |
+| 6 | Tap **See your plants** → My Plants; five cards rise in 100ms apart | 2.4s |
+| 7 | Tap **Felix** → his card: greeting, mood chip, bond, reservoir | 2.6s |
+| 8 | Scrub the timeline from *now* back to near *seed*; then leave it there to read | 1.8s + 2.4s |
+| 9 | Scrub home to *now*; the still film takes back over | 1.1s + 1.0s |
+| 10 | Tap ⋯ | 0.8s |
+| 11 | Tap **Personality & Settings** | 2.6s |
+| 12 | **Drama queen** — the stage crossfades to `add-plant-drama`, the bubble re-pops, the line is rewritten | 2.8s |
+| 13 | **Grump** — `add-plant-grump` | 2.8s |
+| 14 | **Cheerful** — `add-plant-cheerfull` | 2.8s |
+| 15 | **Sassy** — `add-plant-sassy` | 2.8s |
+| 16 | Back to the card (and the chat is reset here, three screens off) | 1.4s |
+| 17 | Back to My Plants | 1.4s |
+| 18 | Back to the garden, where the next lap starts | 2.4s |
+
+**Felix rather than Mary**, because the route no longer arrives from a bubble —
+it arrives from the list, where a plant is chosen rather than followed — and
+because Felix is this app's reference pot: he is the plant `settings-felix.mp4`
+belongs to, so his screen is the one on which the two presets *without* a film
+of their own look like a deliberate default rather than a gap.
+
+**Four presets, not six.** Friendly and Calm have no film, so tapping them would
+be a step with nothing to watch; Felix opens *on* Friendly, so his own film is
+what the screen arrives showing and these four are four real changes.
+
+**2.8s per preset** is the 260ms dissolve plus half of a 5.04s take — as much of
+each film as a loop can spend and still be a loop. Sampled at 250ms: every one
+of the five runs `currentTime` from ~0.1 to ~2.7 with **zero** paused samples.
+
+**The chat reset moved with the route**, not in substance: it still fires the
+instant the last settings screen is left, which is now three screens and ~5s
+before the dashboard that draws it rather than one screen and 1.4s. The reasoning
+is the old one and is stronger here — a reset issued after the final Back lands
+a frame too late, and from the settings screen nothing can add to the history
+because both writers (the chat's own mount and the composer) are a navigation
+away.
+
+**`cardNamed`, not an index.** My Plants renders `PLANTS` in order and Felix is
+first — but a plant added through the flow is pushed onto that array, so an
+index would quietly open somebody else the moment the list grows.
+
+### Verified
+
+Headless Chrome over CDP, served from a Range-answering local host (the growth
+film is seeked, and `python3 -m http.server` breaks that silently), with a fresh
+browser profile per run — a warm disk cache served a stale `index.html` through
+one round of measurement and made a landed fix read as no fix at all.
+
+**The route, end to end, five laps over 235s.** Identical screen sequence every
+lap; laps of **43.68 / 43.72 / 43.69 / 43.80s**; and the chat back to exactly
+**30 rows** at every boundary, so the reset lands and nothing accumulates.
+
+**The films play.** Sampled at 250ms across a lap:
+
+| chip | file | `currentTime` | paused samples | box |
+|---|---|---|---:|---|
+| Friendly (arrival) | `settings-felix.mp4` | 0.07 → 2.57 | 0 | 691×857 |
+| Drama queen | `add-plant-drama.mp4` | 0.20 → 2.70 | 0 | 691×857 |
+| Grump | `add-plant-grump.mp4` | 0.15 → 2.65 | 0 | 691×857 |
+| Cheerful | `add-plant-cheerfull.mp4` | 0.10 → 2.60 | 0 | 691×857 |
+| Sassy | `add-plant-sassy.mp4` | 0.05 → 2.80 | 0 | 691×857 |
+
+**One real tap stops it for good.** A trusted `Input.dispatchMouseEvent` into a
+dead area of the plant card: **zero** screen transitions over the following 20s
+(97 samples, one value), one `interacted` posted, and the app still answering.
+The probe is the mounted screen and nothing else — a composite probe folding in
+chat rows reads a stopped tour as running, because the App's own queue drains
+independently of it.
+
+**Nothing changed without the parameter.** `addEventListener`,
+`IntersectionObserver` and `window.parent.postMessage` patched before page
+scripts ran. No param and `?autoplay=0`: **zero** added window listeners, **zero**
+observers, **zero** posts, and the dashboard sits on its hero for 6s. With the
+param: exactly the five stop listeners in capture phase, one observer, one
+`ready`.
+
+**Reduced motion** gets the first screen and nothing else — still on the hero
+after 12s, with `ready` posted. **Hidden** holds the tour on its screen for 9s
+with 0/2 films playing (Chrome's throttling never sets `paused`, so that
+isolates the handler), and it resumes into the next step on return.
+
+**Nothing is left stuck.** Over two laps, sampled at 200ms: `document.activeElement`
+is `body` at every sample, `:hover` never matches anything, `:active` never
+matches anything, and `.pdtimeline`'s `drag` class appears only inside a scrub.
+
+**The Add Plant flow is unchanged**, driven end to end: pair → connect → shutter
+→ "Yes, that's my plant" → character (five films mounted, Drama queen and Sassy
+switching to 691×857 and playing) → "Say hello" → "Start caring" → the dashboard
+with the welcome arriving. No exceptions.
+
+**The strip inside the landing's iframe.** The landing served locally with
+`DEMO_URL` pointed at this build, the embed loaded at its own 386×818 and scaled
+by `--proto-scale` to 283×599. The band predicate run *inside* the frame's
+execution context for three full laps: **0 leaks**. A 10× capture of the strip
+from the parent page, taken while the tour was on the collapsed chat: opaque.
+
+**Clean console.** Zero exceptions and zero console output across every run
+above. The only 404 anywhere is the browser's own `GET /favicon.ico`, which this
+prototype has never declared and which is equally present without the parameter.
