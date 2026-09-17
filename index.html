@@ -4832,6 +4832,30 @@ function PlantsList(){
   </div>;
 }
 
+/* ───────────────── AUTOPLAY DEMO HOOKS ─────────────────
+   The scripted tour at the bottom of this file drives the prototype by
+   dispatching real events at real elements, which is the whole point of it —
+   it must exercise the same screens and the same transitions a finger does.
+   Two things have no element to press, though, and this is where they live.
+
+   `nav` is the escape hatch: if a step ever fails to find its target the tour
+   has to get home without pressing anything, because whatever it would press
+   is by definition not there.
+
+   `resetChat` is the loop's housekeeping. The tour types a message and the
+   room answers it, so every lap leaves two more rows in the history — after
+   four laps the chat the viewer sees is nothing like the chat the app opens
+   with. Resetting is done at the exact instant the last Back lands, when the
+   dashboard is being swapped in whole and nothing is cross-fading, so the
+   swap is invisible. It clears the delivery queue too: an ambient exchange
+   still draining would otherwise land one stray row on top of a fresh
+   history.
+
+   A plain object rather than a context or a window global: the tour runs in
+   the same eval'd scope as everything else here, so it simply reads it, and
+   nothing outside this file can reach in. */
+const DemoHooks = { nav:null, resetChat:null };
+
 /* ───────────────── APP STATE + ROUTER ───────────────── */
 const AppCtx = createContext(null);
 const useApp = () => useContext(AppCtx);
@@ -4956,6 +4980,20 @@ function App(){
     jump:(path)=> setStack(path.map(([screen,params])=>({screen,params:params||{}}))),
   }),[]);
 
+
+  /* the two handles the autoplay tour needs — see DemoHooks above. Registered
+     from an effect rather than during render so nothing is published before
+     the tree it drives exists. */
+  useEffect(()=>{
+    DemoHooks.nav = nav;
+    DemoHooks.resetChat = ()=>{
+      clearTimeout(beat.current); beat.current = 0;
+      queue.current = [];
+      setChat(CHAT_INIT);
+    };
+    return ()=>{ DemoHooks.nav = null; DemoHooks.resetChat = null; };
+  },[nav]);
+
   const Screen = SCREENS[cur.screen] || Dashboard;
 
   return (
@@ -4976,6 +5014,358 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+
+/* ═════════════════ AUTOPLAY DEMO MODE  (?autoplay=1) ═════════════════════════
+   The prototype driving itself, so it can sit in an iframe on the landing page
+   and be a demo rather than a screenshot. Without the parameter not one line of
+   this runs — no listeners, no observers, no postMessage — and the app is
+   exactly what it was.
+
+   IT PRESSES THE REAL APP. Every step here finds a real element and dispatches
+   a real event at it: the hero collapses through its own 460ms morph, the chat
+   composer goes through React's onChange a character at a time, the timeline is
+   scrubbed with pointerdown/move/up so the film seeks under the thumb the way a
+   finger makes it. There is no second, video-shaped copy of these screens to
+   keep in step with the first, and no state is set behind the app's back.
+
+   TRUSTED IS THE WHOLE TRICK. `event.isTrusted` is false for anything a script
+   dispatches and true for anything a human does, and it cannot be forged. So
+   "ignore what the tour does, stop dead for what the user does" needs no flag,
+   no timing window and no bookkeeping — one property, read in a capture-phase
+   listener that nothing downstream can stopPropagation its way past.
+
+   SCROLL IS CAUGHT BY ITS CAUSES, not by `scroll`. A scroll event is trusted
+   whether a finger or a script caused it, and this app scrolls itself
+   constantly — the chat glides to follow a new message, a deep link tweens the
+   history, the plant card's cards collapse when a scrub starts, the personality
+   chips reveal themselves. Listening for `scroll` would therefore stop the tour
+   on its own first step. Every scroll a USER can make inside the app comes from
+   a wheel, a touch, a drag or a key, and all four are listened for here, so
+   the requirement is met from the input side where the trusted bit still means
+   something.
+
+   STOPPING IS A PROMISE THAT NEVER SETTLES. `stop()` throws away the pending
+   sleep instead of resolving it, so the async runner is suspended forever
+   between two steps: no half-executed step, no cleanup that moves the screen,
+   nothing to resume by accident. The app is left exactly where it stood, and
+   from that moment it only answers the user.
+
+   AND IT IS CHEAP. The tour is a chain of setTimeouts and nothing else — no
+   extra asset is fetched, no rAF runs when it is idle. When the tab is hidden
+   or the iframe scrolls out of the parent's viewport the pending sleep is
+   held (its remaining time banked, not restarted) and every playing film is
+   paused, which is where the CPU actually goes on this page.
+   ───────────────────────────────────────────────────────────────────────────*/
+(function(){
+  var q;
+  try{ q = new URLSearchParams(location.search); }catch(e){ return; }
+  // the same opt-in shape as ?embed=1 at the top of this file
+  if(!(q.get("autoplay")==="1" || (q.has("autoplay") && q.get("autoplay")!=="0"))) return;
+
+  /* ── talking to the host page ───────────────────────────────────────────── */
+  var post = function(type){
+    try{ window.parent.postMessage({type:type}, "*"); }catch(e){}
+  };
+
+  /* ── the clock ───────────────────────────────────────────────────────────
+     One sleep is outstanding at a time and it is held, not cancelled, by a
+     pause: `left` banks what is still owed so a tour paused two seconds into a
+     three-second dwell resumes with one second to go rather than three. */
+  var stopped = false, paused = false, nap = null, release = null;
+  function arm(){
+    var s = nap; if(!s || s.timer) return;
+    s.at = Date.now();
+    s.timer = setTimeout(function(){ nap = null; s.res(); }, s.left);
+  }
+  function hold(){
+    var s = nap; if(!s || !s.timer) return;
+    clearTimeout(s.timer); s.timer = 0;
+    s.left = Math.max(0, s.left - (Date.now() - s.at));
+  }
+  function sleep(ms){
+    return new Promise(function(res){
+      nap = { res:res, left:ms, at:Date.now(), timer:0 };
+      if(!paused) arm();
+    });
+  }
+
+  /* ── pausing: the tour AND the films ──────────────────────────────────────
+     The timers are the tour; the films are the electricity bill. Only the
+     elements that were actually playing are restarted, so the growth film —
+     which is seeked, never played, and is paused at all times — is left alone,
+     and so is any film the crossfade has already put to sleep. */
+  var held = [];
+  function setPaused(p){
+    if(stopped || p === paused) return;
+    paused = p;
+    if(p){
+      hold();
+      held = [];
+      var vs = document.querySelectorAll("video");
+      for(var i=0;i<vs.length;i++) if(!vs[i].paused){ held.push(vs[i]); vs[i].pause(); }
+    } else {
+      for(var j=0;j<held.length;j++){
+        var v = held[j];
+        if(!v.isConnected) continue;
+        var pr = v.play(); if(pr && pr.catch) pr.catch(function(){});
+      }
+      held = [];
+      arm();
+    }
+  }
+  var lit = document.visibilityState !== "hidden", seen = true;
+  var settle = function(){ setPaused(!(lit && seen)); };
+  document.addEventListener("visibilitychange", function(){
+    lit = document.visibilityState !== "hidden"; settle();
+  });
+  /* An observer with no root measures against the TOP-level viewport and clips
+     through the frames in between, so inside an iframe this answers "is the
+     iframe on screen in the landing page?" — which is the question. */
+  if(window.IntersectionObserver) requestAnimationFrame(function(){
+    var target = document.querySelector(".phone") || document.getElementById("root");
+    if(!target) return;
+    new IntersectionObserver(function(entries){
+      seen = entries[entries.length-1].isIntersecting; settle();
+    }, {threshold:0}).observe(target);
+  });
+
+  /* ── the user arrives, and that is the end of it ─────────────────────────
+     Capture phase, so a handler that stops propagation cannot hide a real
+     press from us; and `isTrusted` so nothing the tour itself dispatches ever
+     reaches past the first line. Fires once: the listeners take themselves off
+     afterwards, and the app is left to the user from then on. */
+  var KEYS = ["pointerdown","mousedown","touchstart","keydown","wheel"];
+  function onUser(ev){
+    if(!ev.isTrusted) return;
+    KEYS.forEach(function(k){ window.removeEventListener(k, onUser, true); });
+    post("bloomling-demo:interacted");
+    stop();
+  }
+  function stop(){
+    if(stopped) return;
+    stopped = true;
+    // a drag left mid-flight would strand the timeline's drag indicator and
+    // leave the rail listening for moves — close it before walking away
+    if(release) try{ release(); }catch(e){}
+    hold(); nap = null;        // the runner is suspended here, permanently
+  }
+  KEYS.forEach(function(k){ window.addEventListener(k, onUser, true); });
+
+  /* ── pressing things ─────────────────────────────────────────────────────
+     A dispatched event moves no cursor and focuses nothing, so neither :hover
+     nor :focus can be left stuck by any of this; the one thing the tour does
+     put text into — the composer — is written through the value setter React
+     watches, never by focusing the field. */
+  var $  = function(s){ return document.querySelector(s); };
+  var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  function mid(el){ var r = el.getBoundingClientRect();
+                    return { x:r.left + r.width/2, y:r.top + r.height/2 }; }
+  function fire(el, type, init){
+    var Ev = type.indexOf("pointer")===0 ? window.PointerEvent : window.MouseEvent;
+    el.dispatchEvent(new Ev(type, Object.assign(
+      { bubbles:true, cancelable:true, view:window,
+        pointerId:1, pointerType:"mouse", isPrimary:true }, init)));
+  }
+  function tap(el){
+    if(!el) return false;
+    var c = mid(el);
+    fire(el, "click", { clientX:c.x, clientY:c.y, button:0, buttons:0, detail:1 });
+    return true;
+  }
+  // wait for a screen to exist rather than guessing how long it took to arrive
+  async function upNext(sel, budget){
+    var t0 = Date.now();
+    for(;;){
+      var el = $(sel);
+      if(el) return el;
+      if(Date.now() - t0 > (budget || 1400)) return null;
+      await sleep(60);
+    }
+  }
+
+  /* React listens for `input`, and a controlled field ignores a plain
+     `el.value = x` because React's own value tracker sees no change — the
+     prototype's descriptor setter is the documented way past that. */
+  var vset = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+  function put(el, v){
+    vset.call(el, v);
+    el.dispatchEvent(new Event("input", { bubbles:true }));
+  }
+  async function typeInto(el, text, per){
+    for(var i=1; i<=text.length; i++){
+      put(el, text.slice(0, i));
+      await sleep(per);
+    }
+  }
+  async function slide(el, to, ms){
+    var from = Number(el.value), steps = Math.max(1, Math.round(ms/50));
+    for(var i=1; i<=steps; i++){
+      await sleep(50);
+      put(el, String(Math.round(from + (to - from) * (i/steps))));
+    }
+  }
+  /* The timeline takes its press on .pdtimeline and reads the position off the
+     rail's own rect, so that is exactly what is handed to it here. Small steps
+     on purpose: the screen's own rule is that a step under PD_SCRUB_JUMP means
+     somebody tracking, and tracking is what a scrub looks like. */
+  async function scrubTo(from, to, ms){
+    var tl = $(".pdtimeline"), rail = $(".pdtlrail");
+    if(!tl || !rail) return false;
+    var r = rail.getBoundingClientRect(), y = mid(tl).y;
+    var at = function(f){ return r.left + r.width * Math.max(0, Math.min(1, f)); };
+    fire(tl, "pointerdown", { clientX:at(from), clientY:y, buttons:1 });
+    release = function(){ release = null;
+      fire(tl, "pointerup", { clientX:at(to), clientY:y, buttons:0 }); };
+    var steps = Math.max(1, Math.round(ms/40));
+    for(var i=1; i<=steps; i++){
+      await sleep(40);
+      var k = i/steps;
+      fire(tl, "pointermove",
+        { clientX:at(from + (to - from) * (1 - Math.pow(1 - k, 3))), clientY:y, buttons:1 });
+    }
+    if(release) release();
+    return true;
+  }
+  function chipNamed(name){
+    return $$(".pschips .pschip").filter(function(c){
+      return c.textContent.trim() === name; })[0];
+  }
+  /* A scroll the tour performs itself, and the one tween here that runs on rAF
+     rather than on the paced clock: 40fps of setTimeout would read as a
+     stutter on the one motion in the whole tour that is continuous. It is
+     ~900ms long and a pause landing inside it simply lets it finish, which is
+     the cheaper of the two wrongs. 1-(1-t)^4 is what --soft draws, so this
+     moves the way the rest of the app moves. */
+  function glide(el, to, ms){
+    return new Promise(function(res){
+      var from = el.scrollTop, t0 = Date.now();
+      (function step(){
+        var k = Math.min(1, (Date.now() - t0) / ms);
+        el.scrollTop = from + (to - from) * (1 - Math.pow(1 - k, 4));
+        if(k < 1) requestAnimationFrame(step); else res();
+      })();
+    });
+  }
+
+  /* ── THE TOUR ────────────────────────────────────────────────────────────
+     Fourteen steps, about 32 seconds, then home and round again. The path is
+     the shortest one that touches everything this prototype is FOR: the
+     garden, the room talking back, a plant's own card, its life as a
+     time-lapse, and the character behind the voice.
+
+     Every step returns to `ok`, and a false there means the element it wanted
+     was not on screen — the screen never arrived, or the app moved somewhere
+     unexpected. That is handled by starting the lap again from the dashboard
+     rather than by pressing on into a screen that is not there. */
+  var Bail = {};
+  var must = function(v){ if(!v) throw Bail; return v; };
+
+  async function lap(){
+    // 1 — THE GARDEN. The hero as the app opens it: the date, the headline,
+    //     the chat peeking at the bottom edge.
+    await sleep(2600);
+
+    // 2 — the hero folds back into its pill and the chat takes the screen
+    must(tap($(".gsurface")));
+    await sleep(2400);
+
+    // 3 — a message, typed rather than pasted
+    var box = must(await upNext(".gcomposer input"));
+    await typeInto(box, "how is everyone doing?", 55);
+    await sleep(500);
+
+    // 4 — send it, and wait for the room to answer in its own time
+    must(tap($(".gmic")));
+    await sleep(3600);
+
+    // 5 — into the plant that answered. The avatar beside a bubble is the way
+    //     from the chat into that plant's card, and Mary's reply is the row
+    //     the chat is now resting on.
+    var rows = $$('.gscroll .gmava.tap[title^="Open Mary"]');
+    must(tap(rows[rows.length-1] || $$(".gscroll .gmava.tap").pop()));
+    must(await upNext(".pdtimeline"));
+    await sleep(2800);
+
+    // 6 — back through her life: the growth film seeks under the thumb
+    must(await scrubTo(1, 0.12, 1600));
+    await sleep(1400);
+
+    // 7 — and home to now, where the still film takes over again
+    must(await scrubTo(0.12, 1, 1100));
+    await sleep(900);
+
+    // 8 — the card's one menu
+    must(tap($(".pdhead .plmore")));
+    await sleep(800);
+
+    // 9 — Personality & Settings
+    must(tap($(".pdmenu div")));
+    must(await upNext(".pschips"));
+    await sleep(2800);
+
+    // 10 — a different character, and the plant answers in its new voice
+    must(tap(chipNamed("Cheerful")));
+    await sleep(1900);
+
+    // 11 — down the screen a little, which is its own piece of design: the film
+    //      shrinks out of the way and the personality card comes up under it.
+    //      300px, short of the 410 at which the bubble withdraws, because the
+    //      bubble is what the next step is for.
+    await glide(must($(".psscroll")), 300, 900);
+    await sleep(700);
+
+    // 12 — and a slider, which re-writes that line live
+    await slide(must($$(".psrange")[1]), 92, 900);
+    await sleep(1200);
+
+    // 13 — back to the card. The chat is put back to the history the app ships
+    //      with HERE, a screen and 1.4s before the dashboard that draws it —
+    //      not on the way home. A click is a discrete event and React flushes
+    //      it synchronously, so a reset issued after the last Back lands one
+    //      frame too late and the returning dashboard paints its peeking chat
+    //      with the previous lap's tail in it. From here the chat is not on
+    //      screen at all and nothing can add to it: the queue is cleared with
+    //      it, and the only two things that push rows — the chat's own mount
+    //      and the composer — are both a navigation away.
+    must(tap($(".psscreen .plback")));
+    if(DemoHooks.resetChat) DemoHooks.resetChat();
+    must(await upNext(".pdtimeline"));
+    await sleep(1400);
+
+    // 14 — and back to the garden, where the next lap starts
+    must(tap($(".pdhead .plback")));
+    await sleep(2400);
+  }
+
+  async function run(){
+    var strikes = 0;
+    for(;;){
+      try{ await lap(); strikes = 0; }
+      catch(err){
+        if(stopped) return;
+        if(err !== Bail) return;              // never leave a rejection unhandled
+        if(++strikes >= 3) return;            // something is genuinely wrong; sit still
+        if(DemoHooks.resetChat) DemoHooks.resetChat();
+        if(DemoHooks.nav) DemoHooks.nav.go("dashboard");
+        await sleep(1500);
+      }
+    }
+  }
+
+  /* ── go ──────────────────────────────────────────────────────────────────
+     REDUCED MOTION GETS THE FIRST SCREEN AND NOTHING ELSE. The tour is motion
+     by definition — it is the app moving on its own — so there is no reduced
+     version of it to offer, only the dashboard sitting still. The host is
+     still told the app is up, and a real interaction is still reported, so the
+     landing behaves the same either way. */
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+  requestAnimationFrame(function(){
+    post("bloomling-demo:ready");
+    if(reduce && reduce.matches) return;
+    run();
+  });
+})();
+
 </script>
 
 <!-- Bootstrap: manual Babel transform, classic runtime, no ES modules -->

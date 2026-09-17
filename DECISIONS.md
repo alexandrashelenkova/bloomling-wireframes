@@ -6172,3 +6172,196 @@ be painted into the host's box.
 **Normal mode is untouched** and was verified as such: without the parameter the
 page still reports `#262521` on html and body, a 412 x 844 phone at `#0c0c0c`
 with a 56px radius and 13px of padding, and a 386 x 818 device at 44px.
+
+---
+
+## Rev 49 · An autoplay demo mode, so the prototype can run itself
+
+`?autoplay=1` makes the prototype drive itself: a fourteen-step scripted tour
+through the screens, about **31.5 seconds**, then home and round again, for as
+long as nobody touches it. Without the parameter **not one line of it runs** —
+no listeners, no observers, no `postMessage` — and the app is exactly what it
+was. That is verified rather than asserted; see *Nothing changed* below.
+
+**What it is for.** The landing page shows this prototype in a cross-origin
+iframe inside its own phone (Rev 48). A still phone is a screenshot. A phone
+that is using itself is the product.
+
+### 1 — It presses the real app. There is no second copy of these screens.
+
+Every step finds a real element and dispatches a real event at it. The hero
+collapses through its own 460ms morph because the tour clicks `.gsurface`. The
+composer fills a character at a time through React's `onChange`. The timeline is
+scrubbed with `pointerdown` / `pointermove` / `pointerup` against the rail's own
+rect, so the growth film seeks under the thumb exactly as it does under a
+finger, and the still⇄growth cross-fade runs its own state machine. No screen
+state is set behind the app's back and there is nothing here that can drift out
+of step with the screens, because there is no copy of them.
+
+The scrub's steps are deliberately small. `PD_SCRUB_JUMP` is the screen's own
+rule that a small step means somebody tracking and a large one means somebody
+jumping, and tracking is what a scrub is supposed to look like.
+
+Two things have no element to press, and they live in `DemoHooks`: `nav`, the
+escape hatch for when a step's target is not on screen, and `resetChat`, the
+loop's housekeeping (§5).
+
+### 2 — `isTrusted` is the whole trick
+
+The brief needs two opposite things from the same event: **ignore** what the
+tour does, **stop dead** for what the user does. `event.isTrusted` is false for
+anything a script dispatches and true for anything a human does, and it cannot
+be forged from script. So the rule needs no flag, no timing window and no
+bookkeeping — one property, read in a **capture-phase** listener on `window`, so
+no handler downstream can hide a real press behind `stopPropagation`.
+
+`pointerdown`, `mousedown`, `touchstart`, `keydown`, `wheel`. Five listeners
+that take themselves off the moment one of them fires.
+
+**Scroll is caught by its causes, not by `scroll`.** This is the one place the
+brief's wording and the mechanism part company, and it is worth being explicit
+about why. A `scroll` event is trusted whether a finger or a script caused it —
+the trusted bit carries no information there. And this app scrolls itself
+constantly: the chat glides 420ms to follow each arriving message, a deep link
+tweens the history, the plant card's cards collapse when a scrub starts, the
+personality chip row reveals a chosen chip, and the tour itself glides the
+settings screen down 300px in step 11. Listening for `scroll` would therefore
+stop the tour on its own second step, every time. Every scroll a *user* can make
+inside this app comes from a wheel, a touch, a drag or a key — all four are
+listened for — so the requirement is met on the input side, where `isTrusted`
+still means something.
+
+### 3 — Stopping is a promise that never settles
+
+`stop()` throws the pending sleep away instead of resolving it. The async runner
+is then suspended forever between two steps: no half-executed step, no cleanup
+that moves the screen, nothing to resume by accident, and no "am I stopped?"
+check needed at the top of every line. The app is left **exactly** where it
+stood and from that moment answers only the user. Permanent for the page load,
+by construction — there is no code path that creates another sleep.
+
+The one thing `stop()` does do is close a scrub that was in flight, because a
+`wheel` or a `keydown` arriving mid-drag would otherwise strand the timeline's
+drag indicator lit and leave the rail listening for moves.
+
+**Nothing is left hovered or focused.** A dispatched event moves no cursor, so
+`:hover` cannot be set by any of this, and a dispatched `click` focuses nothing.
+The one field the tour writes into — the composer — is written through
+`HTMLInputElement.prototype`'s value setter, which is what React's value tracker
+watches, rather than by focusing it and sending keys. Measured across a whole
+lap: `:hover` 0, `activeElement` `BODY`, no `.pdtimeline.drag` outside the two
+scrubs.
+
+### 4 — The host is told twice, and only twice
+
+`{type:"bloomling-demo:ready"}` on the first frame after mount, and
+`{type:"bloomling-demo:interacted"}` on the first real interaction, both to
+`window.parent` at `"*"`. Neither carries data, which is why `"*"` is fine.
+`ready` is posted even under reduced motion and `interacted` is posted even
+though there is no tour to stop, so the landing's hint behaves the same either
+way and needs no second rule for that case.
+
+### 5 — Looping without the history piling up
+
+The tour types a message and the room answers it, so every lap would leave two
+more rows behind; after four laps the chat the viewer sees is nothing like the
+chat the app opens with. `resetChat` puts it back to `CHAT_INIT` and clears the
+delivery queue with it, so an ambient exchange still draining cannot drop a
+stray row onto a fresh history.
+
+**Where the reset happens is the whole of it.** Done on the way home, one frame
+of the returning dashboard paints its peeking chat with the previous lap's tail
+in it — a click is a discrete event and React flushes it *synchronously*, so the
+navigation has already rendered by the time `dispatchEvent` returns, and the
+reset lands after. Caught once in four laps by a 200ms sampler. So it is done a
+step earlier, on leaving Personality & Settings: the chat is not on screen on
+either that screen or the plant card, nothing can add to it from there, and the
+dashboard is still 1.4s away. Re-sampled at **60ms** across the boundary the
+dashboard is now only ever seen holding 30 rows.
+
+The rest resets itself: `nav.go("dashboard")` is the stack's root and the screen
+is keyed on `cur.screen+stack.length`, so the plant card and the settings screen
+remount from scratch on every lap.
+
+### 6 — Reduced motion gets the first screen and nothing else
+
+The tour *is* motion — it is the app moving on its own — so there is no reduced
+version of it to offer, only the dashboard sitting still. Verified with
+`prefers-reduced-motion: reduce` emulated: the first screen, and zero changes
+over 12 seconds.
+
+### 7 — It costs nothing when nobody is looking
+
+The tour is a chain of `setTimeout`s and nothing else. No asset is fetched that
+the app does not already fetch, and nothing runs on rAF except the 900ms scroll
+tween in step 11 — 40fps of `setTimeout` reads as a stutter on the one motion in
+the tour that is continuous, and a pause landing inside those 900ms is allowed
+to finish, which is the cheaper of the two wrongs.
+
+**Hidden or off-screen, the pending sleep is held, not cancelled** — its
+remaining time is banked, so a tour paused two seconds into a three-second dwell
+resumes with one second left rather than three. `visibilitychange` covers the
+tab; an `IntersectionObserver` with **no root** covers the iframe, because an
+implicit root clips through the frames above it and therefore answers "is the
+iframe on screen in the landing page?", which is the question.
+
+**And the films are paused with it**, which is where the CPU on this page
+actually goes. Only elements that were playing are restarted, so the growth film
+— which is seeked, never played — is left alone, and so is any film the
+crossfade has already put to sleep. The small trade is that a film whose
+intended state changed *during* a pause could be restored wrong; the window is
+one app timer wide (≤420ms) and the tour is frozen through it.
+
+### 8 — The tour
+
+Fourteen steps, measured at 31.5 / 31.6 / 31.5s over five laps.
+
+| # | Step | Dwell |
+|---|---|---|
+| 1 | The garden — the expanded hero, date, headline, chat peeking | 2.6s |
+| 2 | Tap the hero; it folds to its pill and the chat takes the screen | 2.4s |
+| 3 | Type "how is everyone doing?" into the composer, a character at a time (55ms/char) | +0.5s |
+| 4 | Tap the mic; the message lands and Mary answers on her own typing rhythm | 3.6s |
+| 5 | Tap Mary's avatar on that reply → her plant card: greeting, mood chip, bond, reservoir | 2.8s |
+| 6 | Scrub the timeline from *now* back to near *seed* — the growth film seeks under the thumb | 1.6s + 1.4s |
+| 7 | Scrub home to *now*; the still film takes back over | 1.1s + 0.9s |
+| 8 | Tap ⋯ | 0.8s |
+| 9 | Tap **Personality & Settings** | 2.8s |
+| 10 | Pick **Cheerful**; the chip row reveals it, the face changes, the line is rewritten | 1.9s |
+| 11 | Glide 300px down — the film shrinks away and the personality card comes up | 0.9s + 0.7s |
+| 12 | Drag **Drama** to 92; the word runs Balanced → Dramatic → Theatrical and the line flips variant | 0.9s + 1.2s |
+| 13 | Back to the card (and the chat is reset here, off screen) | 1.4s |
+| 14 | Back to the garden | 2.4s |
+
+Mary rather than Vlad because she is the plant that just replied in the chat, so
+step 5 is one continuous thought rather than a jump; and because "thirsty", a
+12% reservoir and a drama-queen check-in are the liveliest card in the set. The
+step falls back to whatever plant is resting at the bottom of the chat if her
+row is not there.
+
+### Verified
+
+Headless Chrome over CDP, served from a Range-answering local host (the growth
+film is seeked, and `python3 -m http.server` would break that silently).
+
+- **Loops cleanly.** Five laps, 140s: identical screen sequence every lap, laps
+  of 31.5 / 31.6 / 31.5s, and the chat back to exactly **30 rows** at every
+  boundary. Re-sampled at 60ms across a boundary: no flicker.
+- **One click stops it for good.** Frozen mid-settings for 14s with zero state
+  changes, one `interacted` message posted, `activeElement` `BODY`, no stuck
+  drag. Same result for `keydown` and for `wheel`.
+- **`ready` and `interacted`** both arrive at a real cross-origin parent page.
+- **Pauses.** Iframe scrolled out of the host's viewport: screen pinned for 12s,
+  films 0/2 playing, and on return it resumed the banked dwell and finished the
+  plant card's remaining 8.6s of steps. Tab backgrounded: films 0/2 playing
+  while `visibilityState` is `hidden` — Chrome's own throttling does not pause
+  a `<video>`, so that isolates the handler.
+- **Nothing changed without the parameter.** `addEventListener`,
+  `IntersectionObserver` and `postMessage` patched before page scripts ran. No
+  param: **zero** added listeners, **zero** observers, **zero** posts, and the
+  app sits still for 8s. With the param: exactly the five stop listeners plus
+  `visibilitychange`, one observer, one post.
+- **Clean console.** Zero exceptions and zero console output across a 140s run
+  and every test above. The only 404 anywhere is the browser's own
+  `GET /favicon.ico`, which this prototype has never declared and which is
+  equally present without the parameter.
