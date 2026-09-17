@@ -6811,3 +6811,37 @@ all five preset films playing; one real tap still stops it dead with zero screen
 transitions over 20s; `?autoplay=0` and no parameter still register zero
 listeners, zero observers and zero posts. Console clean throughout, the
 browser's own `/favicon.ico` 404 aside.
+
+### Shipped
+
+`10d49b7`, deployed to production and aliased to
+**https://bloomling-wireframes.vercel.app**
+(`dpl_2VB29h5ozxce7E1siyyAVgJtxJgw`).
+
+Re-verified against the live deployment:
+
+- **Continuously, while it is driven.** 209 frames over 45s of collapses,
+  expands and navigations out and back: **0** frames with a chat pixel above the
+  pill's bottom edge.
+- **Across sizes.** 390×844, 320×568, 430×932 @3, 280×500 and embed at 386×818,
+  seven states each — **35 of 35 clean**.
+- **The brief's own check, live.** Top 400px at DPR 3 (3060×3600), collapsed and
+  parked mid-history: **0** chat pixels above the pill's bottom edge, and
+  4 431 646 below it with the first fully-opaque chat row at css y 239 — so the
+  marker is demonstrably working and the zero above it means something. Byte-for
+  -byte the same counts as the local build.
+- **Inside the real landing page's iframe.** https://bloomling-landing.vercel.app
+  loading this build cross-origin at `?embed=1&autoplay=1`, scaled to 283×599 by
+  the host: the layers marked inside the frame and judged from the PARENT's own
+  screenshot, so the host's scale transform is part of what is tested. Six
+  judged frames across three laps of the tour: **0** with any chat pixel above
+  the pill.
+
+  A first pass on this reported 14 leaking pixels, all of them purple — blends
+  of the marker's own red and blue at the rounded clip the host puts over the
+  frame. Painting the chat pure green instead, a colour no blend of the other
+  two markers can make, took it to zero. Worth writing down: at a fractional
+  scale the instrument's colours mix, and a magenta test cannot tell chat from
+  red-meets-blue.
+
+- **Clean console**, the browser's own `/favicon.ico` 404 aside.
