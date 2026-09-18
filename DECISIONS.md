@@ -6990,7 +6990,11 @@ hers is 28px.
 
 - **The search returns nothing.** `grep -rniE '\bmary\b|gosha'` over the whole
   prototype, and `find -iname '*mary*' -o -iname '*gosha*'`: **zero hits**
-  outside `DECISIONS.md`. `Rosemary` and `primary` still present and untouched.
+  outside `DECISIONS.md`. The last one to go was inside this revision's own TODO
+  block, which explained the recovery by naming the revision that caused it —
+  the commit id says the same thing and does not leave a name behind, so it
+  says `c99d69a` and nothing else. `Rosemary` and `primary` still present and
+  untouched.
 - **Nothing 404s.** Every literal `assets/…` path in the source checked on disk,
   plus the fifteen film paths `filmSrc()` builds by string join — all resolve.
   Driven through every screen with the network log open: the only failed request
