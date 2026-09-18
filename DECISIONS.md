@@ -7029,7 +7029,7 @@ revision's business.
 
 ### Shipped
 
-`598c816` + `4ab0f27`, deployed to production and aliased to
+`598c816` + `65b3fc1`, deployed to production and aliased to
 **https://bloomling-wireframes.vercel.app**.
 
 Re-verified live:
