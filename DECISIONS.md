@@ -7026,3 +7026,26 @@ hers is 28px.
 **One pre-existing orphan noted, not touched:** `assets/stage-felix.webp` is
 referenced by nothing. It predates this pass and removing it is not this
 revision's business.
+
+### Shipped
+
+`598c816` + `4ab0f27`, deployed to production and aliased to
+**https://bloomling-wireframes.vercel.app**.
+
+Re-verified live:
+
+- `grep -icE '\bmary\b|gosha'` over the served page: **0**.
+- `pot-margot.webp`, `avatar-margot.png`, `pot-andrew.webp`,
+  `avatar-andrew.png`, `still-margot.mp4`, `settings-andrew.mp4` → **200**;
+  `pot-mary.webp`, `avatar-gosha.png`, `still-mary.mp4` → **404**, as they
+  should be.
+- Every screen read back off the live build: chat authors
+  `Felix, Andrew, Margot`; plants list `Felix (Ficus) | Margot (Monstera) |
+  Andrew (Cactus) | Vera (Aloe) | Vlad (Bonsai)`; Margot's card
+  `Margot / Monstera`; all three notification rows.
+- The tour runs its eighteen steps at the same cadence, all five preset films
+  playing, `ready` posted.
+- The real landing page's cross-origin iframe: attached to the frame's own
+  target, six judged frames across three laps, Rev 51's header band still
+  clean.
+- Console clean, the browser's own `/favicon.ico` 404 aside.
