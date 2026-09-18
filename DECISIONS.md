@@ -6845,3 +6845,180 @@ Re-verified against the live deployment:
   red-meets-blue.
 
 - **Clean console**, the browser's own `/favicon.ico` 404 aside.
+
+## Rev 52 · Margot the Monstera and Andrew the Cactus — the cast matches the landing again
+
+The landing's three characters are **Felix the ficus, Margot the monstera and
+Andrew the cactus**. The prototype shipped Felix, *Mary the Cannabis* and *Gosha
+the Cactus*. This aligns the prototype, and in Margot's case it is not a new
+name — it is Rev 29 reversed.
+
+### 1 — Inventory, before anything moved
+
+**Ten asset files** carried a name:
+
+| file | what it is |
+|---|---|
+| `assets/avatar-mary.png` `assets/pot-mary.webp` | cannabis renders (image of the plant) |
+| `assets/video/{still,growth,settings}-mary.mp4` | cannabis footage |
+| `assets/avatar-gosha.png` `assets/pot-gosha.webp` | cactus renders |
+| `assets/video/{still,growth,settings}-gosha.mp4` | cactus footage |
+
+**67 lines of `index.html`**, in five kinds:
+
+- **ids and keys** — `id:"mary"`, `who:"mary"` ×9, `plant:"mary"`, the `BUBBLE`,
+  `AVATAR`, `SHOT`, `PS_AR_BY_ID` and `LOOK_BY_SPECIES` entries, `FILM_HAVE`,
+  and `BUBBLE.mary` as the fallback fill;
+- **CSS custom properties** — `--c-mary`, `--g-mary`, `--c-gosha`, `--g-gosha`.
+  These are not cosmetic: the plants-list card builds its fill as
+  `var(--g- + lookOf(id) + )`, so the token name and the plant id have to be
+  renamed in the same breath or every card loses its gradient;
+- **message ids** — `m-mary-water`, `m-gosha-light`, which the notification rows
+  deep-link by;
+- **user-visible copy** — 2 notification lines, 14 chat messages, 2 plant names;
+- **prose in comments** — 11 lines.
+
+**Substring traps, checked and avoided.** `\bmary\b` cannot match inside
+`Rosemary` (a species in the manual picker) or `primary`/`summary`, because
+there is no word boundary between `e`/`i` and `m` — and it *does* match after
+`-` and `.`, which is what `--c-mary`, `avatar-mary.png`, `m-mary-water` and
+`BUBBLE.mary` need. Both survivors verified present afterwards: 1 `Rosemary`,
+7 `primary`.
+
+**Out of scope, deliberately.** `DECISIONS.md` carries 60 `Mary` and 70 `Gosha`
+and keeps every one. It is a record of what was decided when, and Rev 29's
+heading is literally *"Mary replaces Margot"* — rewriting that would be
+falsifying the log rather than renaming a character. The `landing/` repo also
+still has `--c-mary` / `--g-mary` / `--c-gosha` / `--g-gosha` as internal token
+names behind its own correct `Margot`/`Andrew` markup; that is a separate repo
+with a separate session working in it and it is noted here rather than touched.
+
+### 2 — Andrew: a pure rename
+
+Five files renamed through `git mv` so the history follows them, and every id,
+key, token, message id and string with them. **The cactus artwork is untouched** —
+it was always a cactus and still is. `Andrew the Cactus`, `species:"Cactus"`,
+persona `Grump`, every stat and every line exactly as they were.
+
+### 3 — Margot: a rename, a species, and her own art back
+
+`Mary the Cannabis` → **`Margot the Monstera`**, `species:"Cannabis"` →
+`"Monstera"`. The manual species picker swapped `"Cannabis"` for `"Monstera"`
+in place — the cast no longer holds a cannabis and did not hold a monstera —
+and `LOOK_BY_SPECIES` now reads `Monstera:"margot"`, so a plant identified as a
+monstera in the Add Plant flow wears her art.
+
+**Her renders were not regenerated and not faked — they were recovered.**
+Rev 29 deleted `pot-margot.webp` and `avatar-margot.png` in `c99d69a`, and git
+still has them. Both are back at their original bytes, with the two geometries
+they were measured for restored alongside:
+
+| | Mary's (removed) | Margot's (restored) |
+|---|---|---|
+| `SHOT.margot` | `win 262×215`, `img 358 @ (0,−143)` | `win 265×172`, `img 363 @ (0,−144)` |
+| `AVATAR.margot` | `63×70 @ (−13,−32)` | `51×65.81 @ (−5,−28)` |
+
+Restoring the file without its frame would have cropped her wrongly: Rev 29's
+own note records that the cannabis frame was "43px taller and the crop 5px
+shallower". Rendered side by side against `c99d69a^` — the build the art was
+drawn for — her plants-list card comes back identical, leaves clipped at the
+card's top edge exactly as Felix's and Andrew's are.
+
+**Her three films are still the cannabis plant, and that is the one gap.** There
+has never been monstera footage in this project: all fifteen still/growth/
+settings files arrived in Rev 29, *after* the swap. They are renamed rather than
+replaced, and renamed rather than deleted — a missing file falls back to
+`FILM_FALLBACK = "vlad"` and would put a **bonsai** on Margot's card, which
+reads as a bug where a stale plant reads as a gap. A TODO block above `PLANTS`
+spells out all three, with a pointer at `FILM_HAVE`.
+
+### 4 — Missing assets, for generation
+
+Three files. All three: **H.264, no audio, 24fps, 5.041667s, 121 frames** —
+matched to the other four plants so the scrub mapping and the crossfades carry
+over untouched. The look to match is `assets/pot-margot.webp`, and the landing's
+`assets/video/card-margot.mp4` (1100×1884) is the same monstera in the same
+pink-lit pot.
+
+| file | size (ratio) | where it is used | notes |
+|---|---|---|---|
+| `assets/video/still-margot.mp4` | **720×1566** (0.4598) | Plant Detail, the "now" end of the timeline | gentle idle loop of the grown monstera, framed for the stage's −184px offset (`PD_Y.still`) |
+| `assets/video/growth-margot.mp4` | **720×1566** (0.4598) | Plant Detail, scrubbed by the timeline | **authored grown → seedling.** Frame 0 must be the same image as `still-margot`'s frame 0 (they cross-fade into each other); the LAST frame is the sprout. Position maps as `t = (1−pos) × duration`, so the other authoring order grows the plant as you scrub into the past |
+| `assets/video/settings-margot.mp4` | **720×894** (0.80537) | Personality & Settings, behind the sliders | breathing portrait, pot's face lit, framed for a stage that scrolls away. Only shown for the presets with no reaction film of their own (Friendly, Calm) — Margot opens on Drama queen, which plays the shared `add-plant-drama.mp4` |
+
+Not needed per-character: the preset reaction films `add-plant-*.mp4` are shared
+by every plant.
+
+**The landing's Margot card film cannot stand in for any of the three**, and was
+therefore not copied in: it is a card composition with a blue-to-pink gradient
+and rounded corners baked in and no alpha channel, where all three of these are
+full-bleed studio footage. Pulling a matte out of it would mean inventing alpha
+for a frosted, back-lit, semi-translucent pot.
+
+### 5 — The copy pass: nothing had to change
+
+Every line was read against the new name and species. **None needed rewording**,
+and the reasons are worth recording because they are not luck:
+
+- Rev 29 chose Margot's character lines *before* she was a cannabis and noted at
+  the time that "none of them named her or her species". They still do not: her
+  check-in, reaction, diary note and every chat line are about drama, a dry
+  reservoir and an unappreciated photoshoot.
+- Two lines read *better* on a monstera than they did on a cannabis —
+  "I would have turned my leaves" and "wilting decoratively" both want big
+  showy leaves, which is what a monstera has.
+- `PERSONALITIES.Sassy.lines.warm` — "…you're kind of my favourite, don't tell
+  the cactus" — is the one line in the file that names another plant by species.
+  It survives intact because Andrew is still a cactus; had the cactus been the
+  one whose species changed, this line would have had to move.
+- The all-caps `GOSHA` in Margot's "…and GOSHA gets two inches" is a drama-queen
+  emphasis, not a shout at a Russian name; it became `ANDREW` and still lands.
+
+The only copy that changed is the names themselves, in the two notification
+rows, the fourteen chat messages and the two plant names.
+
+### 6 — Two stale numbers, corrected in passing
+
+The film contract comment claimed still/growth are **976×2124**. The shipped
+encodes are **720×1566** — the same 0.4598 ratio, and 976×2124 was the authoring
+size an earlier revision of the comment quoted. Corrected, because this comment
+is what a replacement film gets generated from. And the notifications card's
+note about Margot's avatar overhang was written for the cannabis avatar's 32px;
+hers is 28px.
+
+### Verified
+
+- **The search returns nothing.** `grep -rniE '\bmary\b|gosha'` over the whole
+  prototype, and `find -iname '*mary*' -o -iname '*gosha*'`: **zero hits**
+  outside `DECISIONS.md`. `Rosemary` and `primary` still present and untouched.
+- **Nothing 404s.** Every literal `assets/…` path in the source checked on disk,
+  plus the fifteen film paths `filmSrc()` builds by string join — all resolve.
+  Driven through every screen with the network log open: the only failed request
+  in the whole run is the browser's own `/favicon.ico`.
+- **No broken images**, asserted rather than eyeballed: every `<img>` on the
+  plants list checked for `complete && naturalWidth > 0` at four sizes.
+- **The names read correctly everywhere they appear**: chat authors
+  `Felix, Andrew, Margot`; plants list `Felix (Ficus) | Margot (Monstera) |
+  Andrew (Cactus) | Vera (Aloe) | Vlad (Bonsai)`; card renders
+  `pot-felix / pot-margot / pot-andrew / pot-vera / pot-vlad`; Margot's detail
+  header `Margot / Monstera` on `still-margot` + `growth-margot`; her settings
+  name field `Margot`; all three notification rows.
+- **Margot's card is pixel-identical** to the same card in `c99d69a^`, the build
+  her render was measured against.
+- **The tour runs.** Eighteen steps, the same cadence, all five preset films
+  playing, `ready` posted.
+- **The Add Plant flow runs** end to end after the `LOOK_BY_SPECIES` and species
+  -list changes: pair → connect → shutter → identify → character (five films,
+  presets switching) → meeting → the dashboard with the welcome arriving.
+- **Four phone sizes** — 320×568, 360×780, 390×844, 430×932 — five cards each,
+  no broken images, no errors.
+- **The embed document**, at the 386×818 the landing's iframe loads:
+  `Felix/Margot/Andrew/Vera/Vlad`, `Ficus/Monstera/Cactus/Aloe/Bonsai`, no
+  broken images, no failed requests.
+- **Rev 51 did not regress**: 119 dashboard frames, 0 with a chat pixel above
+  the header band.
+- **Console clean** throughout, the `/favicon.ico` 404 aside.
+
+**One pre-existing orphan noted, not touched:** `assets/stage-felix.webp` is
+referenced by nothing. It predates this pass and removing it is not this
+revision's business.

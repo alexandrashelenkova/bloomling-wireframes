@@ -53,17 +53,17 @@
     --input:#FFFAFA;         /* composer pill                         (344:74)  */
     --ava:#D9D9D9;           /* avatar placeholder                    (344:92)  */
     /* character-coded bubbles */
-    --c-mary:#BCCAD7;        /* muted blue-grey        (Ellipse 19 fill) */
+    --c-margot:#BCCAD7;        /* muted blue-grey        (Ellipse 19 fill) */
     --c-felix:#E3D2CA;       /* dusty terracotta       (Ellipse 20 fill) */
-    --c-gosha:#E0D3B8;       /* DERIVED: warm sand/ochre — third tone     */
+    --c-andrew:#E0D3B8;       /* DERIVED: warm sand/ochre — third tone     */
     --c-vera:#CBD5C9;        /* DERIVED: soft sage-grey                   */
     --c-basil:#D3D0DC;       /* DERIVED: muted lavender-grey              */
     --c-me:#FFFFFF;          /* user messages          (Ellipse 21 fill) */
     /* plants-overview card fills — two-stop gradients from the mockup (364:585),
        each running from the character's tint into that pot's glow colour */
     --g-felix:linear-gradient(126.35deg,#E7D1C9 38.007%,#E2F7CF 115.19%);
-    --g-mary:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
-    --g-gosha:linear-gradient(126.35deg,#D6D0BA 38.007%,#C3F5EE 115.19%);
+    --g-margot:linear-gradient(126.35deg,#B9CBD8 38.007%,#E39B84 115.19%);
+    --g-andrew:linear-gradient(126.35deg,#D6D0BA 38.007%,#C3F5EE 115.19%);
     /* Vera's start stop was re-read off the current mockup (364:1078) — dusty
        pink, not the sage-grey the earlier frame carried */
     --g-vera:linear-gradient(113.89deg,#E7D1C9 38.007%,#E7FCD6 115.19%);
@@ -888,7 +888,7 @@
   .pfsec .pfrow:first-of-type{margin-top:0}
   .pfrow:active{background:var(--box)}
   /* 460:209 — --card at radius 28 round a centred 16px line, in the coral the
-     palette already carries as Mary's second gradient stop. Not a --sage Save:
+     palette already carries as Margot's second gradient stop. Not a --sage Save:
      this is the only destructive thing on the screen. */
   .pflogout{display:block;width:100%;margin-top:40px;background:var(--card);
     border:none;border-radius:var(--r-sub);padding:15px;text-align:center;
@@ -906,8 +906,8 @@
      the MESSAGE the primary line, which is the thing you are actually being
      notified about, and the card drops from three type roles to two.
 
-     The card does NOT clip that overhang. Mary's leaves reach 32px above her
-     circle and about 8 of them clear the card, exactly as the plants list lets
+     The card does NOT clip that overhang. Margot's leaves reach 28px above her
+     circle and break its top edge, exactly as the plants list lets
      its pot renders break their cards; `position:relative` plus DOM order puts
      each card's overhang over the card above it rather than under. */
   .nfscreen{flex:1 1 auto;display:flex;flex-direction:column;
@@ -2024,6 +2024,56 @@ const EMO = {
   neutral:      { face:"._.",  label:"Okay",         tone:"",     word:"grumpy",  glow:"#C3F5EE" },
 };
 
+/* ═════════════ TODO — MARGOT'S THREE FILMS ARE STILL THE WRONG PLANT ═══════
+   Margot is a MONSTERA again. Her two STILL renders are the real thing — the
+   pot render and the chat avatar were recovered from this repo's own history
+   (they were deleted in `c99d69a`, when Rev 29 turned her into Mary the
+   Cannabis) together with the frame and crop they were measured for, so those
+   two surfaces are correct and finished.
+
+   Her three FILMS are not. There has never been monstera footage in this
+   project: the fifteen still/growth/settings files all arrived in that same
+   Rev 29, after the swap, so every frame of them is the cannabis plant. They
+   are renamed rather than replaced, and they are renamed rather than removed
+   because a missing file would fall back to Vlad and put a BONSAI on Margot's
+   card, which reads as a bug instead of as a gap. Nothing is faked, nothing
+   404s, and every one is already at its final name — so replacing her footage
+   is a drop-in: copy the new file over the old one and change no code.
+
+   Three files, and what each one has to be. All three: H.264, no audio track,
+   24fps, 5.041667s, 121 frames — matched to the other four plants so the scrub
+   mapping and the crossfades carry over untouched.
+
+     assets/video/still-margot.mp4    720x1566 (0.4598). The "now" state on the
+                                      plant card: a gentle idle loop of the
+                                      grown monstera, framed for the stage's
+                                      -184px offset (PD_Y.still).
+     assets/video/growth-margot.mp4   720x1566, the same shape and length.
+                                      AUTHORED GROWN -> SEEDLING: frame 0 must
+                                      be the same image as still-margot's frame
+                                      0 — they cross-fade into each other — and
+                                      the LAST frame is the sprout. The timeline
+                                      maps position onto t = (1-pos)*duration,
+                                      so a file authored the other way round
+                                      grows as you scrub into the past, which is
+                                      the one thing that must not happen.
+     assets/video/settings-margot.mp4 720x894 (0.80537). The breathing portrait
+                                      behind Personality & Settings, pot's face
+                                      lit, framed for a stage that scrolls away
+                                      rather than for a scrub rail. The stage
+                                      sizes every layer by its own ratio
+                                      (PS_AR_BY_SRC), so another shape would be
+                                      handled — but 720x894 is what Andrew and
+                                      Vera use and what keeps the set uniform.
+
+   THE LOOK to match is the render already in assets/pot-margot.webp, and the
+   landing's own Margot card film — landing/assets/video/card-margot.mp4,
+   1100x1884 — is the same monstera in the same pink-lit pot. That file is NOT
+   copied in and could not stand in for any of the three: it is a card
+   composition with a blue-to-pink gradient and rounded corners baked in and no
+   alpha, where these three are full-bleed studio footage.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 /* ───────────────── MOCK DATA ───────────────── */
 const PLANTS = [
   {
@@ -2036,7 +2086,7 @@ const PLANTS = [
     diaryNote:"Grew a brand new leaf. Pretty proud of myself.",
   },
   {
-    id:"mary", name:"Mary the Cannabis", species:"Cannabis", persona:"Drama queen",
+    id:"margot", name:"Margot the Monstera", species:"Monstera", persona:"Drama queen",
     emotion:"thirsty", growth:58, lastWatered:"Yesterday, 07:00", light:"Medium",
     reservoir:12, autoOn:true, schedule:"Every 2 days", amount:"High",
     bondLevel:3, bondPct:45, bondTitle:"Getting close",
@@ -2045,7 +2095,7 @@ const PLANTS = [
     diaryNote:"Survived the greatest drought in history. Writing a memoir about it.",
   },
   {
-    id:"gosha", name:"Gosha the Cactus", species:"Cactus", persona:"Grump",
+    id:"andrew", name:"Andrew the Cactus", species:"Cactus", persona:"Grump",
     emotion:"neutral", growth:41, lastWatered:"14 Jul, 09:00", light:"Lots",
     reservoir:80, autoOn:false, schedule:"Every 10 days", amount:"Low",
     bondLevel:2, bondPct:30, bondTitle:"Warming up",
@@ -2091,10 +2141,10 @@ const lookOf = (id) => { const x = PLANTS.find(p=>p.id===id); return (x && x.loo
 const NOTIFS = [
   { id:"n1", plant:"felix", time:"just now", msg:"m-felix-alert",
     text:"Felix needs a look — soggy soil and a cold draught" },
-  { id:"n2", plant:"mary",  time:"50 min ago", msg:"m-mary-water",
-    text:"Mary's reservoir is empty — she'd love a refill" },
-  { id:"n3", plant:"gosha", time:"4 h ago", msg:"m-gosha-light",
-    text:"Gosha needs more light — a brighter spot would do it" },
+  { id:"n2", plant:"margot",  time:"50 min ago", msg:"m-margot-water",
+    text:"Margot's reservoir is empty — she'd love a refill" },
+  { id:"n3", plant:"andrew", time:"4 h ago", msg:"m-andrew-light",
+    text:"Andrew needs more light — a brighter spot would do it" },
 ];
 
 /* Universal growth milestones — the same five for every plant, so the timeline
@@ -2118,9 +2168,9 @@ const MILESTONES = [
    and they thank you. Message flags:
      cross:true  → the plant-to-plant banter thread, including the user's reply to it
                    (hidden when "plants talk to each other" is off, leaving Felix's
-                   news, the congratulations and Mary's alert — still coherent)
+                   news, the congratulations and Margot's alert — still coherent)
      urgent:true → carries an inline "Check what happened" CTA into the alert
-                   flow. Nothing sets it any more (see Mary's last line); the
+                   flow. Nothing sets it any more (see Margot's last line); the
                    mechanism stays because the shape it draws is still the one
                    an urgent message would want.
      rx          → reactions, [emoji, count]; everyone reacts to everyone */
@@ -2135,42 +2185,42 @@ const MILESTONES = [
 const CHAT_INIT = [
   { who:"felix", at:"07:12",
     text:"Morning! The lights just came up and I am, once again, thrilled about it." },
-  { who:"gosha", at:"07:14", cross:true, text:"It's a lamp.", rx:[["😂",2]] },
+  { who:"andrew", at:"07:14", cross:true, text:"It's a lamp.", rx:[["😂",2]] },
   { who:"felix", at:"07:15", cross:true,
-    text:"It's a SUNRISE, Gosha. Let me have this one." },
-  { who:"mary",  at:"07:31",
+    text:"It's a SUNRISE, Andrew. Let me have this one." },
+  { who:"margot",  at:"07:31",
     text:"I barely slept. The radiator made a NOISE at 3am and I have not recovered." },
   { who:"me",    at:"07:40", text:"Morning everyone. Kettle's on.", rx:[["💚",2]] },
   { who:"felix", at:"07:41", text:"Best sentence of the day so far." },
-  { who:"gosha", at:"08:02", cross:true,
+  { who:"andrew", at:"08:02", cross:true,
     text:"Someone opened the blind two inches. I'll allow it.", rx:[["😂",1]] },
-  { who:"mary",  at:"08:10",
-    text:"Two inches?! I am fighting for my LIFE over here and GOSHA gets two inches." },
-  { who:"gosha", at:"08:12", cross:true,
+  { who:"margot",  at:"08:10",
+    text:"Two inches?! I am fighting for my LIFE over here and ANDREW gets two inches." },
+  { who:"andrew", at:"08:12", cross:true,
     text:"You were watered on Tuesday.", rx:[["💅",2]] },
-  { who:"me",    at:"08:20", text:"You were, Mary. I have receipts." },
-  { who:"mary",  at:"08:21", text:"Receipts. In MY house.", rx:[["😂",3]] },
+  { who:"me",    at:"08:20", text:"You were, Margot. I have receipts." },
+  { who:"margot",  at:"08:21", text:"Receipts. In MY house.", rx:[["😂",3]] },
   { who:"felix", at:"08:49", cross:true,
-    text:"For the record, I think everyone is doing great today. Even Gosha.",
+    text:"For the record, I think everyone is doing great today. Even Andrew.",
     rx:[["🌿",1],["😂",1]] },
-  { who:"gosha", at:"08:50", cross:true, text:"Don't." },
+  { who:"andrew", at:"08:50", cross:true, text:"Don't." },
   { who:"felix", at:"09:02",
     text:"New leaf today! The pot's already taking pictures — get my good side 🌿",
     rx:[["💚",2],["🎉",1]] },
   { who:"me",    at:"09:04", text:"Congrats, Felix! Looking great", rx:[["🌿",1]] },
-  { who:"mary",  at:"09:06", cross:true,
+  { who:"margot",  at:"09:06", cross:true,
     text:"Wait — nobody told me there was a photoshoot?! I would have turned my leaves.",
     rx:[["😂",2]] },
-  { who:"gosha", at:"09:09", cross:true,
+  { who:"andrew", at:"09:09", cross:true,
     text:"A leaf. Everyone's celebrating a leaf. It happens, you know.",
     rx:[["💅",1],["😂",1]] },
   { who:"me",    at:"09:11", cross:true,
-    text:"Calm down, Gosha. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
+    text:"Calm down, Andrew. It's just a leaf. Be happy for him.", rx:[["👍",1]] },
   /* ── the afternoon, and the three the notifications point at ─────────────
      The three ids are SPREAD through the day rather than stacked at the end.
      Three consecutive alerts read as a support queue, not as a group chat, and
      a deep link that always lands two rows off the bottom never shows that it
-     travelled. So Gosha's sits at 13:47, Mary's at 17:12 and only Felix's is
+     travelled. So Andrew's sits at 13:47, Margot's at 17:12 and only Felix's is
      last, with ordinary small talk between each pair — which is also what makes
      the three deep links visibly different from one another.
 
@@ -2182,23 +2232,23 @@ const CHAT_INIT = [
      flow, and a plant that files a support ticket is not the character this
      chat is written for. It mentions the thing and leaves it with you. */
   { who:"me",    at:"11:05", text:"Off to lunch. Try not to stage a coup." },
-  { who:"mary",  at:"11:06",
+  { who:"margot",  at:"11:06",
     text:"No promises. Bring something back with chlorophyll in it.", rx:[["😂",2]] },
-  { who:"gosha", id:"m-gosha-light", at:"13:47", text:
+  { who:"andrew", id:"m-andrew-light", at:"13:47", text:
     "Not that it matters, but the sun moved off me hours ago. I'm not complaining. I'm reporting." },
   { who:"felix", at:"13:52", cross:true,
     text:"Want me to shuffle left? I could shuffle left." },
-  { who:"gosha", at:"13:54", cross:true,
+  { who:"andrew", at:"13:54", cross:true,
     text:"You are in a pot, Felix.", rx:[["😂",3]] },
   { who:"me",    at:"15:30",
-    text:"Back. Gosha, I'll move you after dinner.", rx:[["💚",1]] },
+    text:"Back. Andrew, I'll move you after dinner.", rx:[["💚",1]] },
   { who:"felix", at:"16:41",
     text:"The afternoon light in here is genuinely spectacular. Just saying." },
-  { who:"mary",  id:"m-mary-water",  at:"17:12", text:
+  { who:"margot",  id:"m-margot-water",  at:"17:12", text:
     "URGENT BULLETIN: my reservoir is EMPTY. Bone dry. I'll be over here, wilting decoratively." },
-  { who:"gosha", at:"17:14", cross:true,
+  { who:"andrew", at:"17:14", cross:true,
     text:"She says this every week.", rx:[["💅",1]] },
-  { who:"mary",  at:"17:15", cross:true, text:"And every week I am RIGHT." },
+  { who:"margot",  at:"17:15", cross:true, text:"And every week I am RIGHT." },
   { who:"felix", at:"17:40",
     text:"New leaf update: still there, still magnificent.", rx:[["🌿",2]] },
   { who:"felix", id:"m-felix-alert", at:"18:04", text:
@@ -2227,7 +2277,7 @@ const paced = (msgs, lead)=> msgs.map((m,i)=> ({...m, _gap: i===0 ? lead : typin
    Opening the chat should not feel like opening a transcript. A short while
    after the chat takes the screen, one of these exchanges arrives a message at
    a time, in the same three voices and with the same entrance animation as any
-   other arrival: Felix warm, Mary theatrical, Gosha refusing to be pleased.
+   other arrival: Felix warm, Margot theatrical, Andrew refusing to be pleased.
 
    Six sets, 2–3 rows each. THE FIRST ROW OF EVERY SET IS NEVER `cross` — the
    follow-ups are plant-to-plant chatter and are correctly governed by the
@@ -2237,24 +2287,24 @@ const paced = (msgs, lead)=> msgs.map((m,i)=> ({...m, _gap: i===0 ? lead : typin
    stops reading as a reaction and starts reading as decoration. */
 const AMBIENT = [
   [ { who:"felix", at:"now", text:"Someone wiped the window. I can see the whole street from here. Big day.", rx:[["💚",1]] },
-    { who:"gosha", at:"now", cross:true, text:"It's a street." },
-    { who:"mary",  at:"now", cross:true, text:"It's a STAGE, Gosha, and I have waited a long time for an audience.", rx:[["😂",2]] } ],
+    { who:"andrew", at:"now", cross:true, text:"It's a street." },
+    { who:"margot",  at:"now", cross:true, text:"It's a STAGE, Andrew, and I have waited a long time for an audience.", rx:[["😂",2]] } ],
 
-  [ { who:"mary",  at:"now", text:"The radiator just clicked. Twice. I have decided to read that as applause.", rx:[["😂",2]] },
+  [ { who:"margot",  at:"now", text:"The radiator just clicked. Twice. I have decided to read that as applause.", rx:[["😂",2]] },
     { who:"felix", at:"now", cross:true, text:"It absolutely was applause." },
-    { who:"gosha", at:"now", cross:true, text:"It was the radiator." } ],
+    { who:"andrew", at:"now", cross:true, text:"It was the radiator." } ],
 
-  [ { who:"gosha", at:"now", text:"The watering can has moved. I'm not saying anything. I'm noting that it moved.", rx:[["💅",1]] },
-    { who:"felix", at:"now", cross:true, text:"That's optimism, Gosha! I'm proud of you." } ],
+  [ { who:"andrew", at:"now", text:"The watering can has moved. I'm not saying anything. I'm noting that it moved.", rx:[["💅",1]] },
+    { who:"felix", at:"now", cross:true, text:"That's optimism, Andrew! I'm proud of you." } ],
 
   [ { who:"felix", at:"now", text:"The light just came round onto the shelf and everything looks expensive. Us included.", rx:[["🌿",2]] },
-    { who:"mary",  at:"now", cross:true, text:"Me especially." } ],
+    { who:"margot",  at:"now", cross:true, text:"Me especially." } ],
 
-  [ { who:"mary",  at:"now", text:"Going for a short dramatic nap. Wake me the moment anything happens." },
-    { who:"gosha", at:"now", cross:true, text:"Nothing will happen." },
+  [ { who:"margot",  at:"now", text:"Going for a short dramatic nap. Wake me the moment anything happens." },
+    { who:"andrew", at:"now", cross:true, text:"Nothing will happen." },
     { who:"felix", at:"now", cross:true, text:"Something might happen!", rx:[["😂",1]] } ],
 
-  [ { who:"gosha", at:"now", text:"Quiet in here today. I'd like it noted that I am not complaining about that." },
+  [ { who:"andrew", at:"now", text:"Quiet in here today. I'd like it noted that I am not complaining about that." },
     { who:"felix", at:"now", cross:true, text:"Noted, and frankly celebrated.", rx:[["💚",1]] } ],
 ];
 /* Which set a visit gets. Random rather than a strict rotation, but never the
@@ -2391,7 +2441,7 @@ const VOICES = [
   { k:"Playful", d:"Cheeky and full of fun" },
 ];
 const SPECIES = [
-  "Ficus","Cannabis","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
+  "Ficus","Monstera","Cactus","Aloe","Basil","Snake plant","Pothos","Peace lily",
   "Fern","Succulent","Orchid","Spider plant","Rubber plant","Philodendron","Calathea",
   "ZZ plant","Jade plant","Bamboo","English ivy","Lavender","Rosemary","Mint","Parlour palm",
 ];
@@ -2600,11 +2650,11 @@ function IconMore(){
   </svg>;
 }
 
-/* Character-coded bubble fills. Mary + Felix are Figma values; the other three
+/* Character-coded bubble fills. Margot + Felix are Figma values; the other three
    are derived in the same muted register (see DECISIONS.md). Literal hex, not the
    CSS vars — these are painted into an SVG data URI, which cannot read them. */
 const BUBBLE = {
-  mary:"#BCCAD7",  felix:"#E3D2CA", gosha:"#E0D3B8",
+  margot:"#BCCAD7",  felix:"#E3D2CA", andrew:"#E0D3B8",
   vera:"#CBD5C9",  basil:"#D3D0DC", me:"#FFFFFF",
 };
 
@@ -2682,8 +2732,8 @@ const WATER = (function(){
    exactly on the 37.81px avatar circle and its plant overhangs above, as designed. */
 const AVATAR = {
   felix:{ src:"assets/avatar-felix.png",  w:38, h:47,    l:0,  t:-9  },
-  mary: { src:"assets/avatar-mary.png",   w:63, h:70,    l:-13,t:-32 },
-  gosha:{ src:"assets/avatar-gosha.png",  w:39, h:42.81, l:0,  t:-5  },
+  margot:{ src:"assets/avatar-margot.png",w:51, h:65.81, l:-5, t:-28 },
+  andrew:{ src:"assets/avatar-andrew.png",  w:39, h:42.81, l:0,  t:-5  },
   // the user's own avatar (Figma 360:552) — a plain circle crop, no overhang
   me:   { src:USER_AVATAR, w:37.81, h:37.81, l:0, t:0, round:true },
 };
@@ -3017,7 +3067,7 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
      doing the same thing by hand for this one exchange and for nothing else.
 
      The user's own line carries no `_gap` and lands at once, which is what the
-     input field promises. Mary's answer is paced like every other reply in the
+     input field promises. Margot's answer is paced like every other reply in the
      app now: 480ms after your message would be the one bot in a room of plants. */
   const send = ()=>{
     if(!text.trim()) return;
@@ -3026,7 +3076,7 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
     const reply = "love it when you message us 💚";
     pushChat([
       { who:"me",   at:"now", text:t },
-      { who:"mary", at:"now", text:reply, _gap:typingGap(reply) },
+      { who:"margot", at:"now", text:reply, _gap:typingGap(reply) },
     ]);
   };
 
@@ -3059,7 +3109,7 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
                 style={{width:av.w,height:av.h,left:av.l,top:av.t}}/>}
             </div>
             <div className="gbub" style={{backgroundImage:
-              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[lookOf(m.who)]||BUBBLE.mary))}}>
+              blobBg(shape, isMe ? BUBBLE.me : (BUBBLE[lookOf(m.who)]||BUBBLE.margot))}}>
               {!isMe && <div className="gmeta">
                 <b>{p.name.split(" ")[0]}</b><span>{m.at}</span>
               </div>}
@@ -3097,7 +3147,7 @@ function GardenChat({focus, fromAdd, open, onCollapse, onExpand}){
    physical actions on its own, so there is nothing here to confirm.
 
    The plant is named by its AVATAR and by its own sentence ("Felix needs a
-   look…", "Mary's reservoir is empty…"), so there is no name row: the message
+   look…", "Margot's reservoir is empty…"), so there is no name row: the message
    is the card's first and primary line, starting at the top of the card beside
    the avatar. Under it, on ONE line, the two secondary things — the way in on
    the left, the timestamp on the right.
@@ -3155,7 +3205,7 @@ const TL = MILESTONES.map(m=>m.stage.toLowerCase());
 
 /* ── THE TWO FILMS (Figma 437:93) ────────────────────────────────────────────
    still-vlad.mp4   the "now" state — a gentle idle loop of the grown plant,
-                    running at the -184px framing. 976×2124, 5.04s.
+                    running at the -184px framing. 720×1566, 5.042s.
    growth-vlad.mp4  the growth timeline, same size and length.
 
    The direction matters and the FILE, not the brief, settles it: growth-vlad's
@@ -3172,9 +3222,14 @@ const TL = MILESTONES.map(m=>m.stage.toLowerCase());
    these frames was drawn from and so the only honest stand-in.
 
    All fifteen files agree with what the geometry above assumes: still- and
-   growth- are 976×2124 / 5.042s to the frame, exactly like Vlad's, so the
-   framings, the scrub mapping and the direction all carry over untouched. */
-const FILM_HAVE     = ["felix","mary","gosha","vera","vlad"];
+   growth- are 720×1566 / 24fps / 121 frames to the frame, exactly like Vlad's,
+   so the framings, the scrub mapping and the direction all carry over
+   untouched. (976×2124 was the authoring size and is what earlier revisions of
+   this comment quoted; the shipped encodes are 720×1566, the same 0.4598 ratio.
+   Measured, because a replacement film is generated from these numbers.) */
+// TODO margot's three films are still the cannabis plant — see the TODO
+// block above PLANTS for what each one has to be replaced with
+const FILM_HAVE     = ["felix","margot","andrew","vera","vlad"];
 const FILM_FALLBACK = "vlad";
 const filmId  = (id)=> FILM_HAVE.indexOf(id) >= 0 ? id : FILM_FALLBACK;
 const filmSrc = (id,kind)=> "assets/video/" + kind + "-" + filmId(id) + ".mp4";
@@ -3739,7 +3794,7 @@ const AW_AMOUNT = [
   { k:"Low" }, { k:"Medium", best:true }, { k:"High" },
 ];
 /* The plants carry cadences the mockup's three do not offer (Felix every 3,
-   Gosha every 10). Rather than open with nothing selected, the screen lands on
+   Andrew every 10). Rather than open with nothing selected, the screen lands on
    the nearest option it does have — and the pick, once made, is written back to
    the plant, so the card that sent you here states what you just chose. */
 const awNearest = (schedule)=>{
@@ -3907,7 +3962,7 @@ const PS_LAP   = 84;    // stage 662 + the resolve's 18px overhang → content 5
    pinning Vlad's ratio on everyone would stretch four films out of shape, which
    is the one thing "identical mechanics per plant" cannot mean. The arithmetic
    above is unchanged; only its one input moves. */
-const PS_AR_BY_ID = { felix:1292/1604, mary:1292/1604, gosha:1292/1604,
+const PS_AR_BY_ID = { felix:1292/1604, margot:1292/1604, andrew:1292/1604,
                       vera: 1292/1604, vlad:1340/1544 };
 const psAr        = (id)=> PS_AR_BY_ID[filmId(id)];
 /* ── …AND BY FILE, because a set can now hold films from two places ──────────
@@ -4358,7 +4413,7 @@ const AP_MEET_LINE = {
 const apMeetLine = (k)=> AP_MEET_LINE[k] || AP_MEET_LINE.Friendly;
 
 /* And the windowsill's answer. Three replies is the whole of it: Felix warm,
-   Mary refusing to yield the drama slot, Gosha managing a welcome through his
+   Margot refusing to yield the drama slot, Andrew managing a welcome through his
    teeth. They are `cross` — plant-to-plant chatter — because that is exactly
    what they are, so the profile's "plants talk to each other" switch governs
    them like everything else in that register. */
@@ -4366,10 +4421,10 @@ const apWelcome = (first)=> [
   { who:"felix", at:"now", cross:true,
     text:first+"! Welcome to the windowsill. You'll like it here, the light's honest.",
     rx:[["💚",2]] },
-  { who:"mary",  at:"now", cross:true,
+  { who:"margot",  at:"now", cross:true,
     text:"A NEW ONE. Fine. Just know the drama slot is taken, "+first+"." ,
     rx:[["😂",1]] },
-  { who:"gosha", at:"now", cross:true,
+  { who:"andrew", at:"now", cross:true,
     text:"Hm. Another one. …welcome, I suppose." },
 ];
 /* Every film the step can reach — PsShell mounts the whole set at once and
@@ -4384,7 +4439,7 @@ const Dots = ()=> <span className="apdots"><i>.</i><i>.</i><i>.</i></span>;
    avatar and film stand in for each species. A new plant has no art of its own,
    so it wears the art the app already has for what it is. */
 const AP_SPECIES = "Ficus";
-const LOOK_BY_SPECIES = { Ficus:"felix", Cannabis:"mary", Cactus:"gosha",
+const LOOK_BY_SPECIES = { Ficus:"felix", Monstera:"margot", Cactus:"andrew",
                           Aloe:"vera", Bonsai:"vlad" };
 const lookFor = (species)=> LOOK_BY_SPECIES[species] || "felix";
 
@@ -4918,12 +4973,12 @@ function LangPick({params}){
    is absorbed by the empty gap between the text column and the pot.
      mockup (card top / card right edge)      -> card-relative
      felix  frame 185,135 258x218  card 135/397   win right -46, top   0  img 258 @   0,-40
-     mary   frame 135,275 262x215  card 275/397   win right   0, top   0  img 358 @   0,-143
-     gosha  frame 248,411 140x187  card 415/397   win right   9, top  -4  img 308 @ -88,-80
+     margot frame 135,275 265x172  card 275/397   win right   0, top   0  img 363 @   0,-144
+     andrew  frame 248,411 140x187  card 415/397   win right   9, top  -4  img 308 @ -88,-80
      vera   frame 173,555 224x227  card 555/397   win right   0, top   0  img 282 @   0,-79
      vlad   frame 184,651 267x267  card 695/397   win right -54, top -44  img 267 @   0,0
    Vera's frame starts exactly on her card's top-left, so her render is fully
-   clipped by the card like Felix/Mary/Gosha. Vlad is the last card and the one
+   clipped by the card like Felix/Margot/Andrew. Vlad is the last card and the one
    that breaks out — his frame starts 44px ABOVE his card and runs 54px past its
    right edge, which is what .plcard:last-child{overflow:visible} unlocks. His
    render is 267 tall against the finished card's 227, so with the frame's own
@@ -4934,9 +4989,9 @@ function LangPick({params}){
 const SHOT = {
   felix:{ src:"assets/pot-felix.webp",  win:{w:258,h:218,right:-46,top:  0},
                                         img:{s:258,left:    0,top:-40  } },
-  mary: { src:"assets/pot-mary.webp",   win:{w:262,h:215,right:  0,top:  0},
-                                        img:{s:358,left:    0,top:-143 } },
-  gosha:{ src:"assets/pot-gosha.webp",  win:{w:140,h:187,right:  9,top: -4},
+  margot:{ src:"assets/pot-margot.webp", win:{w:265,h:172,right:  0,top:  0},
+                                        img:{s:363,left:    0,top:-144 } },
+  andrew:{ src:"assets/pot-andrew.webp",  win:{w:140,h:187,right:  9,top: -4},
                                         img:{s:308,left:-88.2,top:-80.2} },
   vera: { src:"assets/pot-vera.webp",   win:{w:224,h:227,right:  0,top:  0},
                                         img:{s:282,left: -0.1,top:-78.9} },
