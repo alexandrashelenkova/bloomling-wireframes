@@ -7415,3 +7415,35 @@ preset films swapping as before. No 404s beyond the browser's own
 fine; the prototype loads React and Babel from unpkg at runtime, and a burst of
 cold-profile headless launches gets reset. Retrying cleared it. Worth knowing
 before reading a blank app as a regression.
+
+### Shipped
+
+`8ac1dc1`, deployed to production and aliased to
+**https://bloomling-wireframes.vercel.app**.
+
+Re-verified live:
+
+- **Presets cycled on all five plants**: Felix 5 distinct films / 6 bubbles;
+  Margot, Andrew, Vera and Vlad **1 film each — their own — and 6 bubbles**,
+  with a single mounted `<video>` apiece.
+- **A plant added without a name**: card `Ficus` / `Ficus` on two lines, badge
+  `happy`, detail `Ficus` / `Ficus` with chip `happy` and glow
+  `rgb(204,245,176)`, chat author `Ficus` on `avatar-felix.png`.
+- **The tour** runs its eighteen steps with Felix's preset films swapping.
+- **The embed document the landing's iframe loads** (`?embed=1`, 386×818):
+  same preset results on every plant, no bad requests, no console errors.
+- **Rev 51's header band** still clean — 146 frames standalone, 116 in the
+  embed, 0 leaking.
+- **Console clean**, the browser's own `/favicon.ico` 404 aside.
+
+**One thing found in passing, in the LANDING repo and not fixed here.** The
+landing's phone shows a recorded fallback, `assets/video/app-demo.mp4`
+(348×736, 7.5s), underneath the live iframe, and fades the iframe in over it
+only once it reports ready. **That recording is of the old cast — its chat says
+"Mary" and "Gosha"** — and on a live load just now the iframe had not reported
+ready within 30s, so the fallback was what was on screen at opacity 1. Read from
+inside the frame, the prototype it loads is current: **zero** occurrences of the
+old names in its own source. So the prototype is right and the recording beside
+it is stale. It belongs to `landing/`, which another session is working in, so
+it is reported rather than touched — but the landing's phone will keep showing
+the old names until that clip is re-recorded.
