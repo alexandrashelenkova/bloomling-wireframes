@@ -7049,3 +7049,193 @@ Re-verified live:
   target, six judged frames across three laps, Rev 51's header band still
   clean.
 - Console clean, the browser's own `/favicon.ico` 404 aside.
+
+## Rev 53 · Margot's films are hers, and every film in the project is re-measured
+
+Three raws arrived for Margot. This normalises them to the set's own spec,
+replaces the last of the cannabis footage, and puts every other film in
+`assets/video/` through a measured re-encode.
+
+### 1 — The spec, read off the files rather than assumed
+
+| | still-* | growth-* | settings-* |
+|---|---|---|---|
+| resolution | 720×1566 | 720×1566 | 720×894 (Andrew, Vera) · 720×830 (Vlad) · 1292×1604 (Felix) |
+| fps / duration / frames | 24/1 · 5.041667s · 121 | same | same |
+| pixel format / profile | yuv420p · High | yuv420p · High | yuv420p · High |
+| audio | none | none | none |
+| **keyframes** | **1** | **21** | **11** |
+
+**The keyframe counts are the part that is not decoration.** The growth film is
+the only one in the set that is *seeked* — the timeline scrubs it with
+`currentTime` on every pointer move — and its 21 keyframes in 121 frames (a GOP
+of 6) are what make that seek land instantly. The raw arrived with **one**
+keyframe in the whole clip, which would have made her timeline the only one in
+the app that lags under the thumb. Every encode below reproduces its file's own
+keyframe spacing.
+
+**settings-margot is 720×894, matching Andrew and Vera rather than Felix.** The
+settings films are the one place the set is not uniform; Felix is the outlier at
+1292×1604 and the raw arrived at his size. 720×894 is the pair, it is what Rev
+52's asset list specified, and the stage sizes every layer by its own ratio
+anyway (`PS_AR_BY_SRC`), so 0.80537 against the map's declared 0.80549 changes
+nothing — Andrew and Vera already live with that same 0.015%.
+
+### 2 — The growth film was NOT reversed, and that is the point
+
+The brief describes the raw as authored seedling → grown and asks for it to be
+reversed. **The raw is already grown → seedling.** Sampled at one-second
+intervals, `_raw/growth-margot.mp4` runs full monstera → sprout across its five
+seconds, which is the direction `growth-felix`, `growth-andrew` and
+`growth-vlad` are all authored in and the one the timeline's
+`t = (1 − pos) × duration` mapping requires.
+
+Reversing it would have satisfied the instruction and broken the requirement
+stated in the same paragraph — "frame 0 is the grown plant and the last frame is
+the seedling". The requirement won. Shipped unreversed, and the shipped file's
+last frame is the sprout.
+
+### 3 — The encode
+
+```
+scale=W:H:force_original_aspect_ratio=increase, crop=W:H
+libx264 -preset slow -crf 23 -pix_fmt yuv420p -profile:v high
+-fps_mode cfr -r 24  [-g GOP -keyint_min GOP -sc_threshold 0]  -an -movflags +faststart
+```
+
+Cover-and-crop rather than a stretch, though in practice the crop takes almost
+nothing: 976×2124 is 0.459510 against the target's 0.459770, so covering 720×1566
+costs **0.45px off the top and bottom**, and 1292×1604 → 720×894 costs 0.05px off
+each side. The framing therefore survives intact, which is what the stage's
+−184px offset depends on. Measured as the subject's bounding box, as a fraction
+of the frame:
+
+| | top | bottom | width | centre-x |
+|---|---|---|---|---|
+| raw still (976×2124) | 0.4411 | 0.8734 | 0.7971 | 0.6004 |
+| **shipped still (720×1566)** | **0.4419** | **0.8736** | **0.7972** | **0.6000** |
+| still-felix, for reference | 0.4425 | 0.8665 | 0.7972 | 0.6000 |
+
+Her framing came out of the generator matching Felix's to four decimal places on
+width and centre, and the scale-and-crop kept it there.
+
+Quality of the shipping rung, measured against a CRF 14 encode of the same raw
+at the same size, over all 121 frames:
+
+| file | size | PSNR avg (min) | SSIM avg (min) |
+|---|---|---|---|
+| `still-margot.mp4` | 313KB | 50.20 dB (49.04) | 0.99512 (0.99473) |
+| `growth-margot.mp4` | 695KB | 50.95 dB (48.13) | 0.99525 (0.99413) |
+| `settings-margot.mp4` | 277KB | 51.12 dB (49.24) | 0.99568 (0.99429) |
+
+**One mistake caught and undone.** The first pass encoded the three at CRF 21 and
+then the project-wide optimisation pass re-encoded them at 23 — a second
+generation for no reason. They were redone in a single pass from `_raw/`, which
+came out both smaller (313/695/277KB against 471/968/391KB) and better.
+
+### 4 — The frame-0 comparison
+
+`still-margot` and `growth-margot` cross-fade into each other at "now", so their
+frame 0s have to agree. Exported from the shipped files and compared whole:
+
+| pair | MAE | max | px differing by >8 | PSNR |
+|---|---|---|---|---|
+| **margot still f0 vs growth f0** | **0.599/255** | 26 | 0.21% | **45.68 dB** |
+| felix, the same pair | 0.581/255 | 32 | 0.28% | 45.64 dB |
+| andrew, the same pair | 0.659/255 | 30 | 0.29% | 45.22 dB |
+| vlad, the same pair | 0.813/255 | 31 | 1.36% | 41.97 dB |
+| *margot still f0 vs its own frame one second later* | *1.186/255* | *85* | *1.19%* | *39.32 dB* |
+
+Two readings of that. Her pair is as tight as the three plants already shipping —
+tighter than two of them. And it is **twice as tight as the still film's own
+breathing motion**, so the handover is smaller than the movement either film
+makes on its own; there is nothing there to see. No re-framing or re-encode was
+needed.
+
+### 5 — The project-wide optimisation, and what it found
+
+**Every file already had its moov atom at the front**, so `+faststart` was
+already done and there was no free remux to win.
+
+**At CRF 21 every single file came out BIGGER.** The library had already been
+encoded at a tighter quantiser than that, so the first ladder — 21 → 19 → 18 —
+could only ever lose. Re-run from the top of the brief's range instead (23 → 22
+→ 21 → 20, taking the first rung that clears PSNR ≥ 40 dB and SSIM ≥ 0.985
+against the file it replaces, over all 121 frames), and the savings appear:
+
+- **10 files re-encoded at CRF 23**, all clearing the bar by a wide margin —
+  PSNR 47.0–56.5 dB, SSIM 0.9916–0.9986.
+- **11 files kept**, every one because the re-encode was *larger* than the
+  original, by 2.6% to 37%. Those are the per-plant still/growth/settings films,
+  which were already encoded harder than CRF 23.
+
+The weakest re-encode is `add-plant.mp4` at 47.02 dB / 0.9916 SSIM — the camera
+viewfinder, the only handheld live-action clip in the set and so the one with
+real grain to preserve. Checked by eye at 1.3× on a centre crop as well as by
+number: no visible difference.
+
+### 6 — Sizes
+
+| file | before | after | change |
+|---|---:|---:|---|
+| `add-plant-cheerfull.mp4` | 1451KB | 1148KB | −20.9% |
+| `add-plant-drama.mp4` | 1493KB | 1175KB | −21.3% |
+| `add-plant-grump.mp4` | 1463KB | 1152KB | −21.3% |
+| `add-plant-sassy.mp4` | 1498KB | 1172KB | −21.7% |
+| `add-plant.mp4` | 1541KB | 1110KB | −28.0% |
+| `bt.mp4` | 490KB | 357KB | −27.1% |
+| `growth-andrew.mp4` | 667KB | 667KB | kept |
+| `growth-felix.mp4` | 577KB | 577KB | kept |
+| **`growth-margot.mp4`** | **9988KB** | **695KB** | **−93.0%** |
+| `growth-vera.mp4` | 601KB | 601KB | kept |
+| `growth-vlad.mp4` | 688KB | 688KB | kept |
+| `settings-andrew.mp4` | 138KB | 138KB | kept |
+| `settings-felix.mp4` | 1610KB | 1286KB | −20.1% |
+| **`settings-margot.mp4`** | **4193KB** | **277KB** | **−93.4%** |
+| `settings-vera.mp4` | 133KB | 133KB | kept |
+| `settings-vlad.mp4` | 177KB | 177KB | kept |
+| `still-andrew.mp4` | 187KB | 187KB | kept |
+| `still-felix.mp4` | 153KB | 153KB | kept |
+| **`still-margot.mp4`** | **4456KB** | **313KB** | **−93.0%** |
+| `still-vera.mp4` | 197KB | 197KB | kept |
+| `still-vlad.mp4` | 267KB | 267KB | kept |
+| **TOTAL** | **31 970KB** | **12 470KB** | **−61.0%** |
+
+Margot's three are measured from the raw Kling output that arrived; every other
+row is measured against the previous build. Excluding her three, the pass takes
+the rest of the library from 13 333KB to 11 185KB, **−16.1%**.
+
+### 7 — The raws are kept, and kept out of the deploy
+
+`assets/video/_raw/` holds the three Kling originals, 18.20MB, committed so a
+re-encode can never be the only copy, and listed in a new `.vercelignore` so
+nothing ships them. The app references none of them.
+
+### Verified
+
+- **Plant Detail, all five plants.** Still film `readyState 4`, 720×1566,
+  playing, `currentTime` advancing; growth film loaded at 720×1566. Scrubbed
+  down the rail and back up: Margot's `currentTime` sequence
+  (0.4→2.47, 0.2→3.90, 0.05→4.70, then 0.3→3.58, 0.6→2.10, 0.9→0.60, 1→0.04)
+  is the same mapping the other four produce, monotonic in both directions.
+- **The cross-fade.** Scrubbed a hair off "now" so the growth film takes the
+  stage and back again: the still film takes back over (opacity 1 against the
+  growth film's 0), pot and plant in the same place in both captures. The frame
+  -level numbers are in §4.
+- **Personality & Settings.** Five films mounted; on arrival her Drama queen
+  preset plays the shared `add-plant-drama.mp4`, and **Friendly and Calm — the
+  two presets with no reaction film — show `settings-margot.mp4`** at 720×894,
+  playing, boxed at 691×857, which is the same box the 1292×1604 preset films
+  get. Per-source aspect sizing still correct.
+- **Every other plant's films still play**: Felix, Andrew, Vera and Vlad all
+  load and scrub exactly as before.
+- **The re-encoded films still play in the flows that use them**: the Add Plant
+  run goes pair → connect → shutter → identify → character (five films, presets
+  switching, playing) → meeting → dashboard.
+- **The tour** runs its eighteen steps at the same cadence with all five preset
+  films playing, `ready` posted.
+- **No 404s.** Driven through every screen with the network log open: the only
+  failed request in the whole run is the browser's own `/favicon.ico`.
+- **Console clean** — zero exceptions, zero warnings.
+- **No cannabis footage is reachable**: the three files that carried it are
+  overwritten, and nothing named for the old plant exists in the asset tree.

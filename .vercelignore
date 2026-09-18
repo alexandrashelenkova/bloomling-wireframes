@@ -1,0 +1,4 @@
+# The raw Kling output for Margot's three films, kept in the repo so the
+# originals are never lost to a re-encode, and kept OUT of the deploy because
+# nothing serves them — the normalised files beside them are what the app loads.
+assets/video/_raw

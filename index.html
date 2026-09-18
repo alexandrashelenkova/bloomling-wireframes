@@ -2024,56 +2024,6 @@ const EMO = {
   neutral:      { face:"._.",  label:"Okay",         tone:"",     word:"grumpy",  glow:"#C3F5EE" },
 };
 
-/* ═════════════ TODO — MARGOT'S THREE FILMS ARE STILL THE WRONG PLANT ═══════
-   Margot is a MONSTERA again. Her two STILL renders are the real thing — the
-   pot render and the chat avatar were recovered from this repo's own history
-   (they were deleted in `c99d69a`, the revision that made her a cannabis plant)
-   together with the frame and crop they were measured for, so those two
-   surfaces are correct and finished.
-
-   Her three FILMS are not. There has never been monstera footage in this
-   project: the fifteen still/growth/settings files all arrived in that same
-   Rev 29, after the swap, so every frame of them is the cannabis plant. They
-   are renamed rather than replaced, and they are renamed rather than removed
-   because a missing file would fall back to Vlad and put a BONSAI on Margot's
-   card, which reads as a bug instead of as a gap. Nothing is faked, nothing
-   404s, and every one is already at its final name — so replacing her footage
-   is a drop-in: copy the new file over the old one and change no code.
-
-   Three files, and what each one has to be. All three: H.264, no audio track,
-   24fps, 5.041667s, 121 frames — matched to the other four plants so the scrub
-   mapping and the crossfades carry over untouched.
-
-     assets/video/still-margot.mp4    720x1566 (0.4598). The "now" state on the
-                                      plant card: a gentle idle loop of the
-                                      grown monstera, framed for the stage's
-                                      -184px offset (PD_Y.still).
-     assets/video/growth-margot.mp4   720x1566, the same shape and length.
-                                      AUTHORED GROWN -> SEEDLING: frame 0 must
-                                      be the same image as still-margot's frame
-                                      0 — they cross-fade into each other — and
-                                      the LAST frame is the sprout. The timeline
-                                      maps position onto t = (1-pos)*duration,
-                                      so a file authored the other way round
-                                      grows as you scrub into the past, which is
-                                      the one thing that must not happen.
-     assets/video/settings-margot.mp4 720x894 (0.80537). The breathing portrait
-                                      behind Personality & Settings, pot's face
-                                      lit, framed for a stage that scrolls away
-                                      rather than for a scrub rail. The stage
-                                      sizes every layer by its own ratio
-                                      (PS_AR_BY_SRC), so another shape would be
-                                      handled — but 720x894 is what Andrew and
-                                      Vera use and what keeps the set uniform.
-
-   THE LOOK to match is the render already in assets/pot-margot.webp, and the
-   landing's own Margot card film — landing/assets/video/card-margot.mp4,
-   1100x1884 — is the same monstera in the same pink-lit pot. That file is NOT
-   copied in and could not stand in for any of the three: it is a card
-   composition with a blue-to-pink gradient and rounded corners baked in and no
-   alpha, where these three are full-bleed studio footage.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 /* ───────────────── MOCK DATA ───────────────── */
 const PLANTS = [
   {
@@ -3221,14 +3171,17 @@ const TL = MILESTONES.map(m=>m.stage.toLowerCase());
    holds; an id outside it falls back to Vlad, who is the plant every one of
    these frames was drawn from and so the only honest stand-in.
 
+   MARGOT'S THREE ARE HERS. They were the last stand-in in the set — renamed
+   cannabis footage carried through Rev 52 so nothing 404'd — and Rev 53
+   replaced them with monstera films cut from their own raws to this exact
+   spec. The raws are kept beside them in `_raw/`, out of the deploy.
+
    All fifteen files agree with what the geometry above assumes: still- and
    growth- are 720×1566 / 24fps / 121 frames to the frame, exactly like Vlad's,
    so the framings, the scrub mapping and the direction all carry over
    untouched. (976×2124 was the authoring size and is what earlier revisions of
    this comment quoted; the shipped encodes are 720×1566, the same 0.4598 ratio.
    Measured, because a replacement film is generated from these numbers.) */
-// TODO margot's three films are still the cannabis plant — see the TODO
-// block above PLANTS for what each one has to be replaced with
 const FILM_HAVE     = ["felix","margot","andrew","vera","vlad"];
 const FILM_FALLBACK = "vlad";
 const filmId  = (id)=> FILM_HAVE.indexOf(id) >= 0 ? id : FILM_FALLBACK;
