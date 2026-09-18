@@ -7239,3 +7239,31 @@ nothing ships them. The app references none of them.
 - **Console clean** — zero exceptions, zero warnings.
 - **No cannabis footage is reachable**: the three files that carried it are
   overwritten, and nothing named for the old plant exists in the asset tree.
+
+### Shipped
+
+`edbf63a`, deployed to production and aliased to
+**https://bloomling-wireframes.vercel.app**. The upload was **9.2MB** against
+27.4MB of media in the working tree, which is `.vercelignore` doing its job.
+
+Re-verified live:
+
+- **The raws are not deployed**: all three `assets/video/_raw/*.mp4` → **404**.
+  Every shipped film → **200**, at its new size (`still-margot` 320 127 B,
+  `growth-margot` 712 094 B, `settings-margot` 283 752 B).
+- **All five plants' films play and scrub**, off the CDN: still films
+  `readyState 4`, 720×1566, `currentTime` advancing; growth films loaded and
+  seeking monotonically down the rail and back up, Margot's mapping identical to
+  the other four.
+- **Personality & Settings**: Friendly and Calm show `settings-margot.mp4` at
+  720×894, playing, boxed at 691×857.
+- **The tour** runs its eighteen steps, all five preset films playing.
+- **The document the landing's iframe loads** (`?embed=1`, at its own 386×818),
+  driven live: plants list `Felix/Margot/Andrew/Vera/Vlad`, detail
+  `Margot / Monstera` on `still-margot` (advancing 2.76 → 4.06) and
+  `growth-margot` loaded, settings on `settings-margot` — **zero bad requests,
+  zero console errors or warnings**. Attaching to the real landing page's
+  cross-origin frame reports no failed requests either.
+- **Rev 51's header band still clean**: 118 dashboard frames, 0 with a chat
+  pixel above it.
+- **Console clean**, the browser's own `/favicon.ico` 404 aside.
