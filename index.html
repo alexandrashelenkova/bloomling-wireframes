@@ -404,12 +404,26 @@
   /* species sits 80px down and the name 101px (Figma 364:1087 / 364:1093 against
      a card top of 135) — a 21px step, tighter than the 25px it used to be */
   .plspecies{position:absolute;left:43px;top:80px;font-size:var(--t-md);
-    color:var(--ink);opacity:.4;line-height:1.25}
-  /* a plant whose species IS its name (Basil) drops the duplicate label, so the
-     name moves up into the space the species would have used */
-  .plcard:not(:has(.plspecies)) .plname{top:80px}
+    color:var(--ink);opacity:.4;line-height:1.25;
+    max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* The rule that moved the name up when there was no species line is gone with
+     the condition that produced it — every card carries both lines now.
+
+     And the name is held off the pot. It is one word (`name.split(" ")[0]`), so
+     the common case is short — the five shipped names end between 84 and 115px
+     into a 330px card — but nothing stopped a long one running under the render
+     and out of the card, and the Add Plant flow takes whatever is typed.
+
+     190 is not a pot's edge: the windows start anywhere from 65 to 181 and the
+     existing names already overlap them, harmlessly, because a render's left
+     side is transparent. It is the width of the text column itself — 43 + 190
+     ends a name at 233 of 330, which is where the art becomes opaque on the
+     narrowest of the five. Measured with "Bartholomewington", which ends at 226
+     and clears the ficus. `ellipsis` is what a card this size can honestly do
+     with a name longer than that. */
   .plname{position:absolute;left:43px;top:101px;font-family:'Riccione',Georgia,serif;
-    font-weight:400;font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink)}
+    font-weight:400;font-size:var(--t-lg);line-height:1.18;color:var(--serif-ink);
+    max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* the pot render: a WINDOW anchored on the card's right edge, holding a square
      1024px source offset inside it. Window box + inner offset are lifted straight
      off the mockup's image frames, so the crop matches per plant; the card's own
@@ -4239,7 +4253,8 @@ function PlantSettings({params}){
      `bubKey` re-pops the speech bubble on the same beat, because the line under
      it has just changed too. */
   return <PsShell filmId={lookOf(p.id)} title="Personality &amp; Settings"
-    film={psPresetFilm(lookOf(p.id), preset)} films={psPresetFilms(lookOf(p.id))}
+    film={presetFilm(p.species, lookOf(p.id), preset)}
+    films={presetFilms(p.species, lookOf(p.id))}
     bubKey={preset} line={sampleLine(preset,tune)}>
 
         {/* ── PERSONALITY ──────────────────────────────────────────────── */}
@@ -4305,23 +4320,18 @@ const AP_CAM_FILM = "assets/video/add-plant.mp4";
    playback state to carry across, and it cannot end up a frame off the one the
    shutter froze. 66KB against a video element. */
 const AP_PHOTO    = "assets/photo-addplant.webp";
-/* whose settings film the character step opens on — Felix, the app's reference
-   pot, because the plant being set up has none of its own yet */
-const AP_CREATE_FILM = "felix";
-
-/* The character step's film follows the PRESET, not the plant. Four of the six
-   presets have a film of their own; the other two fall back to this screen's
-   standing default, settings-felix.mp4, which is what it showed for every
-   preset until now.
+/* The character step's film follows the PRESET as well as the plant. Four of the
+   six presets have a film of their own; the other two fall back to the plant's
+   own portrait.
 
      Drama queen -> add-plant-drama       Cheerful -> add-plant-cheerfull
      Grump       -> add-plant-grump       Sassy    -> add-plant-sassy
-     Friendly, Calm -> settings-felix (the default)
+     Friendly, Calm -> that plant's own settings film
 
    "cheerfull" is the file's own spelling and is left alone — renaming an asset
    to fix a typo is how a working reference goes stale. The brief also names
    Shy and Wise; PERSONALITIES has no such presets, so nothing maps to them and
-   the `|| default` covers them if they are ever added. */
+   the fallback covers them if they are ever added. */
 const AP_PRESET_FILM = {
   "Drama queen": "assets/video/add-plant-drama.mp4",
   "Grump":       "assets/video/add-plant-grump.mp4",
@@ -4331,18 +4341,32 @@ const AP_PRESET_FILM = {
 /* all four are 1292x1604 — the stage sizes each layer by its own shape now that
    a set can mix these with a plant's settings film. See PS_AR_BY_SRC. */
 Object.keys(AP_PRESET_FILM).forEach(k => { PS_AR_BY_SRC[AP_PRESET_FILM[k]] = 1292/1604; });
-const apPresetFilm = (k)=> AP_PRESET_FILM[k] || psFilm(AP_CREATE_FILM);
 
-/* ── THE SAME FILMS, ON A PLANT YOU ALREADY HAVE ────────────────────────────
-   A preset is a character, and a character does not become a different one
-   because the plant is already on the windowsill — so Personality & Settings
-   plays the very same reaction film the flow plays for that preset. Two things
-   differ, and both follow from the screen having a real plant behind it:
-   the fallback for a preset with no film of its own is THIS plant's settings
-   film rather than Felix's, and the set is therefore built per plant. */
-const psPresetFilm  = (id,k)=> AP_PRESET_FILM[k] || psFilm(id);
-const psPresetFilms = (id)=> Object.keys(AP_PRESET_FILM)
-                               .map(k=>AP_PRESET_FILM[k]).concat([psFilm(id)]);
+/* ── WHOSE REACTIONS THESE ARE, AND WHY IT IS A SPECIES ─────────────────────
+   The four films above were shot for the Add Plant flow, and that flow shoots
+   the plant it has just identified — a FICUS. They are a ficus's reactions,
+   not a universal set: the pot and the lighting are shared, but the foliage in
+   it is Felix's. Rev 50 handed them to every plant's Personality & Settings on
+   the reasoning that "a preset is a character and a character does not change
+   because the plant is already on the windowsill" — which is true of the
+   CHARACTER and false of the FOOTAGE. Tapping a preset on Margot replaced her
+   monstera with a ficus mid-gesture.
+
+   So they travel by species, not by name. Felix is a Ficus and gets them; a
+   plant added through the flow gets them if, and only if, what it was
+   identified or picked as is a Ficus too — which is automatic rather than a
+   special case for the new plant. Everybody else keeps their own portrait and
+   changes only what they say, which is what the screen did before Rev 50.
+
+   `look` is the art identity (a new plant borrows another plant's films), so
+   the fallback is always a real file and never another plant's reaction. */
+const PRESET_FILM_SPECIES = "Ficus";
+const presetFilm  = (species, look, k)=>
+  ((species === PRESET_FILM_SPECIES && AP_PRESET_FILM[k]) || psFilm(look));
+const presetFilms = (species, look)=>
+  species === PRESET_FILM_SPECIES
+    ? Object.keys(AP_PRESET_FILM).map(k=>AP_PRESET_FILM[k]).concat([psFilm(look)])
+    : [psFilm(look)];
 
 /* The first thing the plant ever says, one line per preset. It used to be
    `personaByName(preset).lines.base` — the personality model's generic check-in,
@@ -4380,11 +4404,6 @@ const apWelcome = (first)=> [
   { who:"andrew", at:"now", cross:true,
     text:"Hm. Another one. …welcome, I suppose." },
 ];
-/* Every film the step can reach — PsShell mounts the whole set at once and
-   preloads it, so this list IS the preload. Order does not matter here: PsShell
-   rotates whichever film is active to the front of its own mount order. */
-const AP_PRESET_FILMS = Object.values(AP_PRESET_FILM).concat([psFilm(AP_CREATE_FILM)]);
-
 /* the ellipsis that shows something is happening — see .apdots */
 const Dots = ()=> <span className="apdots"><i>.</i><i>.</i><i>.</i></span>;
 
@@ -4625,8 +4644,12 @@ function CreateCharacter({params}){
      preload="auto", which downloads the same bytes AND leaves a decoded element
      behind, where a fetch only filled the HTTP cache and every switch still had
      to open the file. Two ways of downloading the same thing was one too many. */
-  return <PsShell filmId={AP_CREATE_FILM} film={apPresetFilm(preset)}
-    films={AP_PRESET_FILMS} pinTitle="Add plant" bubKey={preset}
+  /* The step's plant is whatever the flow just identified or the user picked,
+     so its art identity and its reaction films both follow that species — a
+     ficus gets the preset films, anything else keeps its own portrait. */
+  return <PsShell filmId={lookFor(species)}
+    film={presetFilm(species, lookFor(species), preset)}
+    films={presetFilms(species, lookFor(species))} pinTitle="Add plant" bubKey={preset}
     line={sampleLine(preset,tune)}>
 
     <PersonalitySection preset={preset} tune={tune} onPick={pick} onSlide={slide}/>
@@ -4672,7 +4695,15 @@ const addNewPlant = ({name, species, preset, voice})=>{
   const persona = personaByName(preset);
   PLANTS.push({
     id:"new", look:lookFor(species), name, species, persona:preset, voice,
-    emotion:persona.faces.base, growth:4, lastWatered:"Just now", light:"Good",
+    /* HAPPY, not the preset's resting face. `persona.faces.base` is the face
+       that character wears on an ordinary morning — thirsty for the drama
+       queen, gloomy for the grump, and TOO HOT for Sassy — which is a mood, and
+       a plant you have just unboxed, watered and stood in a good window has no
+       business being in one. `content` is the app's happy: "All good", the ^‿^
+       face and the green glow, and it is what the card badge, the detail
+       header, the chat avatar and the pot's own light all read from. The
+       character still comes through in every word it says. */
+    emotion:"content", growth:4, lastWatered:"Just now", light:"Good",
     reservoir:100, autoOn:true, schedule:"Every 2 days", amount:"Medium",
     bondLevel:1, bondPct:6, bondTitle:"Just met",
     quietFrom:AP_DRAFT.quietFrom, quietTo:AP_DRAFT.quietTo,
@@ -4998,8 +5029,15 @@ function PlantsList(){
           <div className="plsurface" style={{background:"var(--g-"+lookOf(it.id)+")"}}/>
           <PotShot who={lookOf(it.id)}/>
           <div className="plchip">{e.word}</div>
-          {it.species !== it.name.split(" ")[0] &&
-            <div className="plspecies">{it.species}</div>}
+          {/* ALWAYS BOTH LINES. This used to drop the species whenever it
+              matched the name, which only ever happened to a plant added
+              without one — the flow falls back to the species as the name — so
+              the one card in the app that was brand new was also the one card
+              with a single line on it, while its own detail screen showed
+              "Ficus" over "Ficus" two taps away. The duplicate is the honest
+              state of a plant nobody has named yet, and the card should say
+              what the detail screen says. */}
+          <div className="plspecies">{it.species}</div>
           <div className="plname">{it.name.split(" ")[0]}</div>
         </div>;
       })}

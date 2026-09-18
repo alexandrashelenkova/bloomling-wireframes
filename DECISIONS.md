@@ -7267,3 +7267,151 @@ Re-verified live:
 - **Rev 51's header band still clean**: 118 dashboard frames, 0 with a chat
   pixel above it.
 - **Console clean**, the browser's own `/favicon.ico` 404 aside.
+
+## Rev 54 · A new plant gets two lines and a good mood, and reaction films stop travelling between species
+
+Three fixes. The third is a regression this log introduced in Rev 50, so it gets
+the longest entry.
+
+### 1 — The film regression: a preset is a character, a film is a performance
+
+**What it was.** Rev 50 gave Personality & Settings the Add Plant flow's four
+preset reaction films, reasoning that "a preset is a character, and a character
+does not become a different one because the plant is already on the windowsill".
+That is true of the CHARACTER and false of the FOOTAGE. Those four films were
+shot for the flow, and the flow shoots the plant it has just identified — a
+**ficus**. The pot and the lighting are shared across the set, but the foliage
+in them is Felix's.
+
+The helper made it unconditional:
+
+```js
+const psPresetFilm = (id,k)=> AP_PRESET_FILM[k] || psFilm(id);
+```
+
+The preset lookup came first, so the plant argument only ever decided the
+fallback — the two presets with no film of their own, Friendly and Calm. For the
+other four, every plant in the app got Felix. Tapping **Drama queen** on Margot
+replaced her monstera with a ficus mid-gesture, and `films` mounted all four on
+her stage, so the wrong plant was preloaded as well as shown.
+
+**The fix is a species, not a list of names.** The films belong to the species
+they were shot on, so that is what gates them:
+
+```js
+const PRESET_FILM_SPECIES = "Ficus";
+const presetFilm  = (species, look, k)=>
+  ((species === PRESET_FILM_SPECIES && AP_PRESET_FILM[k]) || psFilm(look));
+const presetFilms = (species, look)=>
+  species === PRESET_FILM_SPECIES ? [...four..., psFilm(look)] : [psFilm(look)];
+```
+
+One pair of helpers now serves both screens — Personality & Settings passes
+`p.species`, the flow's character step passes the species it is setting up —
+where there used to be two near-identical pairs (`apPresetFilm`/`AP_PRESET_FILMS`
+and `psPresetFilm`/`psPresetFilms`) that had already drifted apart once.
+
+Three consequences worth stating, all of which fall out rather than being
+special-cased:
+
+- **Felix gets them because he is a Ficus**, not because he is Felix.
+- **A plant added through the flow gets them if what it was identified as is a
+  Ficus** — which is the default path, so the brief's "any plant added through
+  the add-plant flow" holds without a rule for it.
+- **A plant added through the flow's MANUAL species picker as something else
+  does not.** The picker offers 23 species; pick Monstera and the character step
+  and the settings screen both keep the monstera portrait. The brief says the
+  flow "only offers a ficus", which is true of the identify path and not of the
+  manual one; driving off species covers both without having to decide which.
+
+**The fallback is never another plant's footage.** `psFilm(look)` resolves
+through the plant's own art identity — a new plant borrows the films of the
+species it is, and `filmId()` falls back to Vlad only for an id with no art at
+all — so a species with no film for a given preset lands on its own portrait.
+
+### 2 — The card's second line
+
+`PlantsList` hid the species whenever it equalled the name:
+
+```js
+{it.species !== it.name.split(" ")[0] && <div className="plspecies">…</div>}
+```
+
+That condition can only fire for a plant added without a name, because the flow
+falls back to the species as the name (`name.trim() || species`). So the one card
+in the app belonging to a brand-new plant was also the only card with a single
+line on it — while its own detail screen, two taps away, showed "Ficus" over
+"Ficus" quite happily. The duplicate is the honest state of a plant nobody has
+named yet, and the card should say what the detail screen says. The condition is
+gone; the species line is chrome now.
+
+The CSS rule that moved the name up when there was no species line
+(`.plcard:not(:has(.plspecies)) .plname`) went with it — it can no longer match.
+
+**Long names.** The name is one word (`name.split(" ")[0]`) and the five shipped
+ones end between 84 and 115px into a 330px card, but the flow takes whatever is
+typed and nothing stopped a long one running under the pot and out of the card.
+Both text lines are now capped at 190px with an ellipsis. 190 is not a pot's
+edge — the render windows start anywhere from 65 to 181 and the existing names
+already overlap them harmlessly, because a render's left side is transparent. It
+is the width of the text column: 43 + 190 ends a name at 233 of 330, which is
+where the art becomes opaque on the narrowest of the five. Checked with
+"Bartholomewington", which ends at 226 and clears the ficus.
+
+### 3 — A new plant starts happy
+
+`addNewPlant` seeded `emotion: persona.faces.base` — the face that character
+wears on an ordinary morning. Per preset that is `thirsty` for the drama queen,
+`low-light` for the grump, `sleeping` for calm and **`hot` — "Too hot" — for
+Sassy**, which is what was being seen. A mood is not a personality, and a plant
+you have just unboxed, watered and stood in a good window has no business being
+in a bad one.
+
+Seeded `"content"` instead — the app's happy: "All good", the `^‿^` face and the
+`#CCF5B0` green glow. Fixed at the source, so the card badge, the detail header,
+the mood chip's glow, the chat row and the pot's own light all read the same
+thing from the same field. The character still comes through in every word the
+plant says: `checkin`, `reaction` and the welcome lines are untouched.
+
+### Verified
+
+**Presets cycled on every plant, film and bubble recorded at each step:**
+
+| plant | species | distinct films over 6 presets | distinct bubbles | mounted |
+|---|---|---:|---:|---|
+| Felix | Ficus | **5** | 6 | its own + the four preset films |
+| Margot | Monstera | **1** (`settings-margot`) | 6 | **1** |
+| Andrew | Cactus | **1** (`settings-andrew`) | 6 | **1** |
+| Vera | Aloe | **1** (`settings-vera`) | 6 | **1** |
+| Vlad | Bonsai | **1** (`settings-vlad`) | 6 | **1** |
+| added, identified as Ficus | Ficus | **5** | 6 | its own + the four |
+| added, picked as Monstera | Monstera | **1** (`settings-margot`) | 6 | **1** |
+
+Five films rather than six for a ficus because Friendly and Calm share the
+plant's own portrait — the two presets with no film. A single mounted element
+for every non-ficus means the other footage is not merely hidden, it is never
+requested.
+
+**A plant added without a name**, read back on every surface it appears on:
+
+- card — name `Ficus`, species `Ficus`, **2 lines**, badge `happy`, art
+  `pot-felix.webp`, name ends at 93 of 330, no overflow
+- detail — `Ficus` / `Ficus`, chip `happy`, glow `rgb(204,245,176)` = `#CCF5B0`,
+  films `still-felix` + `growth-felix`
+- chat — author `Ficus`, avatar `avatar-felix.png`
+- the flow's own character step — `add-plant-sassy.mp4` after picking Sassy,
+  i.e. the preset films still work for a ficus
+
+**A plant added with a long name** — `Bartholomewington`: two lines, badge
+`happy`, name ends at 226 of 330, `scrollWidth === clientWidth` so the ellipsis
+is not engaged, and the card reads cleanly against the render.
+
+**Nothing else moved.** The tour runs its eighteen steps with Felix's four
+preset films swapping as before. No 404s beyond the browser's own
+`/favicon.ico`. Zero exceptions and zero console warnings across every run.
+
+**One harness note, not a product fault.** Three runs failed to boot with
+`ERR_CONNECTION_RESET` on all three unpkg scripts while `curl` fetched them
+fine; the prototype loads React and Babel from unpkg at runtime, and a burst of
+cold-profile headless launches gets reset. Retrying cleared it. Worth knowing
+before reading a blank app as a regression.
